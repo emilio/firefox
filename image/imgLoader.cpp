@@ -701,8 +701,7 @@ static bool ShouldRevalidateEntry(imgCacheEntry* aEntry, nsLoadFlags aFlags,
 static bool ShouldLoadCachedImage(imgRequest* aImgRequest,
                                   Document* aLoadingDocument,
                                   nsIPrincipal* aTriggeringPrincipal,
-                                  nsContentPolicyType aPolicyType,
-                                  bool aSendCSPViolationReports) {
+                                  nsContentPolicyType aPolicyType) {
   /* Call content policies on cached images - Bug 1082837
    * Cached images are keyed off of the first uri in a redirect chain.
    * Hence content policies don't get a chance to test the intermediate hops
@@ -731,7 +730,7 @@ static bool ShouldLoadCachedImage(imgRequest* aImgRequest,
       loadingPrincipal, aTriggeringPrincipal, aLoadingDocument,
       nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, aPolicyType);
 
-  secCheckLoadInfo->SetSendCSPViolationEvents(aSendCSPViolationReports);
+  secCheckLoadInfo->SetSendCSPViolationEvents(true);
 
   int16_t decision = nsIContentPolicy::REJECT_REQUEST;
   rv = NS_CheckContentLoadPolicy(contentLocation, secCheckLoadInfo, &decision,
@@ -815,8 +814,7 @@ static bool ValidateSecurityInfo(imgRequest* aRequest,
   }
   // Content Policy Check on Cached Images
   return ShouldLoadCachedImage(aRequest, aLoadingDocument, aTriggeringPrincipal,
-                               aPolicyType,
-                               /* aSendCSPViolationReports */ false);
+                               aPolicyType);
 }
 
 static void AdjustPriorityForImages(nsIChannel* aChannel,
@@ -1775,8 +1773,7 @@ bool imgLoader::ValidateRequestWithNewChannel(
     uint64_t aInnerWindowId, nsLoadFlags aLoadFlags,
     nsContentPolicyType aLoadPolicyType, imgRequestProxy** aProxyRequest,
     nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode, bool aLinkPreload,
-    uint64_t aEarlyHintPreloaderId, FetchPriority aFetchPriority,
-    bool* aNewChannelCreated) {
+    uint64_t aEarlyHintPreloaderId, FetchPriority aFetchPriority) {
   // now we need to insert a new channel request object in between the real
   // request and the proxy that basically delays loading the image until it
   // gets a 304 or figures out that this needs to be a new request
@@ -1826,10 +1823,6 @@ bool imgLoader::ValidateRequestWithNewChannel(
                        aEarlyHintPreloaderId, aFetchPriority);
   if (NS_FAILED(rv)) {
     return false;
-  }
-
-  if (aNewChannelCreated) {
-    *aNewChannelCreated = true;
   }
 
   RefPtr<imgRequestProxy> req;
@@ -1944,11 +1937,34 @@ bool imgLoader::ValidateEntry(
     nsIReferrerInfo* aReferrerInfo, nsILoadGroup* aLoadGroup,
     imgINotificationObserver* aObserver, Document* aLoadingDocument,
     nsLoadFlags aLoadFlags, nsContentPolicyType aLoadPolicyType,
-    bool aCanMakeNewChannel, bool* aNewChannelCreated,
-    imgRequestProxy** aProxyRequest, nsIPrincipal* aTriggeringPrincipal,
-    CORSMode aCORSMode, bool aLinkPreload, uint64_t aEarlyHintPreloaderId,
-    FetchPriority aFetchPriority) {
+    bool aCanMakeNewChannel, imgRequestProxy** aProxyRequest,
+    nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode, bool aLinkPreload,
+    uint64_t aEarlyHintPreloaderId, FetchPriority aFetchPriority) {
   LOG_SCOPE(gImgLog, "imgLoader::ValidateEntry");
+
+  RefPtr<imgRequest> request(aEntry->GetRequest());
+  if (!request) {
+    return false;
+  }
+
+  if (!ValidateSecurityInfo(request, aEntry->ForcePrincipalCheck(), aCORSMode,
+                            aTriggeringPrincipal, aLoadingDocument,
+                            aLoadPolicyType)) {
+    return false;
+  }
+
+  if (request->CanReuseWithoutValidation(aLoadingDocument)) {
+    if (!aLoadingDocument) {
+      MOZ_LOG(gImgLog, LogLevel::Debug,
+              ("imgLoader::ValidateEntry BYPASSING cache validation for %s "
+               "because of NULL loading document",
+               aURI->GetSpecOrDefault().get()));
+    }
+    NotifyObserversForCachedImage(aEntry, request, aURI, aReferrerInfo,
+                                  aLoadingDocument, aTriggeringPrincipal,
+                                  aCORSMode, aEarlyHintPreloaderId);
+    return true;
+  }
 
   // If the expiration time is zero, then the request has not gotten far enough
   // to know when it will expire, or we know it will never expire (see
@@ -1969,53 +1985,38 @@ bool imgLoader::ValidateEntry(
     }
   }
 
-  RefPtr<imgRequest> request(aEntry->GetRequest());
-
-  if (!request) {
+  // If we would need to revalidate this entry, but we're being told to
+  // bypass the cache, we don't allow this entry to be used.
+  if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
     return false;
   }
 
-  if (!ValidateSecurityInfo(request, aEntry->ForcePrincipalCheck(), aCORSMode,
-                            aTriggeringPrincipal, aLoadingDocument,
-                            aLoadPolicyType)) {
-    return false;
-  }
-
-  // data URIs are immutable and by their nature can't leak data, so we can
-  // just return true in that case.  Doing so would mean that shift-reload
-  // doesn't reload data URI documents/images though (which is handy for
-  // debugging during gecko development) so we make an exception in that case.
-  if (aURI->SchemeIs("data") && !(aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE)) {
+  // data URIs are immutable and by their nature can't leak data, so we can just
+  // return true in that case. Doing so would mean that shift-reload doesn't
+  // reload data URI documents/images though (which is handy for debugging
+  // during gecko development) so we make an exception in that case.
+  if (aURI->SchemeIs("data")) {
     return true;
   }
 
-  bool validateRequest = false;
-
-  if (!request->CanReuseWithoutValidation(aLoadingDocument)) {
-    // If we would need to revalidate this entry, but we're being told to
-    // bypass the cache, we don't allow this entry to be used.
-    if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE) {
+  if (MOZ_UNLIKELY(ChaosMode::isActive(ChaosFeature::ImageCache))) {
+    if (ChaosMode::randomUint32LessThan(4) < 1) {
       return false;
     }
+  }
 
-    if (MOZ_UNLIKELY(ChaosMode::isActive(ChaosFeature::ImageCache))) {
-      if (ChaosMode::randomUint32LessThan(4) < 1) {
-        return false;
-      }
-    }
-
-    // Determine whether the cache aEntry must be revalidated...
-    validateRequest = ShouldRevalidateEntry(aEntry, aLoadFlags, hasExpired);
-
-    MOZ_LOG(gImgLog, LogLevel::Debug,
-            ("imgLoader::ValidateEntry validating cache entry. "
-             "validateRequest = %d",
-             validateRequest));
-  } else if (!aLoadingDocument && MOZ_LOG_TEST(gImgLog, LogLevel::Debug)) {
-    MOZ_LOG(gImgLog, LogLevel::Debug,
-            ("imgLoader::ValidateEntry BYPASSING cache validation for %s "
-             "because of NULL loading document",
-             aURI->GetSpecOrDefault().get()));
+  // Determine whether the cache aEntry must be revalidated...
+  const bool validateRequest =
+      ShouldRevalidateEntry(aEntry, aLoadFlags, hasExpired);
+  MOZ_LOG(gImgLog, LogLevel::Debug,
+          ("imgLoader::ValidateEntry validating cache entry. "
+           "validateRequest = %d",
+           validateRequest));
+  if (!validateRequest) {
+    NotifyObserversForCachedImage(aEntry, request, aURI, aReferrerInfo,
+                                  aLoadingDocument, aTriggeringPrincipal,
+                                  aCORSMode, aEarlyHintPreloaderId);
+    return true;
   }
 
   // If the original request is still transferring don't kick off a validation
@@ -2065,25 +2066,18 @@ bool imgLoader::ValidateEntry(
     return true;
   }
 
-  if (validateRequest && aCanMakeNewChannel) {
-    LOG_SCOPE(gImgLog, "imgLoader::ValidateRequest |cache hit| must validate");
-
-    uint64_t innerWindowID =
-        aLoadingDocument ? aLoadingDocument->InnerWindowID() : 0;
-    return ValidateRequestWithNewChannel(
-        request, aURI, aInitialDocumentURI, aReferrerInfo, aLoadGroup,
-        aObserver, aLoadingDocument, innerWindowID, aLoadFlags, aLoadPolicyType,
-        aProxyRequest, aTriggeringPrincipal, aCORSMode, aLinkPreload,
-        aEarlyHintPreloaderId, aFetchPriority, aNewChannelCreated);
+  if (!aCanMakeNewChannel) {
+    return false;
   }
 
-  if (!validateRequest) {
-    NotifyObserversForCachedImage(
-        aEntry, request, aURI, aReferrerInfo, aLoadingDocument,
-        aTriggeringPrincipal, aCORSMode, aEarlyHintPreloaderId, aFetchPriority);
-  }
-
-  return !validateRequest;
+  LOG_SCOPE(gImgLog, "imgLoader::ValidateRequest |cache hit| must validate");
+  uint64_t innerWindowID =
+      aLoadingDocument ? aLoadingDocument->InnerWindowID() : 0;
+  return ValidateRequestWithNewChannel(
+      request, aURI, aInitialDocumentURI, aReferrerInfo, aLoadGroup, aObserver,
+      aLoadingDocument, innerWindowID, aLoadFlags, aLoadPolicyType,
+      aProxyRequest, aTriggeringPrincipal, aCORSMode, aLinkPreload,
+      aEarlyHintPreloaderId, aFetchPriority);
 }
 
 bool imgLoader::RemoveFromCache(const ImageCacheKey& aKey) {
@@ -2445,11 +2439,10 @@ nsresult imgLoader::LoadImage(
   // of post data.
   ImageCacheKey key(aURI, corsmode, aLoadingDocument);
   if (mCache.Get(key, getter_AddRefs(entry)) && entry) {
-    bool newChannelCreated = false;
     if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerInfo,
                       aLoadGroup, aObserver, aLoadingDocument, requestFlags,
-                      aContentPolicyType, true, &newChannelCreated, _retval,
-                      aTriggeringPrincipal, corsmode, aLinkPreload,
+                      aContentPolicyType, /* aCanMakeNewChannel = */ true,
+                      _retval, aTriggeringPrincipal, corsmode, aLinkPreload,
                       aEarlyHintPreloaderId, aFetchPriority)) {
       request = entry->GetRequest();
 
@@ -2469,18 +2462,6 @@ nsresult imgLoader::LoadImage(
       }
 
       entry->Touch();
-
-      if (!newChannelCreated) {
-        // This is ugly but it's needed to report CSP violations. We have 3
-        // scenarios:
-        // - we don't have cache. We are not in this if() stmt. A new channel is
-        //   created and that triggers the CSP checks.
-        // - We have a cache entry and this is blocked by CSP directives.
-        DebugOnly<bool> shouldLoad = ShouldLoadCachedImage(
-            request, aLoadingDocument, aTriggeringPrincipal, aContentPolicyType,
-            /* aSendCSPViolationReports */ true);
-        MOZ_ASSERT(shouldLoad);
-      }
     } else {
       // We can't use this entry. We'll try to load it off the network, and if
       // successful, overwrite the old entry in the cache with a new one.
@@ -2715,7 +2696,7 @@ nsresult imgLoader::LoadImageWithChannel(nsIChannel* channel,
 
       if (ValidateEntry(entry, uri, nullptr, nullptr, nullptr, aObserver,
                         aLoadingDocument, requestFlags, policyType, false,
-                        nullptr, nullptr, nullptr, corsMode, false, 0,
+                        nullptr, nullptr, corsMode, false, 0,
                         FetchPriority::Auto)) {
         request = entry->GetRequest();
       } else {

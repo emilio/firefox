@@ -407,8 +407,7 @@ class imgLoader final : public imgILoader,
                      mozilla::dom::Document* aLoadingDocument,
                      nsLoadFlags aLoadFlags,
                      nsContentPolicyType aLoadPolicyType,
-                     bool aCanMakeNewChannel, bool* aNewChannelCreated,
-                     imgRequestProxy** aProxyRequest,
+                     bool aCanMakeNewChannel, imgRequestProxy** aProxyRequest,
                      nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode,
                      bool aLinkPreload, uint64_t aEarlyHintPreloaderId,
                      mozilla::dom::FetchPriority aFetchPriority);
@@ -421,14 +420,13 @@ class imgLoader final : public imgILoader,
       nsLoadFlags aLoadFlags, nsContentPolicyType aContentPolicyType,
       imgRequestProxy** aProxyRequest, nsIPrincipal* aLoadingPrincipal,
       mozilla::CORSMode, bool aLinkPreload, uint64_t aEarlyHintPreloaderId,
-      mozilla::dom::FetchPriority aFetchPriority, bool* aNewChannelCreated);
+      mozilla::dom::FetchPriority);
 
   void NotifyObserversForCachedImage(
       imgCacheEntry* aEntry, imgRequest* request, nsIURI* aURI,
       nsIReferrerInfo* aReferrerInfo, mozilla::dom::Document* aLoadingDocument,
       nsIPrincipal* aTriggeringPrincipal, mozilla::CORSMode,
-      uint64_t aEarlyHintPreloaderId,
-      mozilla::dom::FetchPriority aFetchPriority);
+      uint64_t aEarlyHintPreloaderId, mozilla::dom::FetchPriority);
   // aURI may be different from imgRequest's URI in the case of blob URIs, as we
   // can share requests with different URIs.
   nsresult CreateNewProxyForRequest(imgRequest* aRequest, nsIURI* aURI,
