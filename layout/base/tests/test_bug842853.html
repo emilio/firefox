@@ -10,7 +10,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=842853
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
   <script type="application/javascript">
 
-  /** Test for Bug 842853 **/
+/** Test for Bug 842853 **/
 
 SimpleTest.waitForExplicitFinish();
 
@@ -19,12 +19,13 @@ async function runTest() {
   if (win.location.hash != '') {
     // Allow a half pixel difference because the scroll position is aligned with
     // screen pixels instead of CSS pixels (bug 1774315).
-    isfuzzy(win.scrollY, 500, 0.5);
+    isfuzzy(win.scrollY, 500, 0.5, "Scroll position should be restored");
     SimpleTest.finish();
     return;
   }
-  win.location.hash='#anchor'
-  win.scrollTo(0,500);
+  win.location.hash = '#anchor';
+  win.scrollTo(0, 500);
+  isfuzzy(win.scrollY, 500, 0.5, "Should synchronously scroll");
   win.location.reload()
 }
 
@@ -43,8 +44,8 @@ async function runTest() {
 
 var e = document.createElement('iframe');
 var url = 'file_bug842853-frame.html';
-e.setAttribute('src',url);
-e.setAttribute('onload','runTest()');
+e.setAttribute('src', url);
+e.setAttribute('onload', 'runTest()');
 document.body.appendChild(e);
 
 </script>

@@ -10,8 +10,7 @@
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
 
-namespace mozilla {
-namespace layers {
+namespace mozilla::layers {
 
 // The ScrollingInteractionContext is used to store minor details of the
 // current scrolling interaction on the stack to avoid having to pass them
@@ -34,7 +33,6 @@ class MOZ_STACK_CLASS ScrollingInteractionContext {
   bool mOldScrollingToAnchor;
 };
 
-}  // namespace layers
-}  // namespace mozilla
+}  // namespace mozilla::layers
 
 #endif /* mozilla_layers_ScrollingInteractionContext_h */

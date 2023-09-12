@@ -6178,13 +6178,9 @@ bool ScrollContainerFrame::ReflowFinished() {
 #endif  // defined(MOZ_WIDGET_ANDROID)
   }
 
-  bool doScroll = true;
-  if (IsSubtreeDirty()) {
-    // We will get another call after the next reflow and scrolling
-    // later is less janky.
-    doScroll = false;
-  }
-
+  // If we're dirty we will get another call after the next reflow, and
+  // scrolling later is less janky.
+  const bool doScroll = !IsSubtreeDirty();
   if (mFirstReflow) {
     nsPoint currentScrollPos = GetScrollPosition();
     if (!mScrollUpdates.IsEmpty() &&

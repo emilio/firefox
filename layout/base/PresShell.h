@@ -1659,8 +1659,7 @@ class PresShell final : public nsStubDocumentObserver,
    */
   MOZ_CAN_RUN_SCRIPT
   nsresult ScrollContentIntoView(nsIContent* aContent, ScrollAxis aVertical,
-                                 ScrollAxis aHorizontal,
-                                 ScrollFlags aScrollFlags);
+                                 ScrollAxis aHorizontal, ScrollFlags);
 
   /**
    * When capturing content is set, it traps all mouse events and retargets
@@ -1900,9 +1899,6 @@ class PresShell final : public nsStubDocumentObserver,
 
   MOZ_CAN_RUN_SCRIPT void HandlePostedReflowCallbacks(bool aInterruptible);
 
-  /**
-   * Helper for ScrollContentIntoView()
-   */
   MOZ_CAN_RUN_SCRIPT void DoScrollContentIntoView();
 
   /**

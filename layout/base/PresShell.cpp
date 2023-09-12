@@ -2555,7 +2555,6 @@ void PresShell::EndLoad(Document* aDocument) {
   MOZ_ASSERT(aDocument == mDocument, "Wrong document");
 
   RestoreRootScrollPosition();
-
   mDocumentLoading = false;
 }
 
@@ -3646,9 +3645,10 @@ nsresult PresShell::ScrollContentIntoView(nsIContent* aContent,
                                           ScrollAxis aVertical,
                                           ScrollAxis aHorizontal,
                                           ScrollFlags aScrollFlags) {
-  NS_ENSURE_TRUE(aContent, NS_ERROR_NULL_POINTER);
-  RefPtr<Document> composedDoc = aContent->GetComposedDoc();
-  NS_ENSURE_STATE(composedDoc);
+  MOZ_ASSERT(aContent);
+
+  RefPtr<Document> doc = aContent->GetComposedDoc();
+  NS_ENSURE_STATE(doc);
 
   NS_ASSERTION(mDidInitialize, "should have done initial reflow by now");
 
@@ -3771,8 +3771,29 @@ void PresShell::DoScrollContentIntoView() {
     return;
   }
 
+  const bool isAnchorScroll =
+      !!(data->mContentToScrollToFlags & ScrollFlags::IsAnchorScroll);
+  nsCOMPtr<nsIContent> anchor;
+  if (isAnchorScroll) {
+    if (ScrollContainerFrame* sf = GetRootScrollContainerFrame()) {
+      if (sf->DidHistoryRestore()) {
+        mContentToScrollTo = nullptr;
+        sf->ClearDidHistoryRestore();
+        return;
+      }
+    }
+    anchor = mContentToScrollTo;
+  }
+
   ScrollFrameIntoView(frame, Nothing(), data->mContentScrollVAxis,
                       data->mContentScrollHAxis, data->mContentToScrollToFlags);
+  if (isAnchorScroll) {
+    if (ScrollContainerFrame* sf = GetRootScrollContainerFrame()) {
+      mLastAnchorScrolledTo = std::move(anchor);
+      mLastAnchorScrollPositionY = sf->GetScrollPosition().y;
+      mLastAnchorVerticalScrollViewPosition = data->mContentScrollVAxis;
+    }
+  }
 }
 
 static bool NeedToVisuallyScroll(const nsSize& aLayoutViewportSize,
