@@ -2377,9 +2377,7 @@ nsIFrame* nsCSSFrameConstructor::ConstructDocElementFrame(
   }
 
   // Ensure the document element is styled at this point.
-  if (!aDocElement->HasServoData()) {
-    mPresShell->StyleSet()->StyleNewSubtree(aDocElement);
-  }
+  MOZ_ASSERT(aDocElement->HasServoData());
   aDocElement->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
 
   // Make sure to call UpdateViewportScrollStylesOverride before

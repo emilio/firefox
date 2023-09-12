@@ -1768,18 +1768,11 @@ nsresult PresShell::Initialize() {
   }
 
   if (Element* root = mDocument->GetRootElement()) {
-    {
-      nsAutoCauseReflowNotifier reflowNotifier(this);
-      // Have the style sheet processor construct frame for the root
-      // content object down
-      mFrameConstructor->ContentInserted(
-          root, nsCSSFrameConstructor::InsertionKind::Sync);
-    }
-    // Something in mFrameConstructor->ContentInserted may have caused
-    // Destroy() to get called, bug 337586.  Or, nsAutoCauseReflowNotifier
-    // (which sets up a script blocker) going out of scope may have killed us
-    // too
-    NS_ENSURE_STATE(!mHaveShutDown);
+    nsAutoCauseReflowNotifier reflowNotifier(this);
+    // Have the style sheet processor construct frame for the root
+    // content object down
+    mFrameConstructor->ContentInserted(
+        root, nsCSSFrameConstructor::InsertionKind::Async);
   }
 
   mDocument->MaybeScheduleRendering();
