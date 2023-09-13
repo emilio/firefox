@@ -156,9 +156,8 @@ nsresult ImageDocument::StartDocumentLoad(
   }
 
   NS_ASSERTION(aDocListener, "null aDocListener");
-  *aDocListener = new ImageListener(this);
-  NS_ADDREF(*aDocListener);
-
+  NS_ADDREF(*aDocListener = new ImageListener(this));
+  BlockOnload();
   return NS_OK;
 }
 
@@ -720,6 +719,17 @@ float ImageDocument::GetZoomLevel() {
     return bc->FullZoom();
   }
   return mOriginalZoomLevel;
+}
+
+void ImageDocument::StartLayout() {
+  MediaDocument::StartLayout();
+  if (RefPtr<PresShell> presShell = GetPresShell()) {
+    // FIXME: We flush here because we rely on nsImageFrame getting constructed
+    // ASAP, in order to report its intrinsic size to the embedder.
+    presShell->FlushPendingNotifications(FlushType::Frames);
+  }
+  // Balances StartDocumentLoad()
+  UnblockOnload(false);
 }
 
 void ImageDocument::CheckFullZoom() {

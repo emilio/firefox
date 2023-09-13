@@ -36,7 +36,7 @@ class VideoDocument final : public MediaDocument {
     MediaDocument::Destroy();
   }
 
-  nsresult StartLayout() override;
+  void StartLayout() override;
 
  protected:
   nsresult CreateVideoElement();
@@ -58,7 +58,7 @@ nsresult VideoDocument::StartDocumentLoad(
   return rv;
 }
 
-nsresult VideoDocument::StartLayout() {
+void VideoDocument::StartLayout() {
   // Create video element, and begin loading the media resource. Note we
   // delay creating the video element until now (we're called from
   // MediaDocumentStreamListener::OnStartRequest) as the PresShell is likely
@@ -66,12 +66,9 @@ nsresult VideoDocument::StartLayout() {
   // what kind of compositor we have, so the video element knows whether
   // it can create a hardware accelerated video decoder or not.
   nsresult rv = CreateVideoElement();
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS_VOID(rv);
 
-  rv = MediaDocument::StartLayout();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  MediaDocument::StartLayout();
 }
 
 void VideoDocument::SetScriptGlobalObject(

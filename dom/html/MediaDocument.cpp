@@ -239,17 +239,15 @@ nsresult MediaDocument::CreateSyntheticDocument() {
   return NS_OK;
 }
 
-nsresult MediaDocument::StartLayout() {
+void MediaDocument::StartLayout() {
   mMayStartLayout = true;
-  RefPtr<PresShell> presShell = GetPresShell();
-  // Don't mess with the presshell if someone has already handled
-  // its initial reflow.
-  if (presShell && !presShell->DidInitialize()) {
-    nsresult rv = presShell->Initialize();
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (RefPtr<PresShell> presShell = GetPresShell()) {
+    // Don't mess with the presshell if someone has already handled
+    // its initial reflow.
+    if (!presShell->DidInitialize()) {
+      presShell->Initialize();
+    }
   }
-
-  return NS_OK;
 }
 
 void MediaDocument::GetFileName(nsAString& aResult, nsIChannel* aChannel) {

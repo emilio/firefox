@@ -43,6 +43,7 @@ class ImageDocument final : public MediaDocument,
   void Destroy() override;
   void OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
                   bool aOnlySystemGroup = false) override;
+  void StartLayout() override;
 
   NS_DECL_IMGINOTIFICATIONOBSERVER
 
