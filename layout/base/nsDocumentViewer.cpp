@@ -678,6 +678,17 @@ nsDocumentViewer::Init(nsIWidget* aParentWidget,
   return InitInternal(aParentWidget, nullptr, aActor, aBounds, true);
 }
 
+static bool NeedsFramesEarly(Document* aDoc) {
+  BrowsingContext* bc = aDoc->GetBrowsingContext();
+  if (!bc || !bc->IsEmbedderTypeObjectOrEmbed()) {
+    return false;
+  }
+
+  // These communicate their intrinsic ratio to the parent and we rely on it
+  // getting sent sooner rather than later.
+  return aDoc->IsSVGDocument() || aDoc->IsImageDocument();
+}
+
 nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
   // We assert this because initializing the pres shell could otherwise cause
   // re-entrancy into nsDocumentViewer methods, which might cause a different
@@ -752,6 +763,9 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
     RefPtr<PresShell> presShell = mPresShell;
     // Initial reflow
     presShell->Initialize();
+    if (NeedsFramesEarly(mDocument)) {
+      presShell->FlushPendingNotifications(FlushType::Frames);
+    }
   }
 
   // now register ourselves as a selection listener, so that we get

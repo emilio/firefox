@@ -729,6 +729,7 @@ void ImageDocument::StartLayout() {
     presShell->FlushPendingNotifications(FlushType::Frames);
   }
   // Balances StartDocumentLoad()
+  printf_stderr("ImageDocument::StartLayout()\n");
   UnblockOnload(false);
 }
 

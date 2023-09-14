@@ -1721,6 +1721,9 @@ nsresult PresShell::Initialize() {
 
   NS_ASSERTION(!mDidInitialize, "Why are we being called?");
 
+  printf_stderr("PresShell::Initialize(%s)\n",
+                mDocument->GetDocumentURI()->GetSpecOrDefault().get());
+
   RefPtr<PresShell> kungFuDeathGrip(this);
 
   RecomputeFontSizeInflationEnabled();
@@ -3704,10 +3707,10 @@ nsresult PresShell::ScrollContentIntoView(nsIContent* aContent,
 
   if (!reflowedForHiddenContent) {
     // Flush layout and attempt to scroll in the process.
-    if (PresShell* presShell = composedDoc->GetPresShell()) {
+    if (PresShell* presShell = doc->GetPresShell()) {
       presShell->SetNeedLayoutFlush();
     }
-    composedDoc->FlushPendingNotifications(FlushType::InterruptibleLayout);
+    doc->FlushPendingNotifications(FlushType::InterruptibleLayout);
   }
 
   // If mContentToScrollTo is non-null, that means we interrupted the reflow
