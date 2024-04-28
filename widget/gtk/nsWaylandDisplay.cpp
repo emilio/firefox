@@ -614,6 +614,12 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* xdgWm = WaylandRegistryBind<xdg_wm_base>(
         registry, id, &xdg_wm_base_interface, version);
     display->SetXdgWm(xdgWm);
+  } else if (iface.EqualsLiteral("org_kde_kwin_blur_manager")) {
+    auto* manager = WaylandRegistryBind<org_kde_kwin_blur_manager>(
+        registry, id, &org_kde_kwin_blur_manager_interface, 1);
+    display->SetKWinBlurManager(manager);
+  } else {
+    // printf_stderr("unhandled iface: %s version %u\n", iface.get(), version);
   }
 }
 

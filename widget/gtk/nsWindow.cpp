@@ -679,6 +679,7 @@ void nsWindow::Destroy() {
   }
   mWaylandVsyncDispatcher = nullptr;
   UnlockNativePointer();
+  MozClearPointer(mKWinBlur, org_kde_kwin_blur_release);
 #endif
 
   // Cancel (dragleave) the current drag session, if any.
@@ -7076,6 +7077,31 @@ void nsWindow::UpdateOpaqueRegionInternal() {
     if (region) {
       cairo_region_destroy(region);
     }
+#ifdef MOZ_WAYLAND
+    if (GdkIsWaylandDisplay()) {
+      auto* disp = WaylandDisplayGet();
+      auto* blurManager = WaylandDisplayGet()->GetKWinBlurManager();
+      const auto clientRect = LayoutDeviceIntRect({}, GetClientSize());
+      LayoutDeviceIntRegion blurRegion(clientRect);
+      blurRegion.SubOut(mOpaqueRegion);
+      if (!blurManager || blurRegion.IsEmpty()) {
+        MozClearPointer(mKWinBlur, org_kde_kwin_blur_release);
+      } else {
+        wl_region* region = wl_compositor_create_region(disp->GetCompositor());
+        for (auto iter = blurRegion.RectIter(); !iter.Done(); iter.Next()) {
+          // This API uses logical pixels, which is a bit weird but alas...
+          auto rect = DevicePixelsToGdkRectRoundOut(iter.Get());
+          wl_region_add(region, rect.x, rect.y, rect.width, rect.height);
+        }
+        MozClearPointer(mKWinBlur, org_kde_kwin_blur_release);
+        mKWinBlur = org_kde_kwin_blur_manager_create(
+            blurManager, gdk_wayland_window_get_wl_surface(window));
+        org_kde_kwin_blur_set_region(mKWinBlur, region);
+        org_kde_kwin_blur_commit(mKWinBlur);
+        wl_region_destroy(region);
+      }
+    }
+#endif
   }
 
 #ifdef MOZ_WAYLAND

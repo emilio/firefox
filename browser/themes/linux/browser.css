@@ -17,6 +17,11 @@
         --urlbar-box-bgcolor: #fafafa;
       }
     }
+
+    &[customtitlebar] {
+      --toolbox-bgcolor: color-mix(in srgb, ActiveCaption 75%, transparent);
+      --toolbox-bgcolor-inactive: color-mix(in srgb, InactiveCaption 75%, transparent);
+    }
   }
 }
 

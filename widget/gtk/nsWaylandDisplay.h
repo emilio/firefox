@@ -19,6 +19,7 @@
 #include "mozilla/widget/pointer-gestures-unstable-v1-client-protocol.h"
 #include "mozilla/widget/relative-pointer-unstable-v1-client-protocol.h"
 #include "mozilla/widget/viewporter-client-protocol.h"
+#include "mozilla/widget/kde-blur-client-protocol.h"
 #include "mozilla/widget/xdg-activation-v1-client-protocol.h"
 #include "mozilla/widget/xdg-output-unstable-v1-client-protocol.h"
 #include "mozilla/widget/color-management-v1-client-protocol.h"
@@ -68,6 +69,7 @@ class nsWaylandDisplay {
   wp_fractional_scale_manager_v1* GetFractionalScaleManager() {
     return mFractionalScaleManager;
   }
+  org_kde_kwin_blur_manager* GetKWinBlurManager() { return mKWinBlurManager; }
   bool IsPrimarySelectionEnabled() { return mIsPrimarySelectionEnabled; }
 
   wl_pointer* GetPointer() { return mPointer; }
@@ -98,6 +100,9 @@ class nsWaylandDisplay {
   void SetAppMenuManager(org_kde_kwin_appmenu_manager* appMenuManager);
   void SetFractionalScaleManager(wp_fractional_scale_manager_v1* aManager) {
     mFractionalScaleManager = aManager;
+  }
+  void SetKWinBlurManager(org_kde_kwin_blur_manager* aManager) {
+    mKWinBlurManager = aManager;
   }
   void EnablePrimarySelection() { mIsPrimarySelectionEnabled = true; }
 
@@ -164,6 +169,7 @@ class nsWaylandDisplay {
   int mSupportedTransfer[sColorTransfersNum] = {};
   int mSupportedPrimaries[sColorPrimariesNum] = {};
 
+  org_kde_kwin_blur_manager* mKWinBlurManager = nullptr;
   bool mExplicitSync = false;
   bool mIsPrimarySelectionEnabled = false;
 };
