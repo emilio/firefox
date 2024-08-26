@@ -485,6 +485,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    */
   const nsSize& GetPageSize() const { return mPageSize; }
   const nsMargin& GetDefaultPageMargin() const { return mDefaultPageMargin; }
+  const nsMargin& GetUnwriteableMargin() const { return mUnwriteableMargin; }
   void SetPageSize(nsSize aSize) { mPageSize = aSize; }
 
   /**
@@ -1254,6 +1255,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // sketchy at best, see https://github.com/w3c/csswg-drafts/issues/5437 for
   // discussion.
   nsMargin mDefaultPageMargin;
+  nsMargin mUnwriteableMargin;
   float mPageScale;
   float mPPScale;
 

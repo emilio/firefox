@@ -2174,6 +2174,7 @@ void nsPresContext::SetPrintSettings(nsIPrintSettings* aPrintSettings) {
 
   mPrintSettings = aPrintSettings;
   mDefaultPageMargin = nsMargin();
+  mUnwriteableMargin = nsMargin();
   if (!mPrintSettings) {
     return;
   }
@@ -2190,8 +2191,16 @@ void nsPresContext::SetPrintSettings(nsIPrintSettings* aPrintSettings) {
                      unwriteableTwips.bottom >= 0 && unwriteableTwips.left >= 0,
                  "Unwriteable twips should be non-negative");
     marginTwips.EnsureAtLeast(unwriteableTwips);
+    mUnwriteableMargin = CSSTwipsToAppUnits(marginTwips);
   }
-  mDefaultPageMargin = nsPresContext::CSSTwipsToAppUnits(marginTwips);
+  mDefaultPageMargin = CSSTwipsToAppUnits(marginTwips);
+  // Round to a physical pixel.
+  for (auto side : AllPhysicalSides()) {
+    mDefaultPageMargin.Side(side) =
+        RoundToMultiple(mDefaultPageMargin.Side(side), AppUnitsPerDevPixel());
+    mUnwriteableMargin.Side(side) =
+        RoundToMultiple(mUnwriteableMargin.Side(side), AppUnitsPerDevPixel());
+  }
 }
 
 bool nsPresContext::EnsureVisible() {

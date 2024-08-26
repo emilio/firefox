@@ -305,18 +305,17 @@ void nsPageSequenceFrame::Reflow(nsPresContext* aPresContext,
     return;
   }
 
-  nsIntMargin unwriteableTwips =
-      mPageData->mPrintSettings->GetUnwriteableMarginInTwips();
-
-  nsIntMargin edgeTwips = mPageData->mPrintSettings->GetEdgeInTwips();
-
+  mPageData->mEdgePaperMargin = nsPresContext::CSSTwipsToAppUnits(
+      mPageData->mPrintSettings->GetEdgeInTwips());
   // sanity check the values. three inches are sometimes needed
-  int32_t threeInches = NS_INCHES_TO_INT_TWIPS(3.0);
-  edgeTwips.EnsureAtMost(
-      nsIntMargin(threeInches, threeInches, threeInches, threeInches));
-  edgeTwips.EnsureAtLeast(unwriteableTwips);
-
-  mPageData->mEdgePaperMargin = nsPresContext::CSSTwipsToAppUnits(edgeTwips);
+  {
+    const nscoord threeInches =
+        nsPresContext::CSSTwipsToAppUnits(NS_INCHES_TO_INT_TWIPS(3.0));
+    mPageData->mEdgePaperMargin.EnsureAtMost(
+        nsMargin(threeInches, threeInches, threeInches, threeInches));
+    mPageData->mEdgePaperMargin.EnsureAtLeast(
+        aPresContext->GetUnwriteableMargin());
+  }
 
   // Get the custom page-range state:
   mPageData->mPrintSettings->GetPageRanges(mPageData->mPageRanges);
