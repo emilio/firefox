@@ -330,7 +330,10 @@ void PrintedSheetFrame::ComputePagesPerSheetGridMetrics(
   // Compute the space available for the pages-per-sheet "page grid" (just
   // subtract the sheet's unwriteable margin area):
   nsSize availSpaceOnSheet = aSheetSize;
-  nsMargin uwm = PresContext()->GetUnwriteableMargin();
+  nsMargin uwm = mPD->mPrintSettings->GetIgnoreUnwriteableMargins()
+                     ? nsMargin{}
+                     : nsPresContext::CSSTwipsToAppUnits(
+                           mPD->mPrintSettings->GetUnwriteableMarginInTwips());
 
   // XXXjwatt Once we support heterogeneous sheet orientations, we'll also need
   // to rotate uwm if this sheet is not the primary orientation.

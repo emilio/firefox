@@ -147,10 +147,8 @@ nsReflowStatus nsPageFrame::ReflowPageContent(
           // content coordinate space.
           const int32_t unwriteableTwips =
               mPD->mPrintSettings->GetUnwriteableMarginInTwips().Side(side);
-          const nscoord unwriteable =
-              RoundToMultiple(nsPresContext::CSSTwipsToAppUnits(
-                                  (float)unwriteableTwips / pageSizeScale),
-                              aPresContext->AppUnitsPerDevPixel());
+          const nscoord unwriteable = nsPresContext::CSSTwipsToAppUnits(
+              (float)unwriteableTwips / pageSizeScale);
           mPageContentMargin.Side(side) = std::max(
               kidReflowInput.ComputedPhysicalMargin().Side(side), unwriteable);
         }
