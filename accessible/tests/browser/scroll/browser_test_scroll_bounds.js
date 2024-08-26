@@ -11,7 +11,7 @@ loadScripts(
 );
 requestLongerTimeout(2);
 
-const appUnitsPerDevPixel = 60;
+const appUnitsPerDevPixel = 64;
 
 function testCachedScrollPosition(
   acc,

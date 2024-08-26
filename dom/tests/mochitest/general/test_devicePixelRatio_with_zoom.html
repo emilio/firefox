@@ -26,16 +26,17 @@ SpecialPowers.setFullZoom(window, zoom);
 const dprAtZoom1 = window.devicePixelRatio;
 if (dprAtZoom1 == 1) {
   zoomsAndDPRsToTest = [
-    [300, "3"],
-    [250, "2.5"],
+    [300, "3.0476190476190474"],
+    [250, "2.4615384615384617"],
     [200, "2"],
-    [167, "1.6666666666666667"],
-    [150, "1.5"],
+    [167, "1.6842105263157894"],
+    [160, "1.6"],
+    [150, "1.4883720930232558"],
     [133, "1.3333333333333333"],
-    [120, "1.2"],
-    [110, "1.0909090909090908"],
+    [120, "1.2075471698113207"],
+    [110, "1.103448275862069"],
     [100, "1"],
-    [90,  "0.8955223880597015"],
+    [90,  "0.9014084507042254"],
     [80,  "0.8"],
     [67,  "0.6666666666666666"],
     [50,  "0.5"],
@@ -63,11 +64,7 @@ if (!zoomsAndDPRsToTest.length) {
   ok(true, `No table of data for devicePixelRatio of ${dprAtZoom1} at zoom level 100%.`);
 }
 
-for (let i = 0; i < zoomsAndDPRsToTest.length; ++i) {
-  let data = zoomsAndDPRsToTest[i];
-  let zoomPercent = data[0];
-  let targetDPR = data[1];
-
+for (let [zoomPercent, targetDPR] of zoomsAndDPRsToTest) {
   let relativeZoom = zoom * zoomPercent / 100;
   SpecialPowers.setFullZoom(window, relativeZoom);
 

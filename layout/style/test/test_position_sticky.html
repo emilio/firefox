@@ -74,14 +74,14 @@ container.style.height = "100%";
 var ccs = getComputedStyle(container, "");
 
 function isApproximatelyEqual(a, b) {
-  return Math.abs(a - b) < 0.001;
+  return Math.abs(a - b) < 0.01;
 }
 
 for (var prop in offsets) {
   sticky.style[prop] = offsets[prop] + "%";
   var basis = parseFloat(ccs[prop == "left" || prop == "right" ?
                              "width" : "height"]) / 100;
-  ok(isApproximatelyEqual(parseFloat(cs[prop]), offsets[prop] * basis));
+  isfuzzy(parseFloat(cs[prop]), offsets[prop] * basis, 1 / 64);
 }
 </script>
 </pre>

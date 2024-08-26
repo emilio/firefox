@@ -17,7 +17,7 @@ use std::{
 };
 
 /// The number of app units in a pixel.
-pub const AU_PER_PX: i32 = 60;
+pub const AU_PER_PX: i32 = 64;
 /// The minimum number of app units, same as in Gecko.
 pub const MIN_AU: Au = Au(-((1 << 30) - 1));
 /// The maximum number of app units, same as in Gecko.

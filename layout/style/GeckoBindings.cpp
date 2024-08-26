@@ -1320,18 +1320,16 @@ GeckoFontMetrics Gecko_GetFontMetrics(const nsPresContext* aPresContext,
     }
   }
 
-  int32_t d2a = aPresContext->AppUnitsPerDevPixel();
-  auto ToLength = [](nscoord aLen) {
-    return Length::FromPixels(CSSPixel::FromAppUnits(aLen));
+  const CSSToLayoutDeviceScale scale = aPresContext->CSSToDevPixelScale();
+  auto ToLength = [&](LayoutDeviceCoord aLen) {
+    CSSCoord cssLen = aLen / scale;
+    // Truncate precision to keep tests happy.
+    return Length::FromPixels(std::round(cssLen * 100.0f) / 100.0f);
   };
-  return {ToLength(NS_round(metrics.xHeight * d2a)),
-          ToLength(NS_round(metrics.zeroWidth * d2a)),
-          ToLength(NS_round(metrics.capHeight * d2a)),
-          ToLength(NS_round(metrics.ideographicWidth * d2a)),
-          ToLength(NS_round(metrics.maxAscent * d2a)),
-          ToLength(NS_round(fontGroup->GetStyle()->size * d2a)),
-          scriptPercentScaleDown,
-          scriptScriptPercentScaleDown};
+  return {ToLength(metrics.xHeight),   ToLength(metrics.zeroWidth),
+          ToLength(metrics.capHeight), ToLength(metrics.ideographicWidth),
+          ToLength(metrics.maxAscent), ToLength(fontGroup->GetStyle()->size),
+          scriptPercentScaleDown,      scriptScriptPercentScaleDown};
 }
 
 NS_IMPL_THREADSAFE_FFI_REFCOUNTING(SheetLoadDataHolder, SheetLoadDataHolder);

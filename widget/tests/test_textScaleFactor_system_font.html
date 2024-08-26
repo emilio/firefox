@@ -91,8 +91,8 @@ add_task(async () => {
   const def = document.getElementById("default");
   // Choose a scaleFactor value different enough from possible default values
   // that app unit rounding does not prevent a change in devicePixelRatio.
-  // A scaleFactor of 120 also has no rounding of app units per dev pixel.
-  const referenceScale = 120;
+  // A scaleFactor of 160 also has no rounding of app units per dev pixel.
+  const referenceScale = 160;
   const menuSize1 = await setScaleAndPromiseFontSize(referenceScale, menu);
   const menuRect1 = menu.getBoundingClientRect();
   const defSize1 = elementFontSize(def);

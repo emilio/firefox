@@ -578,13 +578,13 @@
       var offset = targetRect.top - scrollRect.top;
       if (!aAlignToTop && offset >= 0) {
         // scrollRect.bottom wouldn't take a horizontal scroll bar into account
-        let scrollRectBottom = scrollRect.top + this.clientHeight;
+        let scrollRectBottom = scrollRect.top + this.clientHeightDouble;
         offset = targetRect.bottom - scrollRectBottom;
         if (offset <= 0) {
           return;
         }
       }
-      this.scrollTop += offset;
+      this.scrollTop += Math.ceil(offset);
     }
 
     getIndexOfFirstVisibleRow() {

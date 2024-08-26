@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 namespace mozilla {
-constexpr inline int32_t AppUnitsPerCSSPixel() { return 60; }
+constexpr inline int32_t AppUnitsPerCSSPixel() { return 64; }
 constexpr inline int32_t AppUnitsPerCSSInch() {
   return 96 * AppUnitsPerCSSPixel();
 }

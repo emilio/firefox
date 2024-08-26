@@ -17,8 +17,7 @@
 #include "nsIGlobalObject.h"
 #include "nsRect.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(DOMRectReadOnly, mParent)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMRectReadOnly)
@@ -142,19 +141,12 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMRectList)
 
 JSObject* DOMRectList::WrapObject(JSContext* cx,
                                   JS::Handle<JSObject*> aGivenProto) {
-  return mozilla::dom::DOMRectList_Binding::Wrap(cx, this, aGivenProto);
+  return DOMRectList_Binding::Wrap(cx, this, aGivenProto);
 }
-
-static double RoundFloat(double aValue) { return floor(aValue + 0.5); }
 
 void DOMRect::SetLayoutRect(const nsRect& aLayoutRect) {
-  double scale = 65536.0;
-  // Round to the nearest 1/scale units. We choose scale so it can be
-  // represented exactly by machine floating point.
-  double scaleInv = 1 / scale;
-  double t2pScaled = scale / AppUnitsPerCSSPixel();
-  double x = RoundFloat(aLayoutRect.x * t2pScaled) * scaleInv;
-  double y = RoundFloat(aLayoutRect.y * t2pScaled) * scaleInv;
-  SetRect(x, y, RoundFloat(aLayoutRect.XMost() * t2pScaled) * scaleInv - x,
-          RoundFloat(aLayoutRect.YMost() * t2pScaled) * scaleInv - y);
+  auto rect = CSSRect::FromAppUnits(aLayoutRect);
+  SetRect(rect.x, rect.y, rect.width, rect.height);
 }
+
+}  // namespace mozilla::dom

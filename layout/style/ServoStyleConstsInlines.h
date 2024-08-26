@@ -539,16 +539,8 @@ static inline nscoord DefaultPercentLengthToAppUnits(float aPixelLength) {
 }
 
 static inline nscoord DefaultLengthToAppUnits(float aPixelLength) {
-  // We want to round lengths rounding 0.5 away from zero, instead of the
-  // default behavior of NSToCoordRound{,WithClamp} which do floor(x + 0.5).
-  float length = aPixelLength * float(mozilla::AppUnitsPerCSSPixel());
-  if (length >= float(nscoord_MAX)) {
-    return nscoord_MAX;
-  }
-  if (length <= float(nscoord_MIN)) {
-    return nscoord_MIN;
-  }
-  return NSToIntRound(length);
+  return NSToCoordTruncClamped(aPixelLength *
+                               float(mozilla::AppUnitsPerCSSPixel()));
 }
 }  // namespace detail
 

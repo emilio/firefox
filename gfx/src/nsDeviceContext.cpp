@@ -52,8 +52,7 @@ void nsDeviceContext::SetDPI() {
     dpi = mDeviceContextSpec->GetDPI();
     mPrintingScale = mDeviceContextSpec->GetPrintingScale();
     mPrintingTranslate = mDeviceContextSpec->GetPrintingTranslate();
-    mAppUnitsPerDevPixelAtUnitFullZoom =
-        NS_lround((AppUnitsPerCSSPixel() * 96) / dpi);
+    mAppUnitsPerDevPixelAtUnitFullZoom = NS_lround(AppUnitsPerCSSInch() / dpi);
   } else {
     // A value of -1 means use the maximum of 96 and the system DPI.
     // A value of 0 means use the system DPI. A positive value is used as the
