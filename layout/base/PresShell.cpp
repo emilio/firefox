@@ -1915,15 +1915,30 @@ bool PresShell::SimpleResizeReflow(nscoord aWidth, nscoord aHeight) {
   if (!rootFrame) {
     return false;
   }
+
   WritingMode wm = rootFrame->GetWritingMode();
-  bool isBSizeChanging =
+  const bool isBSizeChanging =
       wm.IsVertical() ? oldSize.width != aWidth : oldSize.height != aHeight;
-  if (isBSizeChanging) {
-    nsLayoutUtils::MarkIntrinsicISizesDirtyIfDependentOnBSize(rootFrame);
-    rootFrame->SetHasBSizeChange(true);
+
+  nsIFrame* framesToReflow[3] = {rootFrame, nullptr, nullptr};
+  // Handle the "html fills the viewport" and related quirks.
+  if (mPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
+    framesToReflow[1] = mFrameConstructor->GetRootElementStyleFrame();
+    if (auto* body = mDocument->GetBodyElement()) {
+      framesToReflow[2] = body->GetPrimaryFrame();
+    }
   }
-  FrameNeedsReflow(rootFrame, IntrinsicDirty::None,
-                   NS_FRAME_HAS_DIRTY_CHILDREN);
+
+  for (nsIFrame* f : framesToReflow) {
+    if (!f) {
+      continue;
+    }
+    if (isBSizeChanging) {
+      nsLayoutUtils::MarkIntrinsicISizesDirtyIfDependentOnBSize(f);
+      f->SetHasBSizeChange(true);
+    }
+    FrameNeedsReflow(f, IntrinsicDirty::None, NS_FRAME_HAS_DIRTY_CHILDREN);
+  }
 
   if (mMobileViewportManager) {
     mMobileViewportManager->UpdateSizesBeforeReflow();

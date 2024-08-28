@@ -24,6 +24,7 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/SVGUtils.h"
+#include "mozilla/dom/HTMLBodyElement.h"
 #include "mozilla/ToString.h"
 #include "mozilla/UniquePtr.h"
 
@@ -2154,6 +2155,97 @@ nscoord nsBlockFrame::ApplyLineClamp(nscoord aContentBlockEndEdge) {
   return edge;
 }
 
+enum class StretchQuirk {
+  None,
+  Body,
+  Html,
+};
+
+static StretchQuirk GetStretchQuirk(const nsBlockFrame* aFrame) {
+  auto* doc = aFrame->PresContext()->Document();
+  if (doc->GetCompatibilityMode() != eCompatibility_NavQuirks) {
+    return StretchQuirk::None;
+  }
+  if (aFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) ||
+      !aFrame->IsPrimaryFrame() ||
+      !aFrame->StyleDisplay()->IsBlockOutsideStyle()) {
+    return StretchQuirk::None;
+  }
+  if (aFrame->Style()->IsRootElementStyle()) {
+    if (aFrame->GetContent()->IsHTMLElement(nsGkAtoms::html)) {
+      return StretchQuirk::Html;
+    }
+    return StretchQuirk::None;
+  }
+  if (aFrame->GetContent() != doc->GetBodyElement()) {
+    return StretchQuirk::None;
+  }
+  // If the <html> shouldn't stretch, then don't stretch the <body> either.
+  nsBlockFrame* parentBlock = do_QueryFrame(aFrame->GetParent());
+  if (!parentBlock || GetStretchQuirk(parentBlock) != StretchQuirk::Html) {
+    return StretchQuirk::None;
+  }
+
+  if (parentBlock->GetWritingMode().IsVertical() !=
+      aFrame->GetWritingMode().IsVertical()) {
+    // The <body> quirk is undefined with orthogonal WMs, so just don't do it.
+    return StretchQuirk::None;
+  }
+  return StretchQuirk::Body;
+}
+
+static nscoord ApplyStretchQuirks(const ReflowInput& aReflowInput,
+                                  nsBlockFrame* aFrame,
+                                  nscoord aContentBlockEndEdge,
+                                  const nscoord aBPBStart) {
+  // https://quirks.spec.whatwg.org/#the-html-element-fills-the-viewport-quirk
+  // https://quirks.spec.whatwg.org/#the-body-element-fills-the-html-element-quirk
+  auto stretchQuirk = GetStretchQuirk(aFrame);
+  if (stretchQuirk == StretchQuirk::None) {
+    return aContentBlockEndEdge;
+  }
+
+  const auto wm = aReflowInput.GetWritingMode();
+  const nsSize viewport = aFrame->PresContext()->GetVisibleArea().Size();
+
+  nscoord fillBSize = NS_UNCONSTRAINEDSIZE;
+  if (stretchQuirk == StretchQuirk::Body) {
+    // Try to fill the <html> element if it has a definite bsize instead.
+    const auto* rootRI = aReflowInput.mParentReflowInput;
+    nscoord rootContentBSize = rootRI->ComputedBSize();
+    if (rootContentBSize != NS_UNCONSTRAINEDSIZE) {
+      fillBSize = rootContentBSize;
+    } else {
+      fillBSize = wm.IsVertical() ? viewport.Width() : viewport.Height();
+      if (fillBSize != NS_UNCONSTRAINEDSIZE) {
+        // Otherwise remove root's MBP from the viewport's size.
+        fillBSize -= rootRI->ComputedLogicalMargin(wm).BStartEnd(wm) +
+                     rootRI->ComputedLogicalBorderPadding(wm).BStartEnd(wm);
+      }
+    }
+  } else {
+    fillBSize = wm.IsVertical() ? viewport.Width() : viewport.Height();
+  }
+
+  if (MOZ_UNLIKELY(fillBSize == NS_UNCONSTRAINEDSIZE)) {
+    return aContentBlockEndEdge;
+  }
+  // We are computing the content height, so need to also remove border and
+  // padding.
+  const nscoord verticalMargins =
+      aReflowInput.ComputedLogicalMargin(wm).BStartEnd(wm) +
+      aReflowInput.ComputedLogicalBorderPadding(wm).BStartEnd(wm);
+  const nscoord finalContentBSize = fillBSize - verticalMargins;
+  return std::max(aContentBlockEndEdge, finalContentBSize + aBPBStart);
+}
+
+static nscoord ApplyLineClampAndStretchQuirks(const ReflowInput& aReflowInput,
+                                              nsBlockFrame* aFrame,
+                                              nscoord aContentBlockEndEdge,
+                                              const nscoord aBPBStart) {
+  return aContentBlockEndEdge;
+}
+
 nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
                                        BlockReflowState& aState,
                                        ReflowOutput& aMetrics) {
@@ -2238,6 +2330,8 @@ nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
     // We don't care about ApplyLineClamp's return value (the line-clamped
     // content BSize) in this explicit-BSize codepath, but we do still need to
     // call ApplyLineClamp for ellipsis markers to be placed as-needed.
+    // We intentionally don't apply stretch quirks because those only apply when
+    // the block size is auto.
     ApplyLineClamp(contentBSizeWithBStartBP);
 
     finalSize.BSize(wm) = ComputeFinalBSize(aState, contentBSizeWithBStartBP);
@@ -2285,17 +2379,20 @@ nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
   } else if (aState.mReflowStatus.IsComplete()) {
     const nscoord lineClampedContentBlockEndEdge =
         ApplyLineClamp(blockEndEdgeOfChildren);
-
     const nscoord bpBStart = borderPadding.BStart(wm);
     const nscoord contentBSize = blockEndEdgeOfChildren - bpBStart;
-    const nscoord lineClampedContentBSize =
-        lineClampedContentBlockEndEdge - bpBStart;
 
+    nscoord tweakedContentBlockEndEdge = ApplyLineClamp(blockEndEdgeOfChildren);
+    tweakedContentBlockEndEdge =
+      ApplyStretchQuirks(aReflowInput, this, tweakedContentBlockEndEdge, bpBStart);
+
+    const nscoord tweakedContentBSize = tweakedContentBlockEndEdge - bpBStart;
     const nscoord autoBSize = aReflowInput.ApplyMinMaxBSize(
-        lineClampedContentBSize, aState.mConsumedBSize);
+        tweakedContentBSize, aState.mConsumedBSize);
     if (autoBSize != contentBSize) {
-      // Our min-block-size, max-block-size, or -webkit-line-clamp value made
-      // our bsize change.  Don't carry out our kids' block-end margins.
+      // Our min-block-size, max-block-size, -webkit-line-clamp, or quirks
+      // stretch made our bsize change.  Don't carry out our kids' block-end
+      // margins.
       aMetrics.mCarriedOutBEndMargin.Zero();
     }
     nscoord bSize = autoBSize + borderPadding.BStartEnd(wm);
