@@ -2251,11 +2251,11 @@ nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
                                        ReflowOutput& aMetrics) {
   WritingMode wm = aState.mReflowInput.GetWritingMode();
   const LogicalMargin& borderPadding = aState.BorderPadding();
-#ifdef NOISY_FINAL_SIZE
+#if 1
   ListTag(stdout);
   printf(": mBCoord=%d mIsBEndMarginRoot=%s mPrevBEndMargin=%d bp=%d,%d\n",
          aState.mBCoord, aState.mFlags.mIsBEndMarginRoot ? "yes" : "no",
-         aState.mPrevBEndMargin.get(), borderPadding.BStart(wm),
+         aState.mPrevBEndMargin.Get(), borderPadding.BStart(wm),
          borderPadding.BEnd(wm));
 #endif
 
