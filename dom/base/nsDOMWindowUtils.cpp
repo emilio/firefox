@@ -423,8 +423,9 @@ nsDOMWindowUtils::UpdateLayerTree() {
     RefPtr<nsViewManager> vm = presShell->GetViewManager();
     if (nsView* view = vm->GetRootView()) {
       nsAutoScriptBlocker scriptBlocker;
-      presShell->PaintAndRequestComposite(view,
-                                          PaintFlags::PaintSyncDecodeImages);
+      presShell->PaintAndRequestComposite(
+          view->GetFrame(), view->GetWidget()->GetWindowRenderer(),
+          PaintFlags::PaintSyncDecodeImages);
       presShell->GetWindowRenderer()->WaitOnTransactionProcessed();
     }
   }

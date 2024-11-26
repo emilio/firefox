@@ -18,6 +18,7 @@
 #include "nsAtom.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMEventListener.h"
+#include "nsIWidgetListener.h"
 #include "nsXULPopupManager.h"
 
 #include "nsBlockFrame.h"
@@ -103,7 +104,6 @@ enum class MenuPopupAnchorType : uint8_t {
 nsIFrame* NS_NewMenuPopupFrame(mozilla::PresShell* aPresShell,
                                mozilla::ComputedStyle* aStyle);
 
-class nsView;
 class nsMenuPopupFrame;
 
 // this class is used for dispatching popupshown events asynchronously.
@@ -129,7 +129,7 @@ class nsXULPopupShownEvent final : public mozilla::Runnable,
   const RefPtr<nsPresContext> mPresContext;
 };
 
-class nsMenuPopupFrame final : public nsBlockFrame {
+class nsMenuPopupFrame final : public nsBlockFrame, public nsIWidgetListener {
   using PopupLevel = mozilla::widget::PopupLevel;
   using PopupType = mozilla::widget::PopupType;
 
@@ -198,6 +198,18 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 
+  // nsIWidgetListener
+  mozilla::PresShell* GetPresShell() override { return PresShell(); }
+  bool WindowMoved(nsIWidget*, int32_t aX, int32_t aY, ByMoveToRect) override;
+  bool WindowResized(nsIWidget*, int32_t aWidth, int32_t aHeight) override;
+  bool RequestWindowClose(nsIWidget*) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
+                            bool aUseAttachedEvents) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  bool PaintWindow(nsIWidget* aWidget, mozilla::LayoutDeviceIntRegion) override;
+  using nsIFrame::HandleEvent;  // Needed to silence warning.
+
   // FIXME: This shouldn't run script (this can end up calling HidePopup).
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void Destroy(DestroyContext&) override;
 
@@ -223,7 +235,8 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   MOZ_CAN_RUN_SCRIPT void EnsureActiveMenuListItemIsVisible();
 
-  nsresult CreateWidgetForView(nsView* aView);
+  void CreateWidget();
+  void DestroyWidget();
   mozilla::WindowShadow GetShadowStyle() const;
 
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
@@ -279,6 +292,11 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   bool IsDragSource() const { return mIsDragSource; }
   void SetIsDragSource(bool aIsDragSource) { mIsDragSource = aIsDragSource; }
+
+  bool PendingWidgetMoveResize() const { return mPendingWidgetMoveResize; }
+  void SetPendingWidgetMoveResize(bool aPendingMoveResize) {
+    mPendingWidgetMoveResize = aPendingMoveResize;
+  }
 
   static nsIContent* GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame);
   void ClearTriggerContent() { mTriggerContent = nullptr; }
@@ -402,6 +420,8 @@ class nsMenuPopupFrame final : public nsBlockFrame {
     return mLastClientOffset;
   }
 
+  mozilla::LayoutDeviceIntRect CalcWidgetBounds() const;
+
   // Return the alignment of the popup
   int8_t GetAlignmentPosition() const;
 
@@ -497,12 +517,8 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   // attributes.
   void MoveToAttributePosition();
 
-  // Create a popup view for this frame. The view is added a child of the root
-  // view, and is initially hidden.
+  // Create a native widget for this frame.
   void CreatePopupView();
-
-  nsView* GetViewInternal() const override { return mView; }
-  void SetViewInternal(nsView* aView) override { mView = aView; }
 
   // Returns true if the popup should try to remain at the same relative
   // location as the anchor while it is open. If the anchor becomes hidden
@@ -569,7 +585,7 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   // was clicked. It will be cleared when the popup is hidden.
   nsCOMPtr<nsIContent> mTriggerContent;
 
-  nsView* mView = nullptr;
+  RefPtr<nsIWidget> mWidget;
 
   RefPtr<nsXULPopupShownEvent> mPopupShownDispatcher;
 
@@ -649,6 +665,9 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   // popup on Wayland as it cancel whole D&D operation.
   bool mIsDragSource = false;
 
+  // Whether there's a pending move-resize of our widget.
+  bool mPendingWidgetMoveResize = false;
+
   // When POPUPPOSITION_SELECTION is used, this indicates the vertical offset
   // that the original selected item was. This needs to be used in case the
   // popup gets changed so that we can keep the popup at the same vertical
@@ -662,7 +681,6 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   nsRect mOverrideConstraintRect;
 
   static mozilla::TimeStamp sLastKeyTime;
-
 };  // class nsMenuPopupFrame
 
 #endif

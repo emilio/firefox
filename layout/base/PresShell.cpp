@@ -5708,8 +5708,8 @@ PresShell::CanvasBackground PresShell::ComputeCanvasBackground() const {
   return {viewportBg, pageBg};
 }
 
-nscolor PresShell::ComputeBackstopColor(nsView* aDisplayRoot) {
-  nsIWidget* widget = aDisplayRoot->GetWidget();
+nscolor PresShell::ComputeBackstopColor(nsIFrame* aDisplayRoot) {
+  nsIWidget* widget = aDisplayRoot ? aDisplayRoot->GetNearestWidget() : nullptr;
   if (widget &&
       (widget->GetTransparencyMode() != widget::TransparencyMode::Opaque ||
        widget->WidgetPaintsBackground())) {
@@ -6535,18 +6535,21 @@ void PresShell::RemoveFrameFromApproximatelyVisibleList(nsIFrame* aFrame) {
   }
 }
 
-void PresShell::PaintAndRequestComposite(nsView* aView, PaintFlags aFlags) {
+void PresShell::PaintAndRequestComposite(nsIFrame* aFrame,
+                                         WindowRenderer* aRenderer,
+                                         PaintFlags aFlags) {
   if (!mIsActive) {
     return;
   }
 
-  WindowRenderer* renderer = aView->GetWidget()->GetWindowRenderer();
-  NS_ASSERTION(renderer, "Must be in paint event");
-  if (renderer->AsFallback()) {
-    // The fallback renderer doesn't do any retaining, so we
-    // just need to notify the view and widget that we're invalid, and
-    // we'll do a paint+composite from the PaintWindow callback.
-    GetViewManager()->InvalidateView(aView);
+  NS_ASSERTION(aRenderer, "Must be in paint event");
+  if (aRenderer->AsFallback()) {
+    // The fallback renderer doesn't do any retaining, so we just need to
+    // notify the view and widget that we're invalid, and we'll do a
+    // paint+composite from the PaintWindow callback.
+    if (auto* view = aFrame ? aFrame->GetView() : nullptr) {
+      GetViewManager()->InvalidateView(view);
+    }
     return;
   }
 
@@ -6559,26 +6562,28 @@ void PresShell::PaintAndRequestComposite(nsView* aView, PaintFlags aFlags) {
   if (aFlags & PaintFlags::PaintCompositeOffscreen) {
     flags |= PaintInternalFlags::PaintCompositeOffscreen;
   }
-  PaintInternal(aView, flags);
+  PaintInternal(aFrame, aRenderer, flags);
 }
 
-void PresShell::SyncPaintFallback(nsView* aView) {
+void PresShell::SyncPaintFallback(nsIFrame* aFrame, WindowRenderer* aRenderer) {
   if (!mIsActive) {
     return;
   }
 
-  WindowRenderer* renderer = aView->GetWidget()->GetWindowRenderer();
-  NS_ASSERTION(renderer->AsFallback(),
+  NS_ASSERTION(aRenderer->AsFallback(),
                "Can't do Sync paint for remote renderers");
-  if (!renderer->AsFallback()) {
+  if (!aRenderer->AsFallback()) {
     return;
   }
 
-  PaintInternal(aView, PaintInternalFlags::PaintComposite);
+  PaintInternal(aFrame, aRenderer, PaintInternalFlags::PaintComposite);
   GetPresContext()->NotifyDidPaintForSubtree();
 }
 
-void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
+void PresShell::PaintInternal(nsIFrame* aFrame, WindowRenderer* aRenderer,
+                              PaintInternalFlags aFlags) {
+  MOZ_ASSERT_IF(aFrame,
+                aFrame->IsViewportFrame() || aFrame->IsMenuPopupFrame());
   nsCString url;
   nsIURI* uri = mDocument->GetDocumentURI();
   Document* contentRoot = GetPrimaryContentDocument();
@@ -6603,7 +6608,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
 #endif
 
   NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
-  NS_ASSERTION(aViewToPaint, "null view");
+  NS_ASSERTION(aRenderer, "null renderer");
 
   MOZ_ASSERT(!mApproximateFrameVisibilityVisited, "Should have been cleared");
 
@@ -6631,9 +6636,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
   nsPresContext* presContext = GetPresContext();
   AUTO_LAYOUT_PHASE_ENTRY_POINT(presContext, Paint);
 
-  WindowRenderer* renderer = aViewToPaint->GetWidget()->GetWindowRenderer();
-  NS_ASSERTION(renderer, "Must be in paint event");
-  WebRenderLayerManager* layerManager = renderer->AsWebRender();
+  WebRenderLayerManager* layerManager = aRenderer->AsWebRender();
 
   // Whether or not we should set first paint when painting is suppressed
   // is debatable. For now we'll do it because B2G relied on first paint
@@ -6662,24 +6665,24 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
     layerManager->SetFocusTarget(focusTarget);
   }
 
-  if (frame) {
+  if (aFrame) {
     if (!(aFlags & PaintInternalFlags::PaintSyncDecodeImages) &&
-        !frame->HasAnyStateBits(NS_FRAME_UPDATE_LAYER_TREE)) {
+        !aFrame->HasAnyStateBits(NS_FRAME_UPDATE_LAYER_TREE)) {
       if (layerManager) {
         layerManager->SetTransactionIdAllocator(presContext->RefreshDriver());
       }
 
-      if (renderer->EndEmptyTransaction(
+      if (aRenderer->EndEmptyTransaction(
               (aFlags & PaintInternalFlags::PaintComposite)
                   ? WindowRenderer::END_DEFAULT
                   : WindowRenderer::END_NO_COMPOSITE)) {
         return;
       }
     }
-    frame->RemoveStateBits(NS_FRAME_UPDATE_LAYER_TREE);
+    aFrame->RemoveStateBits(NS_FRAME_UPDATE_LAYER_TREE);
   }
 
-  nscolor bgcolor = ComputeBackstopColor(aViewToPaint);
+  nscolor bgcolor = ComputeBackstopColor(aFrame);
   PaintFrameFlags flags =
       PaintFrameFlags::WidgetLayers | PaintFrameFlags::ExistingTransaction;
 
@@ -6698,17 +6701,17 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
     flags |= PaintFrameFlags::ForWebRender;
   }
 
-  if (frame) {
+  if (aFrame) {
     // We can paint directly into the widget using its layer manager.
     SelectionNodeCache cache(*this);
-    nsLayoutUtils::PaintFrame(nullptr, frame, nsRegion(), bgcolor,
+    nsLayoutUtils::PaintFrame(nullptr, aFrame, nsRegion(), bgcolor,
                               nsDisplayListBuilderMode::Painting, flags);
     return;
   }
 
   bgcolor = NS_ComposeColors(bgcolor, mCanvasBackground.mViewport.mColor);
 
-  if (renderer->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
+  if (aRenderer->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
     LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
         presContext->GetVisibleArea(), presContext->AppUnitsPerDevPixel());
     WebRenderBackgroundData data(wr::ToLayoutRect(bounds),
@@ -6721,7 +6724,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
     return;
   }
 
-  FallbackRenderer* fallback = renderer->AsFallback();
+  FallbackRenderer* fallback = aRenderer->AsFallback();
   MOZ_ASSERT(fallback);
 
   if (aFlags & PaintInternalFlags::PaintComposite) {

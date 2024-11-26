@@ -263,7 +263,7 @@ class nsViewManager final {
    *
    * @param aTime Last user event time in microseconds
    */
-  void GetLastUserEventTime(uint32_t& aTime);
+  static uint32_t GetLastUserEventTime() { return gLastUserEventTime; }
 
   /**
    * Find the nearest display root view for the view aView. This is the view for

@@ -102,6 +102,7 @@ typedef uintptr_t Window;
 
 class gfxPattern;
 class nsIFrame;
+class nsMenuPopupFrame;
 #if !GTK_CHECK_VERSION(3, 18, 0)
 struct _GdkEventTouchpadPinch;
 typedef struct _GdkEventTouchpadPinch GdkEventTouchpadPinch;
@@ -184,8 +185,6 @@ class nsWindow final : public nsBaseWidget {
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override;
-  mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScaleByScreen()
-      override;
   void SetModal(bool aModal) override;
   bool IsVisible() const override;
   bool IsMapped() const override;
@@ -333,7 +332,7 @@ class nsWindow final : public nsBaseWidget {
   GdkWindow* GetGdkWindow() const { return mGdkWindow; };
   GdkWindow* GetToplevelGdkWindow() const;
   GtkWidget* GetGtkWidget() const { return mShell; }
-  nsIFrame* GetFrame() const;
+  nsMenuPopupFrame* GetPopupFrame() const;
   nsWindow* GetEffectiveParent();
   bool IsDestroyed() const { return mIsDestroyed; }
   bool IsPopup() const;

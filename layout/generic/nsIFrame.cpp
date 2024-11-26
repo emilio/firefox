@@ -13,6 +13,7 @@
 
 #include "gfx2DGlue.h"
 #include "gfxUtils.h"
+#include "nsMenuPopupFrame.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CaretAssociationHint.h"
 #include "mozilla/ComputedStyle.h"
@@ -7837,16 +7838,27 @@ void nsIFrame::GetOffsetFromView(nsPoint& aOffset, nsView** aView) const {
 }
 
 nsIWidget* nsIFrame::GetNearestWidget() const {
-  return GetClosestView()->GetNearestWidget(nullptr);
+  if (!HasAnyStateBits(NS_FRAME_IN_POPUP)) {
+    return PresShell()->GetViewManager()->GetRootWidget();
+  }
+  nsPoint unused;
+  return GetNearestWidget(unused);
 }
 
 nsIWidget* nsIFrame::GetNearestWidget(nsPoint& aOffset) const {
-  nsPoint offsetToView;
-  nsPoint offsetToWidget;
-  nsIWidget* widget =
-      GetClosestView(&offsetToView)->GetNearestWidget(&offsetToWidget);
-  aOffset = offsetToView + offsetToWidget;
-  return widget;
+  aOffset.MoveTo(0, 0);
+  nsIFrame* frame = const_cast<nsIFrame*>(this);
+  do {
+    if (frame->IsMenuPopupFrame()) {
+      return static_cast<nsMenuPopupFrame*>(frame)->GetWidget();
+    }
+    aOffset += frame->GetPosition();
+    frame = frame->GetParent();
+    if (!frame) {
+      break;
+    }
+  } while (true);
+  return PresShell()->GetViewManager()->GetRootWidget();
 }
 
 Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,

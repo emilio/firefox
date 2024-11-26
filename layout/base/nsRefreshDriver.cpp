@@ -2526,7 +2526,6 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
       RenderingPhase::Paint,
       [&]() MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA { painted = PaintIfNeeded(); });
 
-  if (!painted) {
     // No paint happened, discard composition payloads.
     mCompositionPayloads.Clear();
     mPaintCause = nullptr;
@@ -2599,6 +2598,38 @@ bool nsRefreshDriver::PaintIfNeeded() {
       renderer->AsWebRender()->RegisterPayloads(
           std::move(mCompositionPayloads));
     }
+
+#ifdef MOZ_DUMP_PAINTING
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      printf_stderr("Starting ProcessPendingUpdates\n");
+    }
+#endif
+
+    mViewManagerFlushIsPending = false;
+    RefPtr<nsViewManager> vm = mPresContext->GetPresShell()->GetViewManager();
+    const bool skipPaint = isPresentingInVR;
+    // Skip the paint in immersive VR mode because whatever we paint here will
+    // not end up on the screen. The screen is displaying WebGL content from a
+    // single canvas in that mode.
+    if (!skipPaint) {
+      PaintTelemetry::AutoRecordPaint record;
+      vm->ProcessPendingUpdates();
+      // Paint our popups.
+      if (nsXULPopupManager* pm = nsXULPopupManager::GetInstance()) {
+        pm->PaintPopups(this);
+      }
+    }
+
+#ifdef MOZ_DUMP_PAINTING
+    if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
+      printf_stderr("Ending ProcessPendingUpdates\n");
+    }
+#endif
+
+    dispatchTasksAfterTick = true;
+    mHasScheduleFlush = false;
+  } else {
+>>>>>>> dc91c1e3df7e4 (Bug 1933181 - Stop using nsView for popups.)
     mCompositionPayloads.Clear();
   }
   RefPtr<nsViewManager> vm = mPresContext->PresShell()->GetViewManager();

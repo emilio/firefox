@@ -2120,12 +2120,6 @@ already_AddRefed<widget::Screen> nsBaseWidget::GetWidgetScreen() {
   return screenManager.ScreenForRect(deskBounds);
 }
 
-mozilla::DesktopToLayoutDeviceScale
-nsBaseWidget::GetDesktopToDeviceScaleByScreen() {
-  return (nsView::GetViewFor(this)->GetViewManager()->GetDeviceContext())
-      ->GetDesktopToDeviceScale();
-}
-
 nsresult nsIWidget::SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
                                              bool aLongTap,
                                              nsIObserver* aObserver) {

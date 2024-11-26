@@ -23,6 +23,10 @@
       document.getElementById("parent").className = "";
       var popup = document.getElementById("thepopup");
 
+      await new Promise(r => {
+        requestAnimationFrame(() => requestAnimationFrame(r));
+      });
+
       var buttonbcr = document.getElementById("thebutton").getBoundingClientRect();
 
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));

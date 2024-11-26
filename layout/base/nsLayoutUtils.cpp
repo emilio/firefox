@@ -1595,7 +1595,7 @@ nsIFrame* nsLayoutUtils::GetPopupFrameForPoint(
       continue;
     }
     if (aFlags & GetPopupFrameForPointFlags::OnlyReturnFramesWithWidgets) {
-      if (!popup->HasView() || !popup->GetView()->HasWidget()) {
+      if (!popup->GetWidget()) {
         continue;
       }
     }
@@ -2853,12 +2853,9 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
 
   nsIFrame* displayRoot = GetDisplayRootFrame(aFrame);
 
-  if (aFlags & PaintFrameFlags::WidgetLayers) {
-    nsView* view = aFrame->GetView();
-    if (!(view && view->GetWidget() && displayRoot == aFrame)) {
-      aFlags &= ~PaintFrameFlags::WidgetLayers;
-      NS_ASSERTION(aRenderingContext, "need a rendering context");
-    }
+  if (aFlags & PaintFrameFlags::WidgetLayers && (displayRoot != aFrame)) {
+    aFlags &= ~PaintFrameFlags::WidgetLayers;
+    NS_ASSERTION(aRenderingContext, "need a rendering context");
   }
 
   nsPresContext* presContext = aFrame->PresContext();
@@ -2872,7 +2869,7 @@ void nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext, nsIFrame* aFrame,
   // Note that isForPainting here does not include the PaintForPrinting builder
   // mode; that's OK because there is no point in using retained display lists
   // for a print destination.
-  const bool isForPainting = (aFlags & PaintFrameFlags::WidgetLayers) &&
+  const bool isForPainting = aFlags & PaintFrameFlags::WidgetLayers &&
                              aBuilderMode == nsDisplayListBuilderMode::Painting;
 
   // Only allow retaining for painting when preffed on, and for root frames
@@ -6711,7 +6708,7 @@ bool nsLayoutUtils::HasNonZeroCornerOnSide(const BorderRadius& aCorners,
 
 /* static */
 widget::TransparencyMode nsLayoutUtils::GetFrameTransparency(
-    nsIFrame* aBackgroundFrame, nsIFrame* aCSSRootFrame) {
+    const nsIFrame* aBackgroundFrame, const nsIFrame* aCSSRootFrame) {
   if (!aCSSRootFrame->StyleEffects()->IsOpaque()) {
     return TransparencyMode::Transparent;
   }
@@ -6750,11 +6747,6 @@ widget::TransparencyMode nsLayoutUtils::GetFrameTransparency(
 
 /* static */
 bool nsLayoutUtils::IsPopup(const nsIFrame* aFrame) {
-  // Optimization: the frame can't possibly be a popup if it has no view.
-  if (!aFrame->HasView()) {
-    NS_ASSERTION(!aFrame->IsMenuPopupFrame(), "popup frame must have a view");
-    return false;
-  }
   return aFrame->IsMenuPopupFrame();
 }
 
