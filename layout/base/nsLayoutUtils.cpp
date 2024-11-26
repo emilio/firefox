@@ -1021,26 +1021,23 @@ nsIFrame* nsLayoutUtils::GetCrossDocParentFrameInProcess(
     return p;
   }
 
-  nsView* v = aFrame->GetView();
-  if (!v) {
+  auto* bc = aFrame->PresContext()->Document()->GetBrowsingContext();
+  if (!bc) {
     return nullptr;
   }
-  v = v->GetParent();  // anonymous inner view
-  if (!v) {
+  auto* el = bc->GetEmbedderElement();
+  if (!el) {
     return nullptr;
   }
-  v = v->GetParent();  // subdocumentframe's view
-  if (!v) {
+  p = el->GetPrimaryFrame();
+  if (!p) {
     return nullptr;
   }
-
-  p = v->GetFrame();
-  if (p && aCrossDocOffset) {
-    nsSubDocumentFrame* subdocumentFrame = do_QueryFrame(p);
-    MOZ_ASSERT(subdocumentFrame);
-    *aCrossDocOffset += subdocumentFrame->GetExtraOffset();
+  if (aCrossDocOffset) {
+    if (nsSubDocumentFrame* subdocumentFrame = do_QueryFrame(p)) {
+      *aCrossDocOffset += subdocumentFrame->GetExtraOffset();
+    }
   }
-
   return p;
 }
 

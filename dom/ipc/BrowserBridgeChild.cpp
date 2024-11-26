@@ -177,12 +177,10 @@ mozilla::ipc::IPCResult BrowserBridgeChild::RecvScrollRectIntoView(
     return IPC_OK();
   }
 
-  nsPoint extraOffset = subdocumentFrame->GetExtraOffset();
-
   int32_t parentAPD = frame->PresContext()->AppUnitsPerDevPixel();
   nsRect rect =
       aRect.ScaleToOtherAppUnitsRoundOut(aAppUnitsPerDevPixel, parentAPD);
-  rect += extraOffset;
+  rect += subdocumentFrame->GetExtraOffset();
   RefPtr<PresShell> presShell = frame->PresShell();
   presShell->ScrollFrameIntoView(frame, Some(rect), aVertical, aHorizontal,
                                  aScrollFlags);

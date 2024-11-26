@@ -1200,26 +1200,15 @@ void nsPresContext::UpdateCharSet(NotNull<const Encoding*> aCharSet) {
 }
 
 nsPresContext* nsPresContext::GetParentPresContext() const {
-  mozilla::PresShell* presShell = GetPresShell();
-  if (presShell) {
-    nsViewManager* viewManager = presShell->GetViewManager();
-    if (viewManager) {
-      nsView* view = viewManager->GetRootView();
-      if (view) {
-        view = view->GetParent();  // anonymous inner view
-        if (view) {
-          view = view->GetParent();  // subdocumentframe's view
-          if (view) {
-            nsIFrame* f = view->GetFrame();
-            if (f) {
-              return f->PresContext();
-            }
-          }
-        }
-      }
-    }
+  auto* bc = Document()->GetBrowsingContext();
+  if (!bc) {
+    return nullptr;
   }
-  return nullptr;
+  auto* embedder = bc->GetEmbedderElement();
+  if (!embedder) {
+    return nullptr;
+  }
+  return embedder->OwnerDoc()->GetPresContext();
 }
 
 nsPresContext* nsPresContext::GetInProcessRootContentDocumentPresContext() {

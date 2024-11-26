@@ -56,6 +56,8 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   mozilla::IntrinsicSize GetIntrinsicSize() override;
   mozilla::AspectRatio GetIntrinsicRatio() const override;
 
+  const nsPoint& GetExtraOffset() const { return mExtraOffset; }
+
   SizeComputationResult ComputeSize(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
@@ -90,14 +92,12 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
       bool aIgnoreContainment = false) const;
 
   nsIDocShell* GetDocShell() const;
+  nsIDocShell* GetExtantDocShell() const;
   nsresult BeginSwapDocShells(nsIFrame* aOther);
   void EndSwapDocShells(nsIFrame* aOther);
 
-  static void InsertViewsInReverseOrder(nsView* aSibling, nsView* aParent);
-  static void EndSwapDocShellsForViews(nsView* aView);
-
-  nsView* EnsureInnerView();
-  nsPoint GetExtraOffset() const;
+  mozilla::dom::Document* GetExtantSubdocument();
+  mozilla::PresShell* GetSubdocumentPresShell();
   nsIFrame* GetSubdocumentRootFrame();
   enum { IGNORE_PAINT_SUPPRESSION = 0x1 };
   mozilla::PresShell* GetSubdocumentPresShellForPainting(uint32_t aFlags);
@@ -168,14 +168,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   // being reframed.
   void ShowViewer();
 
-  nsView* GetViewInternal() const override { return mOuterView; }
-  void SetViewInternal(nsView* aView) override { mOuterView = aView; }
-  void CreateView();
-
   mutable RefPtr<nsFrameLoader> mFrameLoader;
-
-  nsView* mOuterView;
-  nsView* mInnerView;
 
   // When process-switching a remote tab, we might temporarily paint the old
   // one.
@@ -185,6 +178,10 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   mozilla::gfx::MatrixScales mRasterScale;
   // The visible rect from our last paint.
   Maybe<nsRect> mVisibleRect;
+
+  // The extra offset from our padding box to the child, needed to deal with
+  // object-fit and co.
+  nsPoint mExtraOffset;
 
   bool mIsInline : 1;
   bool mPostedReflowCallback : 1;

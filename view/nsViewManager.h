@@ -203,44 +203,6 @@ class nsViewManager final {
    */
   nsDeviceContext* GetDeviceContext() const { return mContext; }
 
-  /**
-   * A stack class for disallowing changes that would enter painting. For
-   * example, popup widgets shouldn't be resized during reflow, since doing so
-   * might cause synchronous painting inside reflow which is forbidden.
-   * While refresh is disabled, widget geometry changes are deferred and will
-   * be handled later, either from the refresh driver or from an NS_WILL_PAINT
-   * event.
-   * We don't want to defer widget geometry changes all the time. Resizing a
-   * popup from script doesn't need to be deferred, for example, especially
-   * since popup widget geometry is observable from script and expected to
-   * update synchronously.
-   */
-  class MOZ_STACK_CLASS AutoDisableRefresh {
-   public:
-    explicit AutoDisableRefresh(nsViewManager* aVM) {
-      if (aVM) {
-        mRootVM = aVM->IncrementDisableRefreshCount();
-      }
-    }
-    ~AutoDisableRefresh() {
-      if (mRootVM) {
-        mRootVM->DecrementDisableRefreshCount();
-      }
-    }
-
-   private:
-    AutoDisableRefresh(const AutoDisableRefresh& aOther);
-    const AutoDisableRefresh& operator=(const AutoDisableRefresh& aOther);
-
-    RefPtr<nsViewManager> mRootVM;
-  };
-
- private:
-  friend class AutoDisableRefresh;
-
-  nsViewManager* IncrementDisableRefreshCount();
-  void DecrementDisableRefreshCount();
-
  public:
   /**
    * Retrieve the widget at the root of the nearest enclosing
@@ -289,8 +251,6 @@ class nsViewManager final {
  private:
   static uint32_t gLastUserEventTime;
 
-  /* Update the cached RootViewManager pointer on this view manager. */
-  void InvalidateHierarchy();
   void FlushPendingInvalidates();
 
   MOZ_CAN_RUN_SCRIPT
@@ -337,18 +297,9 @@ class nsViewManager final {
 
   void SetPainting(bool aPainting) { RootViewManager()->mPainting = aPainting; }
 
-  nsViewManager* RootViewManager() const {
-    return mRootViewManager ? mRootViewManager.get()
-                            : const_cast<nsViewManager*>(this);
-  }
-  bool IsRootVM() const { return !mRootViewManager; }
-
-  // Whether synchronous painting is allowed at the moment. For example,
-  // widget geometry changes can cause synchronous painting, so they need to
-  // be deferred while refresh is disabled.
-  bool IsPaintingAllowed() {
-    return RootViewManager()->mRefreshDisableCount == 0;
-  }
+  nsViewManager* RootViewManager() const;
+  nsViewManager* GetParentViewManager() const;
+  bool IsRootVM() const { return !GetParentViewManager(); }
 
   MOZ_CAN_RUN_SCRIPT void WillPaintWindow(nsIWidget* aWidget);
   MOZ_CAN_RUN_SCRIPT
@@ -368,17 +319,10 @@ class nsViewManager final {
 
   nsView* mRootView;
 
-  // mRootViewManager is a strong reference to the root view manager, unless
-  // |this| is the root, in which case mRootViewManager is null.  Callers
-  // should use RootViewManager() (which handles that case) rather than using
-  // mRootViewManager directly.
-  RefPtr<nsViewManager> mRootViewManager;
-
   // The following members should not be accessed directly except by
   // the root view manager.  Some have accessor functions to enforce
   // this, as noted.
 
-  int32_t mRefreshDisableCount;
   // Use IsPainting() and SetPainting() to access mPainting.
   bool mPainting;
   bool mRecursiveRefreshPending;

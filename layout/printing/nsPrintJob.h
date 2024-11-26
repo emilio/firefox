@@ -26,6 +26,7 @@
 
 // Classes
 class nsIFrame;
+class nsSubDocumentFrame;
 class nsIPrintSettings;
 class nsPrintData;
 class nsPagePrintTimer;
@@ -227,7 +228,7 @@ class nsPrintJob final : public nsIWebProgressListener,
 
   nsresult SetRootView(nsPrintObject* aPO, bool& aDoReturn,
                        bool& aDocumentIsTopLevel, nsSize& aAdjSize);
-  nsView* GetParentViewForRoot();
+  nsSubDocumentFrame* GetParentFrameForRoot();
   void UpdateZoomRatio(nsPrintObject* aPO);
   MOZ_CAN_RUN_SCRIPT nsresult ReconstructAndReflow();
   MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult UpdateSelectionAndShrinkPrintObject(

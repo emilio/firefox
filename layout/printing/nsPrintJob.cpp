@@ -40,8 +40,8 @@
 #include "nsIURI.h"
 #include "nsITextToSubURI.h"
 #include "nsError.h"
+#include "nsSubDocumentFrame.h"
 
-#include "nsView.h"
 #include <algorithm>
 
 // Print Options
@@ -1186,11 +1186,12 @@ nsresult nsPrintJob::UpdateSelectionAndShrinkPrintObject(
   return NS_OK;
 }
 
-nsView* nsPrintJob::GetParentViewForRoot() {
+nsSubDocumentFrame* nsPrintJob::GetParentFrameForRoot() {
   if (mIsCreatingPrintPreview) {
+    return nullptr;
     if (nsCOMPtr<nsIDocumentViewer> viewer =
             do_QueryInterface(mDocViewerPrint)) {
-      return viewer->FindContainerView();
+      return viewer->FindContainerFrame();
     }
   }
   return nullptr;
@@ -1201,7 +1202,7 @@ nsresult nsPrintJob::SetRootView(nsPrintObject* aPO, bool& doReturn,
   bool canCreateScrollbars = true;
 
   nsView* rootView;
-  nsView* parentView = nullptr;
+  nsSubDocumentFrame* parentFrame = nullptr;
 
   doReturn = false;
 
@@ -1225,17 +1226,13 @@ nsresult nsPrintJob::SetRootView(nsPrintObject* aPO, bool& doReturn,
 
     // the top nsPrintObject's widget will always have scrollbars
     if (frame && frame->IsSubDocumentFrame()) {
-      nsView* view = frame->GetView();
-      NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-      view = view->GetFirstChild();
-      NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
-      parentView = view;
+      parentFrame = static_cast<nsSubDocumentFrame*>(frame);
       canCreateScrollbars = false;
     }
   } else {
     adjSize = mPrt->mPrintDC->GetDeviceSurfaceDimensions();
     documentIsTopLevel = true;
-    parentView = GetParentViewForRoot();
+    parentFrame = GetParentFrameForRoot();
   }
 
   if (aPO->mViewManager->GetRootView()) {
@@ -1243,11 +1240,11 @@ nsresult nsPrintJob::SetRootView(nsPrintObject* aPO, bool& doReturn,
     rootView = aPO->mViewManager->GetRootView();
     // Remove it from its existing parent if necessary
     aPO->mViewManager->RemoveChild(rootView);
-    rootView->SetParent(parentView);
+    rootView->SetParent(nullptr);
   } else {
     // Create a child window of the parent that is our "root view/window"
     nsRect tbounds = nsRect(nsPoint(0, 0), adjSize);
-    rootView = aPO->mViewManager->CreateView(tbounds, parentView);
+    rootView = aPO->mViewManager->CreateView(tbounds, nullptr);
     NS_ENSURE_TRUE(rootView, NS_ERROR_OUT_OF_MEMORY);
   }
 
@@ -1282,7 +1279,7 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
                               : nsPresContext::eContext_Print;
   const bool shouldBeRoot =
       (!aPO->mParent || !aPO->mParent->PrintingIsEnabled()) &&
-      !GetParentViewForRoot();
+      !GetParentFrameForRoot();
   aPO->mPresContext = shouldBeRoot ? new nsRootPresContext(aPO->mDocument, type)
                                    : new nsPresContext(aPO->mDocument, type);
   aPO->mPresContext->SetPrintSettings(mPrintSettings);

@@ -451,9 +451,6 @@ class nsView final : public nsIWidgetListener {
 
   void NotifyEffectiveVisibilityChanged(bool aEffectivelyVisible);
 
-  // Update the cached RootViewManager for all view manager descendents.
-  void InvalidateHierarchy();
-
   void CallOnAllRemoteChildren(
       const std::function<mozilla::CallState(mozilla::dom::BrowserParent*)>&
           aCallback);

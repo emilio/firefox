@@ -344,15 +344,11 @@ class nsDocumentViewer final : public nsIDocumentViewer,
    * Creates a view manager, root view, and widget for the root view, setting
    * mViewManager and mWindow.
    * @param aSize the initial size in appunits
-   * @param aContainerView the container view to hook our root view up
+   * @param aContainerFrame the container view to hook our root view up
    * to as a child, or null if this will be the root view manager
    */
-  nsresult MakeWindow(const nsSize& aSize, nsView* aContainerView);
-
-  /**
-   * Create our device context
-   */
-  nsresult CreateDeviceContext(nsView* aContainerView);
+  nsresult MakeWindow(const nsSize& aSize, nsSubDocumentFrame* aContainerFrame);
+  nsresult CreateDeviceContext(nsSubDocumentFrame* aContainerFrame);
 
   /**
    * If aDoCreation is true, this creates the device context, creates a
@@ -779,8 +775,8 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
 
 static already_AddRefed<nsPresContext> CreatePresContext(
     Document* aDocument, nsPresContext::nsPresContextType aType,
-    nsView* aContainerView) {
-  RefPtr<nsPresContext> result = aContainerView
+    nsIFrame* aContainerFrame) {
+  RefPtr<nsPresContext> result = aContainerFrame
                                      ? new nsPresContext(aDocument, aType)
                                      : new nsRootPresContext(aDocument, aType);
 
@@ -806,11 +802,11 @@ nsresult nsDocumentViewer::InitInternal(
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NULL_POINTER);
 
-  nsView* containerView = FindContainerView();
+  nsSubDocumentFrame* containerFrame = FindContainerFrame();
 
   bool makeCX = false;
   if (aDoCreation) {
-    nsresult rv = CreateDeviceContext(containerView);
+    nsresult rv = CreateDeviceContext(containerFrame);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // XXXbz this is a nasty hack to do with the fact that we create
@@ -818,7 +814,7 @@ nsresult nsDocumentViewer::InitInternal(
     // it in one place (Show()) and require that callers call init(), open(),
     // show() in that order or something.
     if (!mPresContext &&
-        (aParentWidget || containerView || mDocument->IsBeingUsedAsImage() ||
+        (aParentWidget || containerFrame || mDocument->IsBeingUsedAsImage() ||
          (mDocument->GetDisplayDocument() &&
           mDocument->GetDisplayDocument()->GetPresShell()))) {
       // Create presentation context
@@ -827,7 +823,7 @@ nsresult nsDocumentViewer::InitInternal(
         // is calling this method
       } else {
         mPresContext = CreatePresContext(
-            mDocument, nsPresContext::eContext_Galley, containerView);
+            mDocument, nsPresContext::eContext_Galley, containerFrame);
       }
       NS_ENSURE_TRUE(mPresContext, NS_ERROR_OUT_OF_MEMORY);
 
@@ -856,7 +852,7 @@ nsresult nsDocumentViewer::InitInternal(
 
       rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(aBounds.width),
                              mPresContext->DevPixelsToAppUnits(aBounds.height)),
-                      containerView);
+                      containerFrame);
       NS_ENSURE_SUCCESS(rv, rv);
       Hide();
 
@@ -2084,16 +2080,16 @@ nsDocumentViewer::Show() {
       }
     }
 
-    nsView* containerView = FindContainerView();
+    nsSubDocumentFrame* containerFrame = FindContainerFrame();
 
-    nsresult rv = CreateDeviceContext(containerView);
+    nsresult rv = CreateDeviceContext(containerFrame);
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Create presentation context
     NS_ASSERTION(!mPresContext,
                  "Shouldn't have a prescontext if we have no shell!");
     mPresContext = CreatePresContext(mDocument, nsPresContext::eContext_Galley,
-                                     containerView);
+                                     containerFrame);
     NS_ENSURE_TRUE(mPresContext, NS_ERROR_OUT_OF_MEMORY);
 
     rv = mPresContext->Init(mDeviceContext);
@@ -2104,7 +2100,7 @@ nsDocumentViewer::Show() {
 
     rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(mBounds.width),
                            mPresContext->DevPixelsToAppUnits(mBounds.height)),
-                    containerView);
+                    containerFrame);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -2223,7 +2219,7 @@ nsDocumentViewer::ClearHistoryEntry() {
 //-------------------------------------------------------
 
 nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
-                                      nsView* aContainerView) {
+                                      nsSubDocumentFrame* aContainerFrame) {
   if (GetIsPrintPreview()) {
     return NS_OK;
   }
@@ -2246,7 +2242,7 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
   // The root view is always at 0,0.
   nsRect tbounds(nsPoint(0, 0), aSize);
   // Create a view
-  nsView* view = mViewManager->CreateView(tbounds, aContainerView);
+  nsView* view = mViewManager->CreateView(tbounds, nullptr);
   if (!view) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -2256,7 +2252,7 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
   // Don't create widgets for ResourceDocs (external resources & svg images),
   // because when they're displayed, they're painted into *another* document's
   // widget.
-  if (!mDocument->IsResourceDoc() && (mParentWidget || !aContainerView)) {
+  if (!mDocument->IsResourceDoc() && (mParentWidget || !aContainerFrame)) {
     if (shouldAttach) {
       // Reuse the top level parent widget.
       rv = view->AttachToTopLevelWidget(mParentWidget);
@@ -2292,7 +2288,7 @@ void nsDocumentViewer::DetachFromTopLevelWidget() {
   mAttachedToParent = false;
 }
 
-nsView* nsDocumentViewer::FindContainerView() {
+nsSubDocumentFrame* nsDocumentViewer::FindContainerFrame() {
   if (!mContainer) {
     return nullptr;
   }
@@ -2323,18 +2319,18 @@ nsView* nsDocumentViewer::FindContainerView() {
     return nullptr;
   }
 
-  NS_ASSERTION(subdocFrame->GetView(), "Subdoc frames must have views");
-  return static_cast<nsSubDocumentFrame*>(subdocFrame)->EnsureInnerView();
+  return static_cast<nsSubDocumentFrame*>(subdocFrame);
 }
 
-nsresult nsDocumentViewer::CreateDeviceContext(nsView* aContainerView) {
+nsresult nsDocumentViewer::CreateDeviceContext(
+    nsSubDocumentFrame* aContainerFrame) {
   MOZ_ASSERT(!mPresShell && !mWindow,
              "This will screw up our existing presentation");
   MOZ_ASSERT(mDocument, "Gotta have a document here");
 
   Document* doc = mDocument->GetDisplayDocument();
   if (doc) {
-    NS_ASSERTION(!aContainerView,
+    NS_ASSERTION(!aContainerFrame,
                  "External resource document embedded somewhere?");
     // We want to use our display document's device context if possible
     nsPresContext* ctx = doc->GetPresContext();
@@ -2347,8 +2343,8 @@ nsresult nsDocumentViewer::CreateDeviceContext(nsView* aContainerView) {
   // Create a device context even if we already have one, since our widget
   // might have changed.
   nsIWidget* widget = nullptr;
-  if (aContainerView) {
-    widget = aContainerView->GetNearestWidget(nullptr);
+  if (aContainerFrame) {
+    widget = aContainerFrame->GetNearestWidget();
   }
   if (!widget) {
     widget = mParentWidget;
@@ -3422,14 +3418,14 @@ NS_IMETHODIMP nsDocumentViewer::SetPrintSettingsForSubdocument(
     NS_ENSURE_SUCCESS(rv, rv);
 
     mPresContext = CreatePresContext(
-        mDocument, nsPresContext::eContext_PrintPreview, FindContainerView());
+        mDocument, nsPresContext::eContext_PrintPreview, FindContainerFrame());
     mPresContext->SetPrintSettings(aPrintSettings);
     rv = mPresContext->Init(mDeviceContext);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(mBounds.width),
                            mPresContext->DevPixelsToAppUnits(mBounds.height)),
-                    FindContainerView());
+                    FindContainerFrame());
     NS_ENSURE_SUCCESS(rv, rv);
 
     MOZ_TRY(InitPresentationStuff(true));
@@ -3466,7 +3462,7 @@ NS_IMETHODIMP nsDocumentViewer::SetPageModeForTesting(
   NS_ENSURE_STATE(mDocument);
   if (aPageMode) {
     mPresContext = CreatePresContext(
-        mDocument, nsPresContext::eContext_PageLayout, FindContainerView());
+        mDocument, nsPresContext::eContext_PageLayout, FindContainerFrame());
     NS_ENSURE_TRUE(mPresContext, NS_ERROR_OUT_OF_MEMORY);
     mPresContext->SetPaginatedScrolling(true);
     mPresContext->SetPrintSettings(aPrintSettings);

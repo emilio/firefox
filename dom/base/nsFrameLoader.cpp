@@ -980,11 +980,6 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
   const bool marginsChanged =
       ds->UpdateFrameMargins(GetMarginAttributes(mOwnerContent));
 
-  nsView* view = aFrame->EnsureInnerView();
-  if (!view) {
-    return false;
-  }
-
   // If we already have a pres shell (which can happen with <object> / <embed>)
   // then hook it up in the view tree.
   if (PresShell* presShell = ds->GetPresShell()) {
@@ -996,24 +991,11 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
                                     IntrinsicDirty::None, NS_FRAME_IS_DIRTY);
       }
     }
-    nsView* childView = presShell->GetViewManager()->GetRootView();
-    MOZ_DIAGNOSTIC_ASSERT(childView);
-    if (childView->GetParent() == view) {
-      // We were probably doing a docshell swap and succeeded before getting
-      // here, hooray, nothing else to do.
-      return true;
-    }
-
-    // We did layout before due to <object> or <embed> and now we need to fix
-    // up our stuff and initialize our docshell below too.
-    MOZ_DIAGNOSTIC_ASSERT(!view->GetFirstChild());
-    MOZ_DIAGNOSTIC_ASSERT(!childView->GetParent(), "Stale view?");
-    nsSubDocumentFrame::InsertViewsInReverseOrder(childView, view);
-    nsSubDocumentFrame::EndSwapDocShellsForViews(view->GetFirstChild());
+    MOZ_DIAGNOSTIC_ASSERT(presShell->GetViewManager()->GetRootView());
   }
 
   RefPtr<nsDocShell> baseWindow = GetDocShell();
-  baseWindow->InitWindow(view->GetWidget(), 0, 0, size.width, size.height);
+  baseWindow->InitWindow(nullptr, 0, 0, size.width, size.height);
   baseWindow->SetVisibility(true);
   NS_ENSURE_TRUE(GetDocShell(), false);
 

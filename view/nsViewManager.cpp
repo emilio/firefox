@@ -55,7 +55,6 @@ nsViewManager::nsViewManager()
     : mPresShell(nullptr),
       mDelayedResize(NSCOORD_NONE, NSCOORD_NONE),
       mRootView(nullptr),
-      mRefreshDisableCount(0),
       mPainting(false),
       mRecursiveRefreshPending(false),
       mHasPendingWidgetGeometryChanges(false) {}
@@ -67,8 +66,6 @@ nsViewManager::~nsViewManager() {
     mRootView = nullptr;
   }
 
-  mRootViewManager = nullptr;
-
   MOZ_RELEASE_ASSERT(!mPresShell,
                      "Releasing nsViewManager without having called Destroy on "
                      "the PresShell!");
@@ -77,16 +74,14 @@ nsViewManager::~nsViewManager() {
 // We don't hold a reference to the presentation context because it
 // holds a reference to us.
 nsresult nsViewManager::Init(nsDeviceContext* aContext) {
-  MOZ_ASSERT(nullptr != aContext, "null ptr");
-
-  if (nullptr == aContext) {
+  MOZ_ASSERT(aContext, "null ptr");
+  if (!aContext) {
     return NS_ERROR_NULL_POINTER;
   }
-  if (nullptr != mContext) {
+  if (mContext) {
     return NS_ERROR_ALREADY_INITIALIZED;
   }
   mContext = aContext;
-
   return NS_OK;
 }
 
@@ -107,18 +102,6 @@ void nsViewManager::SetRootView(nsView* aView) {
   // Do NOT destroy the current root view. It's the caller's responsibility
   // to destroy it
   mRootView = aView;
-
-  if (mRootView) {
-    nsView* parent = mRootView->GetParent();
-    if (parent) {
-      // Calling InsertChild on |parent| will InvalidateHierarchy() on us, so
-      // no need to set mRootViewManager ourselves here.
-      parent->InsertChild(mRootView, nullptr);
-    } else {
-      InvalidateHierarchy();
-    }
-  }
-  // Else don't touch mRootViewManager
 }
 
 void nsViewManager::GetWindowDimensions(nscoord* aWidth, nscoord* aHeight) {
@@ -226,6 +209,25 @@ nsView* nsViewManager::GetDisplayRootFor(nsView* aView) {
 
     displayRoot = displayParent;
   }
+}
+
+nsViewManager* nsViewManager::RootViewManager() const {
+  const auto* cur = this;
+  while (auto* parent = cur->GetParentViewManager()) {
+    cur = parent;
+  }
+  return const_cast<nsViewManager*>(cur);
+}
+
+nsViewManager* nsViewManager::GetParentViewManager() const {
+  if (!mPresShell) {
+    return nullptr;
+  }
+  auto* pc = mPresShell->GetPresContext();
+  if (auto* parent = pc->GetParentPresContext()) {
+    return parent->PresShell()->GetViewManager();
+  }
+  return nullptr;
 }
 
 /**
@@ -540,11 +542,9 @@ void nsViewManager::WillPaintWindow(nsIWidget* aWidget) {
 
 bool nsViewManager::PaintWindow(nsIWidget* aWidget,
                                 const LayoutDeviceIntRegion& aRegion) {
-  if (!aWidget || !mContext) return false;
-
-  NS_ASSERTION(
-      IsPaintingAllowed(),
-      "shouldn't be receiving paint events while painting is disallowed!");
+  if (!aWidget || !mContext) {
+    return false;
+  }
 
   // Get the view pointer here since NS_WILL_PAINT might have
   // destroyed it during CallWillPaintOnObservers (bug 378273).
@@ -722,22 +722,6 @@ bool nsViewManager::IsViewInserted(nsView* aView) {
   return false;
 }
 
-nsViewManager* nsViewManager::IncrementDisableRefreshCount() {
-  if (!IsRootVM()) {
-    return RootViewManager()->IncrementDisableRefreshCount();
-  }
-
-  ++mRefreshDisableCount;
-
-  return this;
-}
-
-void nsViewManager::DecrementDisableRefreshCount() {
-  NS_ASSERTION(IsRootVM(), "Should only be called on root");
-  --mRefreshDisableCount;
-  NS_ASSERTION(mRefreshDisableCount >= 0, "Invalid refresh disable count!");
-}
-
 nsIWidget* nsViewManager::GetRootWidget() const {
   if (!mRootView) {
     return nullptr;
@@ -745,10 +729,8 @@ nsIWidget* nsViewManager::GetRootWidget() const {
   if (mRootView->HasWidget()) {
     return mRootView->GetWidget();
   }
-  if (mRootView->GetParent()) {
-    return mRootView->GetParent()->GetViewManager()->GetRootWidget();
-  }
-  return nullptr;
+  auto* parent = GetParentViewManager();
+  return parent ? parent->GetRootWidget() : nullptr;
 }
 
 LayoutDeviceIntRect nsViewManager::ViewToWidget(nsView* aView,
@@ -825,18 +807,5 @@ void nsViewManager::CallWillPaintOnObservers() {
         presShell->WillPaint();
       }
     }
-  }
-}
-
-void nsViewManager::InvalidateHierarchy() {
-  if (mRootView) {
-    mRootViewManager = nullptr;
-    nsView* parent = mRootView->GetParent();
-    if (parent) {
-      mRootViewManager = parent->GetViewManager()->RootViewManager();
-      NS_ASSERTION(mRootViewManager != this,
-                   "Root view had a parent, but it has the same view manager");
-    }
-    // else, we are implicitly our own root view manager.
   }
 }

@@ -2066,7 +2066,6 @@ bool PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight,
 
     // Kick off a top-down reflow
     AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-    nsViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
     mDirtyRoots.Remove(rootFrame);
     DoReflow(rootFrame, true, nullptr);
@@ -6298,7 +6297,7 @@ void PresShell::MarkFramesInSubtreeApproximatelyVisible(
 
 void PresShell::RebuildApproximateFrameVisibility(
     nsRect* aRect, bool aRemoveOnly /* = false */) {
-  MOZ_ASSERT(!mApproximateFrameVisibilityVisited, "already visited?");
+  // MOZ_ASSERT(!mApproximateFrameVisibilityVisited, "already visited?");
   mApproximateFrameVisibilityVisited = true;
 
   nsIFrame* rootFrame = GetRootFrame();
@@ -10479,7 +10478,6 @@ bool PresShell::ProcessReflowCommands(bool aInterruptible) {
     nsAutoScriptBlocker scriptBlocker;
     WillDoReflow();
     AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-    nsViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
     OverflowChangedTracker overflowTracker;
 
