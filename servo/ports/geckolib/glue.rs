@@ -6576,11 +6576,6 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(
                     debug_assert!(!property.is_logical());
                     debug_assert!(property.is_animatable());
 
-                    // 'display' is only animatable from SMIL
-                    if property == PropertyDeclarationId::Longhand(LonghandId::Display) {
-                        return;
-                    }
-
                     // Skip restricted properties
                     if restriction.map_or(false, |r| !property.flags().contains(r)) {
                         return;
@@ -6904,13 +6899,7 @@ pub unsafe extern "C" fn Servo_StyleSet_GetKeyframesForName(
                 // there are logical and physical longhands in the same block.
                 for declaration in guard.normal_declaration_iter().rev() {
                     let id = declaration.id().to_physical(writing_mode);
-
-                    // Skip non-animatable properties, including the 'display' property because
-                    // although it is animatable from SMIL, it should not be animatable from CSS
-                    // Animations.
-                    if !id.is_animatable() ||
-                        id == PropertyDeclarationId::Longhand(LonghandId::Display)
-                    {
+                    if !id.is_animatable() {
                         continue;
                     }
 

@@ -15,7 +15,7 @@ use crate::properties::longhands::animation_fill_mode::computed_value::single_va
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use crate::properties::AnimationDeclarations;
 use crate::properties::{
-    ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
+    ComputedValues, Importance, PropertyDeclarationBlock, PropertyDeclarationId,
     PropertyDeclarationIdSet,
 };
 use crate::rule_tree::CascadeLevel;
@@ -217,10 +217,6 @@ impl IntermediateComputedKeyframe {
         let guard = block.read_with(&guard);
         for declaration in guard.normal_declaration_iter() {
             if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                if id == LonghandId::Display {
-                    continue;
-                }
-
                 if !id.is_animatable() {
                     continue;
                 }

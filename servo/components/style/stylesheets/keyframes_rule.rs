@@ -429,11 +429,6 @@ fn get_animated_properties(
         // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
         for declaration in block.normal_declaration_iter() {
             let declaration_id = declaration.id();
-
-            if declaration_id == PropertyDeclarationId::Longhand(LonghandId::Display) {
-                continue;
-            }
-
             if !declaration_id.is_animatable() {
                 continue;
             }
