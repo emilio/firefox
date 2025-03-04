@@ -857,21 +857,6 @@ void nsIFrame::Destroy(DestroyContext& aContext) {
     anchor->InvalidateAnchor();
   }
 
-  if (HasCSSAnimations() || HasCSSTransitions() ||
-      // It's fine to look up the style frame here since if we're destroying the
-      // frames for display:table content we should be destroying both wrapper
-      // and inner frame.
-      EffectSet::GetForStyleFrame(this)) {
-    // If no new frame for this element is created by the end of the
-    // restyling process, stop animations and transitions for this frame
-    RestyleManager::AnimationsWithDestroyedFrame* adf =
-        pc->RestyleManager()->GetAnimationsWithDestroyedFrame();
-    // AnimationsWithDestroyedFrame only lives during the restyling process.
-    if (adf) {
-      adf->Put(mContent, mComputedStyle);
-    }
-  }
-
   // Disable visibility tracking. Note that we have to do this before we clear
   // frame properties and lose track of whether we were previously visible.
   // XXX(seth): It'd be ideal to assert that we're already marked nonvisible

@@ -2034,89 +2034,6 @@ void RestyleManager::AddLayerChangesForAnimation(
     aChangeListToProcess.AppendChange(aPrimaryFrame, aElement, hint);
   }
 }
-
-RestyleManager::AnimationsWithDestroyedFrame::AnimationsWithDestroyedFrame(
-    RestyleManager* aRestyleManager)
-    : mRestyleManager(aRestyleManager),
-      mRestorePointer(mRestyleManager->mAnimationsWithDestroyedFrame) {
-  MOZ_ASSERT(!mRestyleManager->mAnimationsWithDestroyedFrame,
-             "shouldn't construct recursively");
-  mRestyleManager->mAnimationsWithDestroyedFrame = this;
-}
-
-void RestyleManager::AnimationsWithDestroyedFrame ::
-    StopAnimationsForElementsWithoutFrames() {
-  StopAnimationsWithoutFrame(mContents, PseudoStyleRequest::NotPseudo());
-  StopAnimationsWithoutFrame(mBeforeContents, PseudoStyleRequest::Before());
-  StopAnimationsWithoutFrame(mAfterContents, PseudoStyleRequest::After());
-  StopAnimationsWithoutFrame(mMarkerContents, PseudoStyleRequest::Marker());
-}
-
-void RestyleManager::AnimationsWithDestroyedFrame ::StopAnimationsWithoutFrame(
-    nsTArray<RefPtr<Element>>& aArray,
-    const PseudoStyleRequest& aPseudoRequest) {
-  nsPresContext* context = mRestyleManager->PresContext();
-  nsAnimationManager* animationManager = context->AnimationManager();
-  nsTransitionManager* transitionManager = context->TransitionManager();
-  const Document* doc = context->Document();
-  for (Element* element : aArray) {
-    PseudoStyleRequest request = aPseudoRequest;
-
-    switch (aPseudoRequest.mType) {
-      case PseudoStyleType::NotPseudo: {
-        if (element->GetPrimaryFrame()) {
-          continue;
-        }
-
-        // The contents of view transition pseudos are put together with
-        // NotPseudo.
-        const auto type = element->GetPseudoElementType();
-        if (PseudoStyle::IsViewTransitionPseudoElement(type)) {
-          request = {
-              type,
-              element->HasName()
-                  ? element->GetParsedAttr(nsGkAtoms::name)->GetAtomValue()
-                  : nullptr};
-          // View transition pseudo-elements use the document element to look up
-          // their animations.
-          element = doc->GetRootElement();
-          MOZ_ASSERT(element);
-        }
-        break;
-      }
-      case PseudoStyleType::before:
-        if (nsLayoutUtils::GetBeforeFrame(element)) {
-          continue;
-        }
-        break;
-      case PseudoStyleType::after:
-        if (nsLayoutUtils::GetAfterFrame(element)) {
-          continue;
-        }
-        break;
-      case PseudoStyleType::marker:
-        if (nsLayoutUtils::GetMarkerFrame(element)) {
-          continue;
-        }
-        break;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unexpected PseudoStyleType");
-        break;
-    }
-
-    animationManager->StopAnimationsForElement(element, request);
-    transitionManager->StopAnimationsForElement(element, request);
-
-    // All other animations should keep running but not running on the
-    // *compositor* at this point.
-    if (EffectSet* effectSet = EffectSet::Get(element, request)) {
-      for (KeyframeEffect* effect : *effectSet) {
-        effect->ResetIsRunningOnCompositor();
-      }
-    }
-  }
-}
-
 // When using handled hints by an ancestor, we need to make sure that our
 // ancestor in the DOM tree is actually our ancestor in the flat tree.
 // Otherwise, we can't guarantee that e.g. a repaint from an ancestor in the DOM
@@ -3225,11 +3142,6 @@ void RestyleManager::DoProcessPendingRestyles(ServoTraversalFlags aFlags) {
   // It'd be bad!
   PresShell::AutoAssertNoFlush noReentrantFlush(*presShell);
 
-  // Create a AnimationsWithDestroyedFrame during restyling process to
-  // stop animations and transitions on elements that have no frame at the end
-  // of the restyling process.
-  AnimationsWithDestroyedFrame animationsWithDestroyedFrame(this);
-
   ServoStyleSet* styleSet = StyleSet();
   Document* doc = presContext->Document();
 
@@ -3363,11 +3275,6 @@ void RestyleManager::DoProcessPendingRestyles(ServoTraversalFlags aFlags) {
   // Now that everything has settled, see if we have enough free rule nodes in
   // the tree to warrant sweeping them.
   styleSet->MaybeGCRuleTree();
-
-  // Note: We are in the scope of |animationsWithDestroyedFrame|, so
-  //       |mAnimationsWithDestroyedFrame| is still valid.
-  MOZ_ASSERT(mAnimationsWithDestroyedFrame);
-  mAnimationsWithDestroyedFrame->StopAnimationsForElementsWithoutFrames();
 }
 
 #ifdef DEBUG

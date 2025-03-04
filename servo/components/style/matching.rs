@@ -352,12 +352,10 @@ trait PrivateMatchMethods: TElement {
 
         // We resolve starting style only if we don't have before-change-style, or we change from
         // display:none.
-        if old_values.is_some() &&
-            !new_styles
-                .primary_style()
-                .is_display_property_changed_from_none(old_values.map(|s| &**s))
-        {
-            return None;
+        if let Some(v) = old_values {
+            if !v.clone_display().is_none() || new_styles.primary_style().clone_display().is_none() {
+                return None;
+            }
         }
 
         // Note: Basically, we have to remove transition rules because the starting style for an
@@ -510,11 +508,10 @@ trait PrivateMatchMethods: TElement {
             if important_rules_changed {
                 tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);
             }
-            if new_styles
-                .primary_style()
-                .is_display_property_changed_from_none(old_values.as_deref())
-            {
-                tasks.insert(UpdateAnimationsTasks::DISPLAY_CHANGED_FROM_NONE);
+            if let Some(v) = old_values {
+                if v.clone_display().is_none() != new_styles.primary_style().clone_display().is_none() {
+                    tasks.insert(UpdateAnimationsTasks::DISPLAY_CHANGED_FROM_TO_NONE);
+                }
             }
         }
 

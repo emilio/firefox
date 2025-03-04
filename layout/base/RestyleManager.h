@@ -219,8 +219,6 @@ class RestyleManager {
   void Disconnect() { mPresContext = nullptr; }
 
   ~RestyleManager() {
-    MOZ_ASSERT(!mAnimationsWithDestroyedFrame,
-               "leaving dangling pointers from AnimationsWithDestroyedFrame");
     MOZ_ASSERT(!mReentrantChanges);
   }
 
@@ -254,70 +252,6 @@ class RestyleManager {
   void ProcessRestyledFrames(nsStyleChangeList& aChangeList);
 
   bool IsInStyleRefresh() const { return mInStyleRefresh; }
-
-  // AnimationsWithDestroyedFrame is used to stop animations and transitions
-  // on elements that have no frame at the end of the restyling process.
-  // It only lives during the restyling process.
-  class MOZ_STACK_CLASS AnimationsWithDestroyedFrame final {
-   public:
-    // Construct a AnimationsWithDestroyedFrame object.  The caller must
-    // ensure that aRestyleManager lives at least as long as the
-    // object.  (This is generally easy since the caller is typically a
-    // method of RestyleManager.)
-    explicit AnimationsWithDestroyedFrame(RestyleManager* aRestyleManager);
-
-    // This method takes the content node for the generated content for
-    // animation/transition on ::before and ::after, rather than the
-    // content node for the real element.
-    void Put(nsIContent* aContent, ComputedStyle* aComputedStyle) {
-      MOZ_ASSERT(aContent);
-      PseudoStyleType pseudoType = aComputedStyle->GetPseudoType();
-      if (pseudoType == PseudoStyleType::NotPseudo ||
-          PseudoStyle::IsViewTransitionPseudoElement(pseudoType)) {
-        mContents.AppendElement(aContent->AsElement());
-      } else if (pseudoType == PseudoStyleType::before) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
-                   nsGkAtoms::mozgeneratedcontentbefore);
-        mBeforeContents.AppendElement(aContent->GetParent()->AsElement());
-      } else if (pseudoType == PseudoStyleType::after) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
-                   nsGkAtoms::mozgeneratedcontentafter);
-        mAfterContents.AppendElement(aContent->GetParent()->AsElement());
-      } else if (pseudoType == PseudoStyleType::marker) {
-        MOZ_ASSERT(aContent->NodeInfo()->NameAtom() ==
-                   nsGkAtoms::mozgeneratedcontentmarker);
-        mMarkerContents.AppendElement(aContent->GetParent()->AsElement());
-      }
-    }
-
-    void StopAnimationsForElementsWithoutFrames();
-
-   private:
-    void StopAnimationsWithoutFrame(nsTArray<RefPtr<Element>>& aArray,
-                                    const PseudoStyleRequest& aPseudoRequest);
-
-    RestyleManager* mRestyleManager;
-    AutoRestore<AnimationsWithDestroyedFrame*> mRestorePointer;
-
-    // Below four arrays might include elements that have already had their
-    // animations or transitions stopped.
-    //
-    // mBeforeContents, mAfterContents and mMarkerContents hold the real element
-    // rather than the content node for the generated content (which might
-    // change during a reframe).
-    nsTArray<RefPtr<Element>> mContents;
-    nsTArray<RefPtr<Element>> mBeforeContents;
-    nsTArray<RefPtr<Element>> mAfterContents;
-    nsTArray<RefPtr<Element>> mMarkerContents;
-  };
-
-  /**
-   * Return the current AnimationsWithDestroyedFrame struct, or null if we're
-   * not currently in a restyling operation.
-   */
-  AnimationsWithDestroyedFrame* GetAnimationsWithDestroyedFrame() {
-    return mAnimationsWithDestroyedFrame;
-  }
 
   void ContentInserted(nsIContent* aChild);
   void ContentAppended(nsIContent* aFirstNewContent);
@@ -562,8 +496,6 @@ class RestyleManager {
   uint64_t mAnimationGeneration;
 
   OverflowChangedTracker mOverflowChangedTracker;
-
-  AnimationsWithDestroyedFrame* mAnimationsWithDestroyedFrame = nullptr;
 
   const SnapshotTable& Snapshots() const { return mSnapshots; }
   void ClearSnapshots();

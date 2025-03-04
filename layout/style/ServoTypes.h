@@ -73,7 +73,7 @@ enum class UpdateAnimationsTasks : uint8_t {
   CSSTransitions = 1 << 1,
   EffectProperties = 1 << 2,
   CascadeResults = 1 << 3,
-  DisplayChangedFromNone = 1 << 4,
+  DisplayChangedFromToNone = 1 << 4,
   ScrollTimelines = 1 << 5,
   ViewTimelines = 1 << 6,
 };

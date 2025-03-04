@@ -616,11 +616,25 @@ void Gecko_UpdateAnimations(const Element* aElement,
     }
   }
 
-  if (aTasks & UpdateAnimationsTasks::DisplayChangedFromNone) {
-    presContext->EffectCompositor()->RequestRestyle(
-        const_cast<Element*>(element), pseudoRequest,
-        EffectCompositor::RestyleType::Standard,
-        EffectCompositor::CascadeLevel::Animations);
+  if (aTasks & UpdateAnimationsTasks::DisplayChangedFromToNone) {
+    if (aComputedData->StyleDisplay()->mDisplay != StyleDisplay::None) {
+      presContext->EffectCompositor()->RequestRestyle(
+          const_cast<Element*>(element), pseudoRequest,
+          EffectCompositor::RestyleType::Standard,
+          EffectCompositor::CascadeLevel::Animations);
+    } else {
+      presContext->AnimationManager()->StopAnimationsForElement(
+          const_cast<Element*>(element), pseudoRequest);
+      presContext->TransitionManager()->StopAnimationsForElement(
+          const_cast<Element*>(element), pseudoRequest);
+      // All other animations should keep running but not running on the
+      // *compositor* at this point.
+      if (EffectSet* effectSet = EffectSet::Get(element, pseudoRequest)) {
+        for (KeyframeEffect* effect : *effectSet) {
+          effect->ResetIsRunningOnCompositor();
+        }
+      }
+    }
   }
 }
 
