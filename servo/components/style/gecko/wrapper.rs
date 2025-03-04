@@ -1578,12 +1578,24 @@ impl<'le> TElement for GeckoElement<'le> {
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
     ) -> bool {
+        use crate::properties::LonghandId;
+
         let after_change_ui_style = after_change_style.get_ui();
         let existing_transitions = self.css_transitions_info();
 
-        if after_change_style.get_box().clone_display().is_none() {
+        let after_change_display = after_change_style.clone_display();
+        let is_display_none = after_change_display.is_none();
+        if is_display_none {
             // We need to cancel existing transitions.
-            return !existing_transitions.is_empty();
+            if existing_transitions.is_empty() {
+                return true;
+            }
+
+            let before_change_display = before_change_style.clone_display();
+            if before_change_display == after_change_display {
+                // Not starting any transition.
+                return false;
+            }
         }
 
         let mut transitions_to_keep = PropertyDeclarationIdSet::default();
@@ -1602,8 +1614,17 @@ impl<'le> TElement for GeckoElement<'le> {
                 after_change_style,
                 &existing_transitions,
             ) {
-                return true;
+                if !is_display_none {
+                    return true;
+                }
+                if physical_property.as_longhand() == Some(LonghandId::Display) {
+                    return true;
+                }
             }
+        }
+
+        if is_display_none {
+            return false;
         }
 
         // Check if we have to cancel the running transition because this is not

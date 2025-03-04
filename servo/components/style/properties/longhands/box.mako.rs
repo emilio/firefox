@@ -11,7 +11,6 @@ ${helpers.predefined_type(
     "computed::Display::inline()",
     engines="gecko servo",
     initial_specified_value="specified::Display::inline()",
-    animation_type="discrete",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
     servo_restyle_damage="rebuild_and_reflow",
     affects="layout",

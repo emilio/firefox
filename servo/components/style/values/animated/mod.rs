@@ -18,6 +18,8 @@ use app_units::Au;
 use smallvec::SmallVec;
 use std::cmp;
 
+#[path = "box.rs"]
+pub mod box_;
 pub mod color;
 pub mod effects;
 mod font;
@@ -400,6 +402,8 @@ trivial_to_animated_value!(crate::Atom);
 trivial_to_animated_value!(Angle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
+trivial_to_animated_value!(i16);
+trivial_to_animated_value!(u16);
 trivial_to_animated_value!(f32);
 trivial_to_animated_value!(i32);
 trivial_to_animated_value!(u32);

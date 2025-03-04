@@ -46,11 +46,6 @@ bool nsTransitionManager::UpdateTransitions(
   }
 
   MOZ_ASSERT(mPresContext->IsDynamic());
-  if (aNewStyle.StyleDisplay()->mDisplay == StyleDisplay::None) {
-    StopAnimationsForElement(aElement, aPseudoRequest);
-    return false;
-  }
-
   auto* collection = CSSTransitionCollection::Get(aElement, aPseudoRequest);
   return DoUpdateTransitions(*aNewStyle.StyleUIReset(), aElement,
                              aPseudoRequest, collection, aOldStyle, aNewStyle);

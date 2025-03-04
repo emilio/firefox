@@ -351,12 +351,6 @@ nsTArray<AnimationProperty> KeyframeUtils::GetAnimationPropertiesFromKeyframes(
 
 /* static */
 bool KeyframeUtils::IsAnimatableProperty(const AnimatedPropertyID& aProperty) {
-  // Regardless of the backend type, treat the 'display' property as not
-  // animatable. (Servo will report it as being animatable, since it is
-  // in fact animatable by SMIL.)
-  if (aProperty.mID == eCSSProperty_display) {
-    return false;
-  }
   return Servo_Property_IsAnimatable(&aProperty);
 }
 

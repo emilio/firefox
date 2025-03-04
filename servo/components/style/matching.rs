@@ -320,14 +320,23 @@ trait PrivateMatchMethods: TElement {
             None => return false,
         };
 
+        let new_ui = new_style.get_ui();
         if !self.has_css_transitions(context.shared, pseudo_element) &&
-            !new_style.get_ui().specifies_transitions()
+            !new_ui.specifies_transitions()
         {
             return false;
         }
 
-        if old_style.clone_display().is_none() {
-            return false;
+        let old_display = old_style.clone_display();
+        if old_display.is_none() {
+            if new_style.clone_display() == old_display {
+                return false;
+            }
+            if !new_style.get_ui().transition_behavior_iter().any(|b| b.allows_discrete()) {
+                return false;
+            }
+            // TODO: we could check that `display` is actually in the `transition-property`, but we
+            // need to check for `all` as well and so on, maybe not worth it?
         }
 
         return true;

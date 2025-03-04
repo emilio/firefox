@@ -1,7 +1,7 @@
 <!doctype html>
 <head>
 <meta charset=utf-8>
-<title>Bug 1536688 - Test that 'display' is not included in
+<title>Bug 1536688 - Test that 'writing-mode' is not included in
   KeyframeEffect.getProperties() when using shorthand 'all'</title>
 <script type="application/javascript" src="../testharness.js"></script>
 <script type="application/javascript" src="../testharnessreport.js"></script>
@@ -25,8 +25,8 @@ test(t => {
 
   const properties = animation.effect.getProperties();
   assert_false(
-    properties.some(property => property.property === 'display'),
-    'Should not have a property for display'
+    properties.some(property => property.property === 'writing-mode'),
+    'Should not have a property for writing-mode'
   );
 });
 

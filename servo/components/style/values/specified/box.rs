@@ -117,6 +117,7 @@ impl DisplayInside {
     Hash,
     MallocSizeOf,
     PartialEq,
+    ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
     ToShmem,

@@ -145,8 +145,14 @@ impl TransitionBehavior {
 
     /// Return true if it is normal.
     #[inline]
-    pub fn is_normal(&self) -> bool {
-        matches!(*self, Self::Normal)
+    pub fn is_normal(self) -> bool {
+        matches!(self, Self::Normal)
+    }
+
+    /// Return true if it is normal.
+    #[inline]
+    pub fn allows_discrete(self) -> bool {
+        matches!(self, Self::AllowDiscrete)
     }
 }
 
