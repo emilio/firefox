@@ -401,7 +401,14 @@ void nsAnimationManager::UpdateAnimations(
              "Should not update animations that are not attached to the "
              "document tree");
 
-  if (!aComputedStyle) {
+  if (!aComputedStyle ||
+      aComputedStyle->StyleDisplay()->mDisplay == StyleDisplay::None) {
+    // If we are in a display:none subtree we will have no computed values.
+    // However, if we are on the root of display:none subtree, the computed
+    // values might not have been cleared yet.
+    // In either case, since CSS animations should not run in display:none
+    // subtrees we should stop (actually, destroy) any animations on this
+    // element here.
     StopAnimationsForElement(aElement, aPseudoRequest);
     return;
   }
