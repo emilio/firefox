@@ -5338,8 +5338,8 @@ bool nsDisplayViewTransitionCapture::CreateWebRenderCommands(
       "nsDisplayViewTransitionCapture::CreateWebrenderCommands(%s, key=%s)",
       capturedFrame->ListTag().get(), ToString(key).c_str());
   wr::StackingContextParams params;
-  params.clip =
-      wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
+  params.clip = wr::WrStackingContextClip::ClipChain(
+      key ? wr::ROOT_CLIP_CHAIN : aBuilder.CurrentClipChainId());
   if (key) {
     si.emplace(wr::SnapshotInfo{
         .key = *key,

@@ -3381,6 +3381,12 @@ void nsIFrame::BuildDisplayListForStackingContext(
       (DisplayPortUtils::IsFixedPosFrameInDisplayPort(this) ||
        BuilderHasScrolledClip(aBuilder));
 
+  // Root gets handled in
+  // ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems.
+  const bool capturedByViewTransition =
+      HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
+      !style.IsRootElementStyle();
+
   nsDisplayListBuilder::AutoBuildingDisplayList buildingDisplayList(
       aBuilder, this, visibleRect, dirtyRect, isTransformed);
 
@@ -3397,6 +3403,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
     Perspective,
     Transform,
     Filter,
+    ViewTransitionCapture,
   };
 
   nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
@@ -3449,6 +3456,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
     }
   } else if (usingFilter) {
     clipCapturedBy = ContainerItemType::Filter;
+  } else if (capturedByViewTransition) {
+    clipCapturedBy = ContainerItemType::ViewTransitionCapture;
   }
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
@@ -3662,14 +3671,11 @@ void nsIFrame::BuildDisplayListForStackingContext(
     createdContainer = true;
   }
 
-  // Root gets handled in
-  // ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems.
-  const bool capturedByViewTransition =
-      HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) &&
-      !style.IsRootElementStyle();
-
   // FIXME: Ensure this is the right place to do this.
   if (capturedByViewTransition) {
+    if (clipCapturedBy == ContainerItemType::ViewTransitionCapture) {
+      clipState.Restore();
+    }
     resultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
         aBuilder, this, &resultList, containerItemASR, /* aIsRoot = */ false);
     createdContainer = true;
