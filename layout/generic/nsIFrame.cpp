@@ -3511,6 +3511,15 @@ void nsIFrame::BuildDisplayListForStackingContext(
       }
     }
 
+    nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(
+        aBuilder);
+    if (clipCapturedBy == ContainerItemType::ViewTransitionCapture) {
+      // View transition contents shouldn't scroll along our ASR. They get
+      // "pulled out" of the rendering (or when they don't you can't scroll
+      // anyways).
+      asrSetter.SetCurrentActiveScrolledRoot(nullptr);
+    }
+
     // extend3DContext also guarantees that applyAbsPosClipping and
     // usingSVGEffects are false We only modify the preserve-3d rect if we are
     // the top of a preserve-3d heirarchy
