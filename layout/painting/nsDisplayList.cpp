@@ -2642,9 +2642,10 @@ Maybe<nsRect> nsDisplayItem::GetClipWithRespectToASR(
           DisplayItemClipChain::ClipForASR(GetClipChain(), aASR)) {
     return Some(clip->GetClipRect());
   }
-#ifdef DEBUG
-  NS_ASSERTION(false, "item should have finite clip with respect to aASR");
-#endif
+  // View transitions don't get clipped and thus might hit this assertion if its
+  // container passes a non-null aASR.
+  NS_ASSERTION(GetType() == DisplayItemType::TYPE_VT_CAPTURE,
+               "item should have finite clip with respect to aASR");
   return Nothing();
 }
 
@@ -5339,8 +5340,8 @@ bool nsDisplayViewTransitionCapture::CreateWebRenderCommands(
       "nsDisplayViewTransitionCapture::CreateWebrenderCommands(%s, key=%s)",
       capturedFrame->ListTag().get(), ToString(key).c_str());
   wr::StackingContextParams params;
-  params.clip =
-      wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
+  params.clip = wr::WrStackingContextClip::ClipChain(
+      key ? wr::ROOT_CLIP_CHAIN : aBuilder.CurrentClipChainId());
   if (key) {
     si.emplace(wr::SnapshotInfo{
         .key = *key,
