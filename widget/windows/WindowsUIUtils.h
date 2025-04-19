@@ -56,6 +56,8 @@ class WindowsUIUtils final : public nsIWindowsUIUtils {
   static double ComputeTextScaleFactor();
   static bool ComputeTransparencyEffects();
 
+  static void CollapseTitlebar(void*);
+
  protected:
   ~WindowsUIUtils();
 };

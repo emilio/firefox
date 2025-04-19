@@ -36,6 +36,9 @@
 #include "WinRegistry.h"
 #include "WinUtils.h"
 
+#include "winrt/Microsoft.UI.Interop.h"
+#include "winrt/Microsoft.UI.Windowing.h"
+
 mozilla::LazyLogModule gTabletModeLog("TabletMode");
 
 /* mingw currently doesn't support windows.ui.viewmanagement.h, so we disable it
@@ -1067,4 +1070,25 @@ WindowsUIUtils::ShareUrl(const nsAString& aUrlToShare,
   WindowsUIUtils::Share(nsAutoString(aShareTitle), text,
                         nsAutoString(aUrlToShare));
   return NS_OK;
+}
+
+void WindowsUIUtils::CollapseTitlebar(void* aWnd) {
+  auto wnd = (HWND)aWnd;
+  try {
+    printf_stderr("CollapseTitlebar(in %p)\n", wnd);
+    // Retrieve the WindowId that corresponds to hWnd.
+    auto windowId = winrt::Microsoft::UI::GetWindowIdFromWindow(wnd);
+    printf_stderr("Got window id\n");
+    // Lastly, retrieve the AppWindow for the current (XAML) WinUI 3 window.
+    auto appWindow =
+        winrt::Microsoft::UI::Windowing::AppWindow::GetFromWindowId(windowId);
+    printf_stderr("Got AppWindow\n");
+    appWindow.TitleBar().ExtendsContentIntoTitleBar(true);
+    printf_stderr("Called ExtendsContentIntoTitleBar\n");
+    appWindow.TitleBar().PreferredHeightOption(
+        winrt::Microsoft::UI::Windowing::TitleBarHeightOption::Collapsed);
+    printf_stderr("Called PreferredHeightOption\n");
+  } catch (std::exception& ex) {
+    MOZ_CRASH_UNSAFE_PRINTF("Exception %s", ex.what());
+  }
 }

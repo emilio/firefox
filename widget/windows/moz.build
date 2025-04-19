@@ -125,25 +125,27 @@ UNIFIED_SOURCES += [
     "WinWindowOcclusionTracker.cpp",
 ]
 
-# The following files cannot be built in unified mode because of name clashes.
 SOURCES += [
     "CompositorWidgetParent.cpp",
     "InProcessWinCompositorWidget.cpp",
+    # Needs INITGUID and we don't allow INITGUID in unified sources since bug 970429.
+    "InputDeviceUtils.cpp",
     "MediaKeysEventSourceFactory.cpp",
     "nsBidiKeyboard.cpp",
     "nsFilePicker.cpp",
     "nsSharePicker.cpp",
     "nsWidgetFactory.cpp",
     "OSKInputPaneManager.cpp",
+    "TSFUtils.cpp",
     "WinCompositorWidget.cpp",
     "WindowsSMTCProvider.cpp",
     "WindowsUIUtils.cpp",
 ]
 
-# Needs INITGUID and we don't allow INITGUID in unified sources since bug 970429.
-SOURCES += [
-    "InputDeviceUtils.cpp",
-    "TSFUtils.cpp",
+# Needs winrt exceptions. Ugh
+SOURCES["WindowsUIUtils.cpp"].flags += [
+    "-Xclang",
+    "-fcxx-exceptions",
 ]
 
 if CONFIG["NS_PRINTING"]:

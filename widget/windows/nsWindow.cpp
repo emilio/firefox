@@ -2700,39 +2700,12 @@ void nsWindow::SetCustomTitlebar(bool aCustomTitlebar) {
 
   mCustomNonClient = aCustomTitlebar;
 
-  const LONG_PTR style = GetWindowLongPtrW(mWnd, GWL_STYLE);
   // Force a reflow of content based on the new client dimensions.
   if (mCustomNonClient) {
-    if (style & WS_SYSMENU) {
-      // Remove the WS_SYSMENU style, so that DWM doesn't draw the caption
-      // buttons. Note that we still need WS_MAXIMIZEBOX at least to
-      // support Snap Layouts / Aero Snap.
-      //
-      // This behavior is not documented: per MSDN, WS_MAXIMIZEBOX simply
-      // requires WS_SYSMENU, and is not valid without it. However, omitting it
-      // doesn't seem to have negative side-effects on any version of Windows
-      // tested (other than losing the default system menu handling, which we
-      // implement ourselves in DisplaySystemMenu()).
-      //
-      // Since the system menu is lazily initialized (see [1]), we have to call
-      // GetSystemMenu() here in order to get it created before it is too late.
-      // An alternative would be to play with window styles later to force it
-      // to be created, but that seems a bit more finicky.
-      //
-      // [1]: https://devblogs.microsoft.com/oldnewthing/20100528-00/?p=13893
-      ::GetSystemMenu(mWnd, FALSE);
-      ::SetWindowLongPtrW(mWnd, GWL_STYLE, style & ~WS_SYSMENU);
-    }
+    printf_stderr("CollapseTitlebar(%p)\n", mWnd);
+    WindowsUIUtils::CollapseTitlebar(mWnd);
     UpdateNonClientMargins();
   } else {
-    if (WindowStyle() & WS_SYSMENU) {
-      // Restore the WS_SYSMENU style if appropriate.
-      ::SetWindowLongPtrW(mWnd, GWL_STYLE, style | WS_SYSMENU);
-      // Reset the small icon as a workaround for a dwm bug, see bug 1935542.
-      HICON icon =
-          (HICON)::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, 0);
-      ::SendMessageW(mWnd, WM_SETICON, (WPARAM)ICON_SMALL, (LPARAM)icon);
-    }
     mCustomNonClientMetrics = {};
     ResetLayout();
   }
