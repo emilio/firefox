@@ -3493,9 +3493,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
     nsDisplayListBuilder::AutoInEventsOnly inEventsSetter(
         aBuilder, opacityItemForEventsOnly);
     nsDisplayListBuilder::AutoEnterViewTransitionCapture
-        inViewTransitionCaptureSetter(
-            aBuilder,
-            isViewTransitionCapture);
+        inViewTransitionCaptureSetter(aBuilder, isViewTransitionCapture);
 
     // If we have a mask, compute a clip to bound the masked content.
     // This is necessary in case the content moves with an ancestor

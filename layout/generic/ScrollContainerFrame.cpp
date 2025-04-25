@@ -3729,7 +3729,6 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
 
     if (usingBackdropFilter) {
       SerializeList();
-      DisplayListClipState::AutoSaveRestore clipState(aBuilder);
       nsRect backdropRect =
           GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
       rootResultList.AppendNewToTop<nsDisplayBackdropFilters>(
@@ -3802,6 +3801,15 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
   const bool isRootContent =
       mIsRoot && PresContext()->IsRootContentDocumentCrossProcess();
+
+  const bool isViewTransitionCapture = [&] {
+    if (!mIsRoot) {
+      return false;
+    }
+    auto* styleFrame = GetFrameForStyle();
+    return styleFrame &&
+           styleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+  }();
 
   // Expand the scroll port to the size including the area covered by dynamic
   // toolbar in the case where the dynamic toolbar is being used since
@@ -4048,23 +4056,26 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(
         aBuilder);
 
-    if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
-      // If this scroll frame has a first scrollable frame sequence number,
-      // ensure that it matches the current paint sequence number. If it does
-      // not, reset it so that we can expire the displayport. The stored
-      // sequence number will not match that of the current paint if the dom
-      // was mutated in some way that alters the order of scroll frames.
-      if (IsFirstScrollableFrameSequenceNumber().isSome() &&
-          *IsFirstScrollableFrameSequenceNumber() !=
-              nsDisplayListBuilder::GetPaintSequenceNumber()) {
-        SetIsFirstScrollableFrameSequenceNumber(Nothing());
+    if (isViewTransitionCapture) {
+      asrSetter.SetCurrentActiveScrolledRoot(nullptr);
+    } else {
+      if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
+        // If this scroll frame has a first scrollable frame sequence number,
+        // ensure that it matches the current paint sequence number. If it does
+        // not, reset it so that we can expire the displayport. The stored
+        // sequence number will not match that of the current paint if the dom
+        // was mutated in some way that alters the order of scroll frames.
+        if (IsFirstScrollableFrameSequenceNumber().isSome() &&
+            *IsFirstScrollableFrameSequenceNumber() !=
+                nsDisplayListBuilder::GetPaintSequenceNumber()) {
+          SetIsFirstScrollableFrameSequenceNumber(Nothing());
+        }
+        asrSetter.EnterScrollFrame(this);
       }
-      asrSetter.EnterScrollFrame(this);
-    }
-
-    if (couldBuildLayer && mScrolledFrame->GetContent()) {
-      asrSetter.SetCurrentScrollParentId(
-          nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent()));
+      if (couldBuildLayer && mScrolledFrame->GetContent()) {
+        asrSetter.SetCurrentScrollParentId(
+            nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent()));
+      }
     }
 
     if (mWillBuildScrollableLayer && aBuilder->BuildCompositorHitTestInfo()) {
@@ -4141,6 +4152,11 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
       nsDisplayListBuilder::AutoBuildingDisplayList building(
           aBuilder, this, visibleRectForChildren, dirtyRectForChildren);
+      nsDisplayListBuilder::AutoEnterViewTransitionCapture
+          inViewTransitionCaptureSetter(aBuilder, isViewTransitionCapture);
+      if (isViewTransitionCapture) {
+        scrolledRectClipState.Clear();
+      }
 
       BuildDisplayListForChild(aBuilder, mScrolledFrame, set);
 
