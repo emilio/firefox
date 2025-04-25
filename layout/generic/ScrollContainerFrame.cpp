@@ -4442,6 +4442,11 @@ nsRect ScrollContainerFrame::RestrictToRootDisplayPort(
 bool ScrollContainerFrame::DecideScrollableLayer(
     nsDisplayListBuilder* aBuilder, nsRect* aVisibleRect, nsRect* aDirtyRect,
     bool aSetBase, bool* aDirtyRectHasBeenOverriden) {
+  if (aBuilder->IsInViewTransitionCapture()) {
+    mWillBuildScrollableLayer = false;
+    return false;
+  }
+
   nsIContent* content = GetContent();
   bool hasDisplayPort = DisplayPortUtils::HasDisplayPort(content);
   // For hit testing purposes with fission we want to create a
