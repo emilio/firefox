@@ -8,7 +8,7 @@
 #define nsColorControlFrame_h___
 
 #include "nsCOMPtr.h"
-#include "nsHTMLButtonControlFrame.h"
+#include "nsGfxButtonControlFrame.h"
 #include "nsIAnonymousContentCreator.h"
 
 namespace mozilla {
@@ -18,8 +18,7 @@ class PresShell;
 
 // Class which implements the input type=color
 
-class nsColorControlFrame final : public nsHTMLButtonControlFrame,
-                                  public nsIAnonymousContentCreator {
+class nsColorControlFrame final : public nsGfxButtonControlFrame {
   typedef mozilla::PseudoStyleType PseudoStyleType;
   typedef mozilla::dom::Element Element;
 
@@ -36,6 +35,9 @@ class nsColorControlFrame final : public nsHTMLButtonControlFrame,
   nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
+  // We have no label text.
+  nsresult GetLabel(nsString&) override { return NS_OK; }
+
   // nsIAnonymousContentCreator
   nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
   void AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements,
@@ -44,14 +46,12 @@ class nsColorControlFrame final : public nsHTMLButtonControlFrame,
   // nsIFrame
   nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
-  nsContainerFrame* GetContentInsertionFrame() override;
 
   // Refresh the color swatch, using associated input's value
   nsresult UpdateColor();
 
  private:
-  explicit nsColorControlFrame(ComputedStyle* aStyle,
-                               nsPresContext* aPresContext);
+  nsColorControlFrame(ComputedStyle* aStyle, nsPresContext* aPresContext);
 
   nsCOMPtr<Element> mColorContent;
 };

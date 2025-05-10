@@ -7,23 +7,24 @@
 #ifndef nsGfxButtonControlFrame_h___
 #define nsGfxButtonControlFrame_h___
 
-#include "nsHTMLButtonControlFrame.h"
+#include "nsBlockFrame.h"
 #include "nsIAnonymousContentCreator.h"
 
 class nsTextNode;
 
-// Class which implements the input[type=button, reset, submit] and
+// Class which implements the select, input[type=button, reset, submit] and
 // browse button for input[type=file].
 // The label for button is specified through generated content
 // in the ua.css file.
 
-class nsGfxButtonControlFrame final : public nsHTMLButtonControlFrame,
-                                      public nsIAnonymousContentCreator {
+class nsGfxButtonControlFrame : public nsBlockFrame,
+                                public nsIAnonymousContentCreator {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsGfxButtonControlFrame)
 
-  explicit nsGfxButtonControlFrame(ComputedStyle* aStyle,
-                                   nsPresContext* aPresContext);
+  nsGfxButtonControlFrame(ComputedStyle* aStyle, nsPresContext* aPc)
+      : nsGfxButtonControlFrame(aStyle, aPc, kClassID) {}
+  nsGfxButtonControlFrame(ComputedStyle*, nsPresContext*, ClassID);
 
   void Destroy(DestroyContext&) override;
 
@@ -49,10 +50,9 @@ class nsGfxButtonControlFrame final : public nsHTMLButtonControlFrame,
 
  protected:
   nsresult GetDefaultLabel(nsAString& aLabel) const;
+  virtual nsresult GetLabel(nsString& aLabel);
+  nsresult UpdateLabel();
 
-  nsresult GetLabel(nsString& aLabel);
-
- private:
   RefPtr<nsTextNode> mTextContent;
 };
 

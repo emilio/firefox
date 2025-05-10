@@ -167,7 +167,6 @@ nsIFrame* NS_NewSVGFEImageFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 nsIFrame* NS_NewSVGFEUnstyledLeafFrame(PresShell* aPresShell,
                                        ComputedStyle* aStyle);
 nsIFrame* NS_NewFileControlLabelFrame(PresShell*, ComputedStyle*);
-nsIFrame* NS_NewComboboxLabelFrame(PresShell*, ComputedStyle*);
 nsIFrame* NS_NewMiddleCroppingLabelFrame(PresShell*, ComputedStyle*);
 
 #include "mozilla/dom/NodeInfo.h"
@@ -3030,8 +3029,7 @@ nsCSSFrameConstructor::FindSelectData(const Element& aElement,
   MOZ_ASSERT(sel);
   if (sel->IsCombobox()) {
     static constexpr FrameConstructionData sComboboxData{
-        ToCreationFunc(NS_NewComboboxControlFrame), 0,
-        PseudoStyleType::buttonContent};
+        ToCreationFunc(NS_NewComboboxControlFrame)};
     return &sComboboxData;
   }
   // FIXME: Can we simplify this to avoid needing ConstructListboxSelectFrame,
@@ -3485,12 +3483,6 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
             NS_NewFileControlLabelFrame);
         return &sFileLabelData;
       }
-      if (aParentFrame->GetParent() &&
-          aParentFrame->GetParent()->IsComboboxControlFrame()) {
-        static constexpr FrameConstructionData sComboboxLabelData(
-            NS_NewComboboxLabelFrame);
-        return &sComboboxLabelData;
-      }
     }
     if (aStyle.GetPseudoType() == PseudoStyleType::viewTransitionOld ||
         aStyle.GetPseudoType() == PseudoStyleType::viewTransitionNew) {
@@ -3516,10 +3508,6 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
                          &nsCSSFrameConstructor::ConstructFieldSetFrame),
       SIMPLE_TAG_CREATE(frameset, NS_NewHTMLFramesetFrame),
       SIMPLE_TAG_CREATE(iframe, NS_NewSubDocumentFrame),
-      {nsGkAtoms::button,
-       {ToCreationFunc(NS_NewHTMLButtonControlFrame),
-        FCDATA_ALLOW_BLOCK_STYLES | FCDATA_ALLOW_GRID_FLEX_COLUMN,
-        PseudoStyleType::buttonContent}},
       SIMPLE_TAG_CHAIN(canvas, nsCSSFrameConstructor::FindCanvasData),
       SIMPLE_TAG_CREATE(video, NS_NewHTMLVideoFrame),
       SIMPLE_TAG_CREATE(audio, NS_NewHTMLAudioFrame),
@@ -3627,15 +3615,12 @@ nsCSSFrameConstructor::FindInputData(const Element& aElement,
       SIMPLE_INT_CREATE(FormControlType::InputMonth, NS_NewTextControlFrame),
       // TODO: this is temporary until a frame is written: bug 888320
       SIMPLE_INT_CREATE(FormControlType::InputWeek, NS_NewTextControlFrame),
-      {int32_t(FormControlType::InputSubmit),
-       {ToCreationFunc(NS_NewGfxButtonControlFrame), 0,
-        PseudoStyleType::buttonContent}},
-      {int32_t(FormControlType::InputReset),
-       {ToCreationFunc(NS_NewGfxButtonControlFrame), 0,
-        PseudoStyleType::buttonContent}},
-      {int32_t(FormControlType::InputButton),
-       {ToCreationFunc(NS_NewGfxButtonControlFrame), 0,
-        PseudoStyleType::buttonContent}}
+      SIMPLE_INT_CREATE(FormControlType::InputSubmit,
+                        NS_NewGfxButtonControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputReset,
+                        NS_NewGfxButtonControlFrame),
+      SIMPLE_INT_CREATE(FormControlType::InputButton,
+                        NS_NewGfxButtonControlFrame),
       // Keeping hidden inputs out of here on purpose for so they get frames by
       // display (in practice, none).
   };
@@ -3739,9 +3724,6 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
   MOZ_ASSERT(
       !(bits & FCDATA_IS_WRAPPER_ANON_BOX) || (bits & FCDATA_USE_CHILD_ITEMS),
       "Wrapper anon boxes should always have FCDATA_USE_CHILD_ITEMS");
-  MOZ_ASSERT(!(bits & FCDATA_ALLOW_GRID_FLEX_COLUMN) ||
-                 (bits & FCDATA_CREATE_BLOCK_WRAPPER_FOR_ALL_KIDS),
-             "Need the block wrapper bit to create grid/flex/column.");
 
   // Don't create a subdocument frame for iframes if we're creating extra frames
   if (aState.mCreatingExtraFrames &&
@@ -3799,37 +3781,9 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
       MOZ_ASSERT(containerFrame);
 #endif
       nsContainerFrame* container = static_cast<nsContainerFrame*>(newFrame);
-      nsContainerFrame* innerFrame;
-      if (bits & FCDATA_ALLOW_GRID_FLEX_COLUMN) {
-        switch (display->DisplayInside()) {
-          case StyleDisplayInside::Flex:
-            outerFrame = NS_NewFlexContainerFrame(mPresShell, outerStyle);
-            InitAndRestoreFrame(aState, content, container, outerFrame);
-            innerFrame = outerFrame;
-            break;
-          case StyleDisplayInside::Grid:
-            outerFrame = NS_NewGridContainerFrame(mPresShell, outerStyle);
-            InitAndRestoreFrame(aState, content, container, outerFrame);
-            innerFrame = outerFrame;
-            break;
-          default: {
-            innerFrame = NS_NewBlockFrame(mPresShell, outerStyle);
-            if (outerStyle->StyleColumn()->IsColumnContainerStyle()) {
-              outerFrame = BeginBuildingColumns(aState, content, container,
-                                                innerFrame, outerStyle);
-            } else {
-              // No need to create column container. Initialize innerFrame.
-              InitAndRestoreFrame(aState, content, container, innerFrame);
-              outerFrame = innerFrame;
-            }
-            break;
-          }
-        }
-      } else {
-        innerFrame = NS_NewBlockFrame(mPresShell, outerStyle);
-        InitAndRestoreFrame(aState, content, container, innerFrame);
-        outerFrame = innerFrame;
-      }
+      nsContainerFrame* innerFrame = NS_NewBlockFrame(mPresShell, outerStyle);
+      InitAndRestoreFrame(aState, content, container, innerFrame);
+      outerFrame = innerFrame;
 
       SetInitialSingleChild(container, outerFrame);
 
@@ -3918,34 +3872,10 @@ void nsCSSFrameConstructor::ConstructFrameFromItemInternal(
         childList = std::move(newList);
       }
 
-      if (!(bits & FCDATA_ALLOW_GRID_FLEX_COLUMN) ||
-          !MayNeedToCreateColumnSpanSiblings(newFrameAsContainer, childList)) {
-        // Set the frame's initial child list. Note that MathML depends on this
-        // being called even if childList is empty!
-        newFrameAsContainer->SetInitialChildList(FrameChildListID::Principal,
-                                                 std::move(childList));
-      } else {
-        // Extract any initial non-column-span kids, and put them in inner
-        // frame's child list.
-        nsFrameList initialNonColumnSpanKids =
-            childList.Split([](nsIFrame* f) { return f->IsColumnSpan(); });
-        newFrameAsContainer->SetInitialChildList(
-            FrameChildListID::Principal, std::move(initialNonColumnSpanKids));
-
-        if (childList.NotEmpty()) {
-          nsFrameList columnSpanSiblings = CreateColumnSpanSiblings(
-              aState, newFrameAsContainer, childList,
-              // Column content should never be a absolute/fixed positioned
-              // containing block. Pass nullptr as aPositionedFrame.
-              nullptr);
-
-          MOZ_ASSERT(outerFrame,
-                     "outerFrame should be non-null if multi-column container "
-                     "is created.");
-          FinishBuildingColumns(aState, outerFrame, newFrameAsContainer,
-                                columnSpanSiblings);
-        }
-      }
+      // Set the frame's initial child list. Note that MathML depends on this
+      // being called even if childList is empty!
+      newFrameAsContainer->SetInitialChildList(FrameChildListID::Principal,
+                                               std::move(childList));
     }
   }
 

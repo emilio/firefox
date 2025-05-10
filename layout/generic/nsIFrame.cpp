@@ -12168,7 +12168,6 @@ PhysicalAxes nsIFrame::ShouldApplyOverflowClipping(
     switch (type) {
       case LayoutFrameType::CheckboxRadio:
       case LayoutFrameType::ComboboxControl:
-      case LayoutFrameType::HTMLButtonControl:
       case LayoutFrameType::ListControl:
       case LayoutFrameType::Meter:
       case LayoutFrameType::Progress:

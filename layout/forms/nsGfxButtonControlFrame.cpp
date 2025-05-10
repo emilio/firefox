@@ -15,11 +15,12 @@
 using namespace mozilla;
 
 nsGfxButtonControlFrame::nsGfxButtonControlFrame(ComputedStyle* aStyle,
-                                                 nsPresContext* aPresContext)
-    : nsHTMLButtonControlFrame(aStyle, aPresContext, kClassID) {}
+                                                 nsPresContext* aPresContext,
+                                                 ClassID aClassID)
+    : nsBlockFrame(aStyle, aPresContext, aClassID) {}
 
-nsContainerFrame* NS_NewGfxButtonControlFrame(PresShell* aPresShell,
-                                              ComputedStyle* aStyle) {
+nsIFrame* NS_NewGfxButtonControlFrame(PresShell* aPresShell,
+                                      ComputedStyle* aStyle) {
   return new (aPresShell)
       nsGfxButtonControlFrame(aStyle, aPresShell->GetPresContext());
 }
@@ -28,7 +29,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsGfxButtonControlFrame)
 
 void nsGfxButtonControlFrame::Destroy(DestroyContext& aContext) {
   aContext.AddAnonymousContent(mTextContent.forget());
-  nsHTMLButtonControlFrame::Destroy(aContext);
+  nsBlockFrame::Destroy(aContext);
 }
 
 #ifdef DEBUG_FRAME_DUMP
@@ -42,8 +43,7 @@ nsresult nsGfxButtonControlFrame::GetFrameName(nsAString& aResult) const {
 nsresult nsGfxButtonControlFrame::CreateAnonymousContent(
     nsTArray<ContentInfo>& aElements) {
   nsAutoString label;
-  nsresult rv = GetLabel(label);
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(GetLabel(label));
 
   // Add a child text content node for the label
   mTextContent = new (mContent->NodeInfo()->NodeInfoManager())
@@ -52,7 +52,6 @@ nsresult nsGfxButtonControlFrame::CreateAnonymousContent(
   // set the value of the text node and add it to the child list
   mTextContent->SetText(label, false);
   aElements.AppendElement(mTextContent);
-
   return NS_OK;
 }
 
@@ -65,7 +64,7 @@ void nsGfxButtonControlFrame::AppendAnonymousContentTo(
 
 NS_QUERYFRAME_HEAD(nsGfxButtonControlFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
-NS_QUERYFRAME_TAIL_INHERITING(nsHTMLButtonControlFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 
 // Initially we hardcoded the default strings here.
 // Next, we used html.css to store the default label for various types
@@ -103,9 +102,7 @@ nsresult nsGfxButtonControlFrame::GetLabel(nsString& aLabel) {
     // We can't make any assumption as to what the default would be
     // because the value is localized for non-english platforms, thus
     // it might not be the string "Reset", "Submit Query", or "Browse..."
-    nsresult rv;
-    rv = GetDefaultLabel(aLabel);
-    NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_TRY(GetDefaultLabel(aLabel));
   }
 
   // Compress whitespace out of label if needed.
@@ -135,29 +132,21 @@ nsresult nsGfxButtonControlFrame::GetLabel(nsString& aLabel) {
   return NS_OK;
 }
 
+nsresult nsGfxButtonControlFrame::UpdateLabel() {
+  nsAutoString label;
+  MOZ_TRY(GetLabel(label));
+  mTextContent->SetText(label, true);
+  return NS_OK;
+}
+
 nsresult nsGfxButtonControlFrame::AttributeChanged(int32_t aNameSpaceID,
                                                    nsAtom* aAttribute,
                                                    int32_t aModType) {
-  nsresult rv = NS_OK;
-
   // If the value attribute is set, update the text of the label
-  if (nsGkAtoms::value == aAttribute) {
-    if (mTextContent && mContent) {
-      nsAutoString label;
-      rv = GetLabel(label);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      mTextContent->SetText(label, true);
-    } else {
-      rv = NS_ERROR_UNEXPECTED;
-    }
-
-    // defer to HTMLButtonControlFrame
-  } else {
-    rv = nsHTMLButtonControlFrame::AttributeChanged(aNameSpaceID, aAttribute,
-                                                    aModType);
+  if (nsGkAtoms::value != aAttribute) {
+    return nsBlockFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
   }
-  return rv;
+  return UpdateLabel();
 }
 
 nsresult nsGfxButtonControlFrame::HandleEvent(nsPresContext* aPresContext,
@@ -168,7 +157,7 @@ nsresult nsGfxButtonControlFrame::HandleEvent(nsPresContext* aPresContext,
   // to be selected (Drawn with an XOR rectangle over the label)
 
   if (IsContentDisabled()) {
-    return nsIFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
+    return nsBlockFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   }
   return NS_OK;
 }

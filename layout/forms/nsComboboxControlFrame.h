@@ -12,7 +12,7 @@
 #include "nsISelectControlFrame.h"
 #include "nsIRollupListener.h"
 #include "nsThreadUtils.h"
-#include "nsHTMLButtonControlFrame.h"
+#include "nsGfxButtonControlFrame.h"
 
 namespace mozilla {
 class PresShell;
@@ -23,8 +23,7 @@ class HTMLSelectElement;
 }
 }  // namespace mozilla
 
-class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
-                                     public nsIAnonymousContentCreator,
+class nsComboboxControlFrame final : public nsGfxButtonControlFrame,
                                      public nsISelectControlFrame {
   using Element = mozilla::dom::Element;
 
@@ -48,10 +47,7 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
 
   nscoord IntrinsicISize(const mozilla::IntrinsicSizeInput& aInput,
                          mozilla::IntrinsicISizeType aType) final;
-
-  // We're a leaf, so we need to report ourselves as the content insertion
-  // frame.
-  nsContainerFrame* GetContentInsertionFrame() override { return this; }
+  nsresult GetLabel(nsString&) override;
 
   void Reflow(nsPresContext* aCX, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput, nsReflowStatus& aStatus) final;
@@ -98,16 +94,6 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
   bool HasDropDownButton() const;
   nscoord DropDownButtonISize();
 
-  enum DropDownPositionState {
-    // can't show the dropdown at its current position
-    eDropDownPositionSuppressed,
-    // a resize reflow is pending, don't show it yet
-    eDropDownPositionPendingResize,
-    // the dropdown has its final size and position and can be displayed here
-    eDropDownPositionFinal
-  };
-  DropDownPositionState AbsolutelyPositionDropDown();
-
   nscoord GetLongestOptionISize(gfxContext*) const;
 
   class RedisplayTextEvent : public mozilla::Runnable {
@@ -124,20 +110,14 @@ class nsComboboxControlFrame final : public nsHTMLButtonControlFrame,
 
   nsresult RedisplayText();
   void HandleRedisplayTextEvent();
-  void ActuallyDisplayText(bool aNotify);
 
   mozilla::dom::HTMLSelectElement& Select() const;
   void GetOptionText(uint32_t aIndex, nsAString& aText) const;
 
-  RefPtr<Element> mDisplayLabel;   // Anonymous content for the label
   RefPtr<Element> mButtonContent;  // Anonymous content for the button
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 
-  // The inline size of our display area. Used by that frame's reflow to size to
-  // the full inline size except the drop-marker.
-  nscoord mDisplayISize = 0;
   int32_t mDisplayedIndex = -1;
-  nsString mDisplayedOptionTextOrPreview;
   RefPtr<mozilla::HTMLSelectEventListener> mEventListener;
 };
 

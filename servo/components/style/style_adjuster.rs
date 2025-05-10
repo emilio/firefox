@@ -969,9 +969,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_ruby(layout_parent_style, element);
-        }
-        #[cfg(feature = "gecko")]
-        {
             self.adjust_for_appearance(element);
             self.adjust_for_marker_pseudo();
         }

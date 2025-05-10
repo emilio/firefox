@@ -2400,11 +2400,7 @@ nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
 void nsBlockFrame::AlignContent(BlockReflowState& aState,
                                 ReflowOutput& aMetrics,
                                 nscoord aBEndEdgeOfChildren) {
-  if (!StaticPrefs::layout_css_align_content_blocks_enabled()) {
-    return;
-  }
-
-  StyleAlignFlags alignment = StylePosition()->mAlignContent.primary;
+  StyleAlignFlags alignment = EffectiveAlignContent();
   alignment &= ~StyleAlignFlags::FLAG_BITS;
 
   // Short circuit
@@ -6795,8 +6791,6 @@ static bool StyleEstablishesBFC(const ComputedStyle* aStyle) {
          disp->mContainerType != StyleContainerType::Normal ||
          disp->DisplayInside() == StyleDisplayInside::FlowRoot ||
          disp->IsAbsolutelyPositionedStyle() || disp->IsFloatingStyle() ||
-         aStyle->StylePosition()->mAlignContent.primary !=
-             StyleAlignFlags::NORMAL ||
          aStyle->IsRootElementStyle() || AnonymousBoxIsBFC(aStyle);
 }
 
@@ -6826,6 +6820,10 @@ static bool EstablishesBFC(const nsBlockFrame* aFrame) {
   }
 
   if (aFrame->IsColumnSpan()) {
+    return true;
+  }
+
+  if (aFrame->IsContentAligned()) {
     return true;
   }
 
