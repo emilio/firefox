@@ -2929,6 +2929,19 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
   // If style style can provide us the margin directly, then use it.
   const nsStyleMargin* styleMargin = mFrame->StyleMargin();
 
+  // Special case for the combobox dropmarker, which ignores the end padding of
+  // the combobox.
+  if (mIsThemed && mFrame->GetParent() &&
+      mFrame->GetParent()->IsComboboxControlFrame()) {
+    LogicalMargin margin(mWritingMode);
+    margin.IStart(mWritingMode) = mFrame->GetParent()
+                                      ->GetLogicalUsedPadding(mWritingMode)
+                                      .IEnd(mWritingMode);
+    margin.IEnd(mWritingMode) = -margin.IStart(mWritingMode);
+    SetComputedLogicalMargin(mWritingMode, margin);
+    return true;
+  }
+
   nsMargin margin;
   const bool isLayoutDependent = !styleMargin->GetMargin(margin);
   if (isLayoutDependent) {
