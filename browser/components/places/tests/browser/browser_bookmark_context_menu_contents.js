@@ -614,8 +614,13 @@ add_task(async function test_library_bookmark_search_contextmenu_contents() {
         info("Checking bookmark library menu contents in search context");
         // Perform a search first
         let searchBox = right.ownerDocument.getElementById("searchFilter");
-        searchBox.value = SECOND_BOOKMARK_TITLE;
-        searchBox.doCommand();
+        await new Promise(resolve => {
+          searchBox.addEventListener("MozInputSearch:search", resolve, {
+            once: true,
+          });
+          searchBox.select();
+          EventUtils.sendString(SECOND_BOOKMARK_TITLE, searchBox.ownerGlobal);
+        });
 
         let contextMenu = right.ownerDocument.getElementById("placesContext");
         let popupShownPromise = BrowserTestUtils.waitForEvent(
