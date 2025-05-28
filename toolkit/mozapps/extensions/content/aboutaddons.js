@@ -621,22 +621,21 @@ var DiscoveryAPI = {
 class SearchAddons extends HTMLElement {
   connectedCallback() {
     if (this.childElementCount === 0) {
-      this.input = document.createXULElement("search-textbox");
-      this.input.setAttribute("searchbutton", true);
+      this.input = document.createElement("moz-input-search");
       this.input.setAttribute("maxlength", 100);
       this.input.setAttribute("data-l10n-attrs", "placeholder");
       document.l10n.setAttributes(this.input, "addons-heading-search-input");
       this.append(this.input);
     }
-    this.input.addEventListener("command", this);
+    this.input.addEventListener("MozInputSearch:search", this);
   }
 
   disconnectedCallback() {
-    this.input.removeEventListener("command", this);
+    this.input.removeEventListener("MozInputSearch:search", this);
   }
 
   handleEvent(e) {
-    if (e.type === "command") {
+    if (e.type === "MozInputSearch:search") {
       this.searchAddons(this.value);
     }
   }

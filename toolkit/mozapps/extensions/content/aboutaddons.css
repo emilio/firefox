@@ -143,10 +143,9 @@ h2 {
   max-width: var(--page-main-content-width);
 }
 
-search-addons > search-textbox {
+search-addons > moz-input-search {
   margin: 0;
-  width: 20em;
-  min-height: 32px;
+  --input-text-max-width: 20em;
 }
 
 .search-label {
