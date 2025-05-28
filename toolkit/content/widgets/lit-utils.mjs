@@ -362,6 +362,10 @@ export class MozBaseInputElement extends MozLitElement {
     this.inputEl.focus();
   }
 
+  select() {
+    this.inputEl.select();
+  }
+
   blur() {
     this.inputEl.blur();
   }

@@ -521,8 +521,13 @@ add_task(async function test_sidebar_bookmark_search_contextmenu_contents() {
           SidebarController.browser.contentDocument.getElementById(
             "search-box"
           );
-        searchBox.value = SECOND_BOOKMARK_TITLE;
-        searchBox.doCommand();
+        await new Promise(resolve => {
+          searchBox.addEventListener("MozInputSearch:search", resolve, {
+            once: true,
+          });
+          searchBox.select();
+          EventUtils.sendString(SECOND_BOOKMARK_TITLE);
+        });
         tree.selectItems([bookmark.guid]);
 
         let contextMenu =
