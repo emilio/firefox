@@ -8581,7 +8581,6 @@ inline static bool FormControlShrinksForPercentSize(const nsIFrame* aFrame) {
   }
 
   switch (aFrame->Type()) {
-    case LayoutFrameType::Meter:
     case LayoutFrameType::Progress:
     case LayoutFrameType::Range:
     case LayoutFrameType::TextInput:
@@ -12204,7 +12203,6 @@ PhysicalAxes nsIFrame::ShouldApplyOverflowClipping(
       case LayoutFrameType::ComboboxControl:
       case LayoutFrameType::HTMLButtonControl:
       case LayoutFrameType::ListControl:
-      case LayoutFrameType::Meter:
       case LayoutFrameType::Progress:
       case LayoutFrameType::Range:
       case LayoutFrameType::SubDocument:
