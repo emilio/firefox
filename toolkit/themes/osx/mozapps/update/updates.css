@@ -43,9 +43,10 @@
 
 #update-button-box {
   padding: 10px 12px 12px 12px;
-  appearance: auto;
-  -moz-default-appearance: statusbar;
   -moz-window-dragging: drag;
+  /* Not quite a sidebar, but in a sense an auxiliary toolbar */
+  border-top-color: 1px solid -moz-sidebarborder;
+  background-color: -moz-sidebar;
 }
 
 #update-button-box button {

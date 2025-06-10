@@ -290,12 +290,6 @@ static NSControlSize ControlSizeForEnum(CocoaSize enumControlSize) {
   return NSControlSizeRegular;
 }
 
-static NSString* CUIControlSizeForCocoaSize(NSControlSize aControlSize) {
-  if (aControlSize == NSControlSizeRegular) return @"regular";
-  if (aControlSize == NSControlSizeSmall) return @"small";
-  return @"mini";
-}
-
 using CellMarginArray = PerSizeArray<IntMargin>;
 
 static void InflateControlRect(NSRect* rect, NSControlSize cocoaControlSize,
@@ -359,12 +353,6 @@ static BOOL FrameIsInActiveWindow(nsIFrame* aFrame) {
     return [win isKeyWindow];
   }
   return [win isMainWindow] && ![win attachedSheet];
-}
-
-// Toolbar controls and content controls respond to different window
-// activeness states.
-static BOOL IsActiveToolbarControl(nsIFrame* aFrame) {
-  return NativeWindowForFrame(aFrame).isMainWindow;
 }
 
 NS_IMPL_ISUPPORTS_INHERITED(nsNativeThemeCocoa, nsNativeTheme, nsITheme)
@@ -939,18 +927,11 @@ static bool IsToolbarStyleContainer(nsIFrame* aFrame) {
   if (!content) {
     return false;
   }
-
   if (content->IsAnyOfXULElements(nsGkAtoms::toolbar, nsGkAtoms::toolbox,
                                   nsGkAtoms::statusbar)) {
     return true;
   }
-
-  switch (aFrame->StyleDisplay()->EffectiveAppearance()) {
-    case StyleAppearance::Statusbar:
-      return true;
-    default:
-      return false;
-  }
+  return false;
 }
 
 static bool IsInsideToolbar(nsIFrame* aFrame) {
@@ -1604,39 +1585,6 @@ void nsNativeThemeCocoa::DrawScale(CGContextRef cgContext,
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
 
-void nsNativeThemeCocoa::DrawStatusBar(CGContextRef cgContext,
-                                       const HIRect& inBoxRect, bool aIsMain) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  if (inBoxRect.size.height < 2.0f) return;
-
-  CGContextSaveGState(cgContext);
-  CGContextClipToRect(cgContext, inBoxRect);
-
-  // kCUIWidgetWindowFrame draws a complete window frame with both title bar
-  // and bottom bar. We only want the bottom bar, so we extend the draw rect
-  // upwards to make space for the title bar, and then we clip it away.
-  CGRect drawRect = inBoxRect;
-  const int extendUpwards = 40;
-  drawRect.origin.y -= extendUpwards;
-  drawRect.size.height += extendUpwards;
-  RenderWithCoreUI(
-      drawRect, cgContext,
-      [NSDictionary dictionaryWithObjectsAndKeys:
-                        @"kCUIWidgetWindowFrame", @"widget", @"regularwin",
-                        @"windowtype", (aIsMain ? @"normal" : @"inactive"),
-                        @"state",
-                        [NSNumber numberWithInt:inBoxRect.size.height],
-                        @"kCUIWindowFrameBottomBarHeightKey",
-                        [NSNumber numberWithBool:YES],
-                        @"kCUIWindowFrameDrawBottomBarSeparatorKey",
-                        [NSNumber numberWithBool:YES], @"is.flipped", nil]);
-
-  CGContextRestoreGState(cgContext);
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
-}
-
 void nsNativeThemeCocoa::DrawMultilineTextField(CGContextRef cgContext,
                                                 const CGRect& inBoxRect,
                                                 bool aIsFocused) {
@@ -1775,9 +1723,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
     case StyleAppearance::MozWindowTitlebar: {
       return Nothing();
     }
-
-    case StyleAppearance::Statusbar:
-      return Some(WidgetInfo::StatusBar(IsActiveToolbarControl(aFrame)));
 
     case StyleAppearance::Menulist: {
       ControlParams controlParams = ComputeControlParams(aFrame, elementState);
@@ -1960,11 +1905,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
           HIThemeDrawSeparator(&macRect, &sdi, cgContext, HITHEME_ORIENTATION);
           break;
         }
-        case Widget::eStatusBar: {
-          bool isMain = aWidgetInfo.Params<bool>();
-          DrawStatusBar(cgContext, macRect, isMain);
-          break;
-        }
         case Widget::eGroupBox: {
           HIThemeGroupBoxDrawInfo gdi = {0, kThemeStateActive,
                                          kHIThemeGroupBoxKindPrimary};
@@ -2051,7 +1991,6 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::MozMacDisclosureButtonOpen:
     case StyleAppearance::MozMacDisclosureButtonClosed:
     case StyleAppearance::Separator:
-    case StyleAppearance::Statusbar:
     case StyleAppearance::Menulist:
     case StyleAppearance::MozMenulistArrowButton:
     case StyleAppearance::Textfield:
@@ -2133,10 +2072,6 @@ LayoutDeviceIntMargin nsNativeThemeCocoa::GetWidgetBorder(
       result.SizeTo(frameOutset, frameOutset, frameOutset, frameOutset);
       break;
     }
-
-    case StyleAppearance::Statusbar:
-      result.SizeTo(1, 0, 0, 0);
-      break;
 
     default:
       break;
@@ -2335,7 +2270,6 @@ bool nsNativeThemeCocoa::WidgetAttributeChangeRequiresRepaint(
   switch (aAppearance) {
     case StyleAppearance::MozWindowTitlebar:
     case StyleAppearance::MozSidebar:
-    case StyleAppearance::Statusbar:
     case StyleAppearance::Tooltip:
     case StyleAppearance::Menupopup:
     case StyleAppearance::Progresschunk:
@@ -2384,7 +2318,6 @@ bool nsNativeThemeCocoa::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::MozMacDisclosureButtonClosed:
     case StyleAppearance::MozMacWindow:
     case StyleAppearance::Button:
-    case StyleAppearance::Statusbar:
     case StyleAppearance::NumberInput:
     case StyleAppearance::PasswordInput:
     case StyleAppearance::Textfield:
@@ -2490,10 +2423,6 @@ nsITheme::Transparency nsNativeThemeCocoa::GetWidgetTransparency(
     case StyleAppearance::MozMacWindow:
       // We want these to be treated as opaque by Gecko. We ensure there's an
       // appropriate OS-level clear color to make sure that's the case.
-      return eOpaque;
-    case StyleAppearance::Statusbar:
-      // Knowing that scrollbars and statusbars are opaque improves
-      // performance, because we create layers for them.
       return eOpaque;
 
     default:
