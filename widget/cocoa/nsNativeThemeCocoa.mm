@@ -1716,9 +1716,6 @@ Maybe<nsNativeThemeCocoa::WidgetInfo> nsNativeThemeCocoa::ComputeWidgetInfo(
           ComputeControlParams(aFrame, elementState), buttonType}));
     }
 
-    case StyleAppearance::Separator:
-      return Some(WidgetInfo::Separator());
-
     case StyleAppearance::MozSidebar:
     case StyleAppearance::MozWindowTitlebar: {
       return Nothing();
@@ -1898,11 +1895,6 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo,
         case Widget::eDropdown: {
           DropdownParams params = aWidgetInfo.Params<DropdownParams>();
           DrawDropdown(cgContext, macRect, params);
-          break;
-        }
-        case Widget::eSeparator: {
-          HIThemeSeparatorDrawInfo sdi = {0, kThemeStateActive};
-          HIThemeDrawSeparator(&macRect, &sdi, cgContext, HITHEME_ORIENTATION);
           break;
         }
         case Widget::eGroupBox: {
