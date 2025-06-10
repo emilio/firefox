@@ -20,7 +20,6 @@
 @class MOZSearchFieldCell;
 @class NSProgressBarCell;
 class nsDeviceContext;
-struct SegmentedControlRenderSettings;
 
 namespace mozilla {
 namespace gfx {
@@ -43,8 +42,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eDisclosureButtonClosed,
     eDisclosureButtonOpen
   };
-
-  enum class SegmentType : uint8_t { eToolbarButton };
 
   enum class OptimumState : uint8_t { eOptimum, eSubOptimum, eSubSubOptimum };
 
@@ -78,19 +75,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     ControlParams controlParams;
     bool pullsDown = false;
     bool editable = false;
-  };
-
-  struct SegmentParams {
-    SegmentType segmentType = SegmentType::eToolbarButton;
-    bool insideActiveWindow = false;
-    bool pressed = false;
-    bool selected = false;
-    bool focused = false;
-    bool atLeftEnd = false;
-    bool atRightEnd = false;
-    bool drawsLeftSeparator = false;
-    bool drawsRightSeparator = false;
-    bool rtl = false;
   };
 
   struct TextFieldParams {
@@ -138,7 +122,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eRadio,      // CheckboxOrRadioParams
     eButton,     // ButtonParams
     eDropdown,   // DropdownParams
-    eSegment,    // SegmentParams
     eSeparator,
     eStatusBar,  // bool
     eGroupBox,
@@ -166,9 +149,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     }
     static WidgetInfo Dropdown(const DropdownParams& aParams) {
       return WidgetInfo(Widget::eDropdown, aParams);
-    }
-    static WidgetInfo Segment(const SegmentParams& aParams) {
-      return WidgetInfo(Widget::eSegment, aParams);
     }
     static WidgetInfo Separator() {
       return WidgetInfo(Widget::eSeparator, false);
@@ -213,7 +193,7 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
         : mVariant(aParams), mWidget(aWidget) {}
 
     mozilla::Variant<mozilla::gfx::sRGBColor, CheckboxOrRadioParams,
-                     ButtonParams, DropdownParams, SegmentParams,
+                     ButtonParams, DropdownParams, 
                      TextFieldParams, ProgressParams, MeterParams, ScaleParams,
                      bool>
         mVariant;
@@ -268,10 +248,7 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
 
   LayoutDeviceIntMargin DirectionAwareMargin(const LayoutDeviceIntMargin&,
                                              nsIFrame*);
-  nsIFrame* SeparatorResponsibility(nsIFrame* aBefore, nsIFrame* aAfter);
   ControlParams ComputeControlParams(nsIFrame*, mozilla::dom::ElementState);
-  SegmentParams ComputeSegmentParams(nsIFrame*, mozilla::dom::ElementState,
-                                     SegmentType);
   TextFieldParams ComputeTextFieldParams(nsIFrame*, mozilla::dom::ElementState);
   ProgressParams ComputeProgressParams(nsIFrame*, mozilla::dom::ElementState,
                                        bool aIsHorizontal);
@@ -282,10 +259,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   // HITheme drawing routines
   void DrawMeter(CGContextRef context, const HIRect& inBoxRect,
                  const MeterParams& aParams);
-  void DrawSegment(CGContextRef cgContext, const HIRect& inBoxRect,
-                   const SegmentParams& aParams);
-  void DrawSegmentBackground(CGContextRef cgContext, const HIRect& inBoxRect,
-                             const SegmentParams& aParams);
   void DrawTabPanel(CGContextRef context, const HIRect& inBoxRect,
                     bool aIsInsideActiveWindow);
   void DrawScale(CGContextRef context, const HIRect& inBoxRect,
