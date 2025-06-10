@@ -17,7 +17,6 @@
 
 @class MOZCellDrawWindow;
 @class MOZCellDrawView;
-@class MOZSearchFieldCell;
 @class NSProgressBarCell;
 class nsDeviceContext;
 
@@ -126,7 +125,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     eStatusBar,  // bool
     eGroupBox,
     eTextField,           // TextFieldParams
-    eSearchField,         // TextFieldParams
     eProgressBar,         // ProgressParams
     eMeter,               // MeterParams
     eScale,               // ScaleParams
@@ -161,9 +159,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
     }
     static WidgetInfo TextField(const TextFieldParams& aParams) {
       return WidgetInfo(Widget::eTextField, aParams);
-    }
-    static WidgetInfo SearchField(const TextFieldParams& aParams) {
-      return WidgetInfo(Widget::eSearchField, aParams);
     }
     static WidgetInfo ProgressBar(const ProgressParams& aParams) {
       return WidgetInfo(Widget::eProgressBar, aParams);
@@ -266,8 +261,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   void DrawCheckboxOrRadio(CGContextRef cgContext, bool inCheckbox,
                            const HIRect& inBoxRect,
                            const CheckboxOrRadioParams& aParams);
-  void DrawSearchField(CGContextRef cgContext, const HIRect& inBoxRect,
-                       const TextFieldParams& aParams);
   void DrawTextField(CGContextRef cgContext, const HIRect& inBoxRect,
                      const TextFieldParams& aParams);
   void DrawPushButton(CGContextRef cgContext, const HIRect& inBoxRect,
@@ -306,7 +299,6 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
   NSButtonCell* mRadioButtonCell;
   NSButtonCell* mCheckboxCell;
   NSTextFieldCell* mTextFieldCell;
-  MOZSearchFieldCell* mSearchFieldCell;
   NSPopUpButtonCell* mDropdownCell;
   NSComboBoxCell* mComboBoxCell;
   NSProgressBarCell* mProgressBarCell;
