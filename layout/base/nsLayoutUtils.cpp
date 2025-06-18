@@ -3462,6 +3462,9 @@ struct BoxToRect : public nsLayoutUtils::BoxCallback {
           }
         }
         r.Inflate(usedMargin);
+      } else if (mFlags.contains(
+                     nsLayoutUtils::GetAllInFlowRectsFlag::UseInkOverflowBox)) {
+        r = aFrame->InkOverflowRectRelativeToSelf();
       } else {
         // Use the border-box.
         r = aFrame->GetRectRelativeToSelf();

@@ -136,6 +136,9 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   struct CapturedElement;
 
+  // Returns the rect that should be captured of this stacking context, relative
+  // to the frame.
+  static nsRect GetCapturedRect(nsIFrame*);
   static nsRect SnapshotContainingBlockRect(nsPresContext*);
   MOZ_CAN_RUN_SCRIPT void CallUpdateCallback(ErrorResult&);
 

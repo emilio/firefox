@@ -37,11 +37,29 @@ namespace mozilla::dom {
 LazyLogModule gViewTransitionsLog("ViewTransitions");
 
 static void SetCaptured(nsIFrame* aFrame, bool aCaptured) {
-  aFrame->AddOrRemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION, aCaptured);
-  aFrame->InvalidateFrameSubtree();
-  if (aFrame->Style()->IsRootElementStyle()) {
-    aFrame->PresShell()->GetRootFrame()->InvalidateFrameSubtree();
+  for (auto* f = aFrame; f; f = f->GetNextContinuation()) {
+    f->AddOrRemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION, aCaptured);
+    f->InvalidateFrameSubtree();
+    if (f->Style()->IsRootElementStyle()) {
+      f->PresShell()->GetRootFrame()->InvalidateFrameSubtree();
+    }
   }
+}
+
+// Let the rect be snapshot containing block if capturedElement is the document
+// element, otherwise, capturedElement’s border box. NOTE: Needs ink overflow
+// rect instead to get the correct rendering, see
+// https://github.com/w3c/csswg-drafts/issues/12092.
+// TODO(emilio, bug 1961139): Maybe revisit this.
+nsRect ViewTransition::GetCapturedRect(nsIFrame* aFrame) {
+  if (aFrame->Style()->IsRootElementStyle()) {
+    return SnapshotContainingBlockRect(aFrame->PresContext());
+  }
+  if (MOZ_LIKELY(!aFrame->GetNextContinuation())) {
+    return aFrame->InkOverflowRectRelativeToSelf();
+  }
+  return nsLayoutUtils::GetAllInFlowRectsUnion(
+      aFrame, aFrame, nsLayoutUtils::GetAllInFlowRectsFlag::UseInkOverflowBox);
 }
 
 // Set capture's old transform to a <transform-function> that would map
@@ -63,7 +81,7 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
           RelativeTo{nsLayoutUtils::GetContainingBlockForClientRect(aFrame)},
           nsIFrame::IN_CSS_UNITS, nullptr));
   auto inkOverflowRect =
-      CSSRect::FromAppUnits(aFrame->InkOverflowRectRelativeToSelf());
+      CSSRect::FromAppUnits(ViewTransition::GetCapturedRect(aFrame));
   if (inkOverflowRect.TopLeft() != CSSPoint()) {
     matrix.PostTranslate(inkOverflowRect.x, inkOverflowRect.y, 0.0f);
   }
@@ -73,11 +91,11 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
   return matrix;
 }
 
-static inline nsSize CapturedSize(const nsIFrame* aFrame,
+static inline nsSize CapturedSize(nsIFrame* aFrame,
                                   const nsSize& aSnapshotContainingBlockSize) {
   return aFrame->Style()->IsRootElementStyle()
              ? aSnapshotContainingBlockSize
-             : aFrame->InkOverflowRectRelativeToSelf().Size();
+             : ViewTransition::GetCapturedRect(aFrame).Size();
 }
 
 // TODO(emilio): Bug 1970954. These aren't quite correct, per spec we're
@@ -915,6 +933,11 @@ void ViewTransition::SetupTransitionPseudoElements() {
   }
 }
 
+static bool IsFragmentedExceptInline(nsIFrame* aFrame) {
+  return aFrame->GetPrevContinuation() ||
+         (aFrame->GetNextContinuation() && !aFrame->IsInlineFrame());
+}
+
 // https://drafts.csswg.org/css-view-transitions-1/#style-transition-pseudo-elements-algorithm
 bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
   // 1. For each transitionName -> capturedElement of transition's "named
@@ -935,7 +958,7 @@ bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
     //  * capturedElement has more than one box fragment.
     nsIFrame* frame = capturedElement.mNewElement->GetPrimaryFrame();
     if (!frame || frame->IsHiddenByContentVisibilityOnAnyAncestor() ||
-        frame->GetPrevContinuation() || frame->GetNextContinuation()) {
+        IsFragmentedExceptInline(frame)) {
       return false;
     }
     auto* rule = EnsureRule(capturedElement.mGroupRule);
@@ -1232,8 +1255,9 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
       // continue.
       return true;
     }
-    if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
-      // If element has more than one box fragment, then continue.
+    if (IsFragmentedExceptInline(aFrame)) {
+      // If element has more than one box fragment, then continue. This
+      // explicitly excludes inline fragmentation, for $reasons.
       return true;
     }
     if (!usedTransitionNames.EnsureInserted(name)) {
@@ -1308,7 +1332,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
       // continue.
       return true;
     }
-    if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
+    if (IsFragmentedExceptInline(aFrame)) {
       // If element has more than one box fragment, then continue.
       return true;
     }
