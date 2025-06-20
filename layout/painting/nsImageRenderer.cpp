@@ -10,7 +10,7 @@
 
 #include "mozilla/webrender/WebRenderAPI.h"
 
-#ifdef MOZ_WIDGET_GTK
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_COCOA)
 #  include "nsIconChannel.h"
 #endif
 #include "gfxContext.h"
@@ -104,7 +104,7 @@ static already_AddRefed<imgIContainer> GetSymbolicIconImage(nsAtom* aName,
     return do_AddRef(lookup.Data().mImage);
   }
   RefPtr<gfx::DataSourceSurface> surface;
-#ifdef MOZ_WIDGET_GTK
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_COCOA)
   surface =
       nsIconChannel::GetSymbolicIcon(nsAtomCString(aName), 16, aScale, fg);
 #endif

@@ -23,6 +23,10 @@
 
 class nsIFile;
 
+namespace mozilla::gfx {
+class DataSourceSurface;
+}
+
 class nsIconChannel final : public nsIChannel, public nsIStreamListener {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -34,6 +38,9 @@ class nsIconChannel final : public nsIChannel, public nsIStreamListener {
   nsIconChannel();
 
   nsresult Init(nsIURI* uri, nsILoadInfo* aLoadInfo);
+
+  static already_AddRefed<mozilla::gfx::DataSourceSurface> GetSymbolicIcon(
+      const nsCString& aName, int aIconSize, int aScale, nscolor aFgColor);
 
  protected:
   virtual ~nsIconChannel();

@@ -4,7 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/ScopeExit.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "nsContentUtils.h"
+#include "nsCocoaUtils.h"
+#include "gfxUtils.h"
 #include "nsIconChannel.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/EndianUtils.h"
@@ -248,6 +254,30 @@ nsIconChannel::AsyncOpen(nsIStreamListener* aListener) {
   return rv;
 }
 
+// Create a CGBitmapContext around aBuffer and draw aImage to it. This gives us
+// the image data in the format we want: BGRA, four bytes per pixel, in host
+// endianness, with premultiplied alpha.
+static void DrawImageInto(uint8_t* aBuffer, NSImage* aImage,
+                          const gfx::IntSize& aSize) {
+  CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
+  CGContextRef ctx = CGBitmapContextCreate(
+      aBuffer, aSize.width, aSize.height, 8 /* bitsPerComponent */,
+      aSize.width * 4, cs,
+      kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst);
+  CGColorSpaceRelease(cs);
+
+  NSGraphicsContext* oldContext = [NSGraphicsContext currentContext];
+  [NSGraphicsContext
+      setCurrentContext:[NSGraphicsContext graphicsContextWithCGContext:ctx
+                                                                flipped:NO]];
+
+  [aImage drawInRect:NSMakeRect(0, 0, aSize.width, aSize.height)];
+
+  [NSGraphicsContext setCurrentContext:oldContext];
+
+  CGContextRelease(ctx);
+}
+
 nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval,
                                         bool aNonBlocking) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
@@ -335,27 +365,7 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval,
   // managed and premultiplied.
   fileBuf[3] = 0;
 
-  uint8_t* imageBuf = &fileBuf[4];
-
-  // Create a CGBitmapContext around imageBuf and draw iconImage to it.
-  // This gives us the image data in the format we want: BGRA, four bytes per
-  // pixel, in host endianness, with premultiplied alpha.
-  CGColorSpaceRef cs = CGColorSpaceCreateDeviceRGB();
-  CGContextRef ctx = CGBitmapContextCreate(
-      imageBuf, width, height, 8 /* bitsPerComponent */, width * 4, cs,
-      kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst);
-  CGColorSpaceRelease(cs);
-
-  NSGraphicsContext* oldContext = [NSGraphicsContext currentContext];
-  [NSGraphicsContext
-      setCurrentContext:[NSGraphicsContext graphicsContextWithCGContext:ctx
-                                                                flipped:NO]];
-
-  [iconImage drawInRect:NSMakeRect(0, 0, width, height)];
-
-  [NSGraphicsContext setCurrentContext:oldContext];
-
-  CGContextRelease(ctx);
+  DrawImageInto(&fileBuf[4], iconImage, gfx::IntSize(width, height));
 
   // Now, create a pipe and stuff our data into it
   nsCOMPtr<nsIInputStream> inStream;
@@ -526,4 +536,48 @@ NS_IMETHODIMP
 nsIconChannel::GetSecurityInfo(nsITransportSecurityInfo** aSecurityInfo) {
   *aSecurityInfo = nullptr;
   return NS_OK;
+}
+
+already_AddRefed<gfx::DataSourceSurface> nsIconChannel::GetSymbolicIcon(
+    const nsCString& aName, int aIconSize, int aScale, nscolor aFgColor) {
+  NSImage* symbolImage = nullptr;
+  if (@available(macOS 11.0, *)) {
+    symbolImage =
+        [NSImage imageWithSystemSymbolName:nsCocoaUtils::ToNSString(aName)
+                  accessibilityDescription:nil];
+  } else {
+    symbolImage = [NSImage imageNamed:nsCocoaUtils::ToNSString(aName)];
+  }
+  if (!symbolImage) {
+    return nullptr;
+  }
+  auto color = gfx::sRGBColor::FromABGR(aFgColor);
+  NSColor* cocoaColor = [NSColor colorWithDeviceRed:color.r
+                                              green:color.g
+                                               blue:color.b
+                                              alpha:color.a];
+  NSImage* tintedImage = nullptr;
+  if (@available(macOS 12.0, *)) {
+    tintedImage =
+        [symbolImage imageWithSymbolConfiguration:
+                         [NSImageSymbolConfiguration
+                             configurationWithHierarchicalColor:cocoaColor]];
+  } else {
+    // TODO: Support tinting? Something like
+    // https://stackoverflow.com/a/44833596 perhaps?
+    tintedImage = [symbolImage retain];
+  }
+
+  const gfx::IntSize size(aIconSize * aScale, aIconSize * aScale);
+  const size_t bufferCapacity = size.width * size.height * 4;
+  const auto stride = size.width * 4;
+  UniquePtr<uint8_t[]> imageBuf = MakeUniqueFallible<uint8_t[]>(bufferCapacity);
+  if (NS_WARN_IF(!imageBuf)) {
+    return nullptr;
+  }
+  DrawImageInto(imageBuf.get(), tintedImage, size);
+  auto* buf = imageBuf.release();
+  return gfx::Factory::CreateWrappingDataSourceSurface(
+      buf, stride, size, gfx::SurfaceFormat::B8G8R8A8,
+      [](void* aBuffer) { delete[] static_cast<uint8_t*>(aBuffer); }, buf);
 }
