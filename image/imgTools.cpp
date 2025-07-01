@@ -28,8 +28,6 @@
 #include "ImageFactory.h"
 #include "Image.h"
 #include "IProgressObserver.h"
-#include "ScriptedNotificationObserver.h"
-#include "imgIScriptedNotificationObserver.h"
 #include "gfxPlatform.h"
 #include "js/ArrayBuffer.h"
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
@@ -279,37 +277,6 @@ NS_IMPL_ISUPPORTS(imgTools, imgITools)
 imgTools::imgTools() { /* member initializers and constructor code */ }
 
 imgTools::~imgTools() { /* destructor code */ }
-
-NS_IMETHODIMP
-imgTools::DecodeImageFromArrayBuffer(JS::Handle<JS::Value> aArrayBuffer,
-                                     const nsACString& aMimeType,
-                                     JSContext* aCx,
-                                     imgIContainer** aContainer) {
-  if (!aArrayBuffer.isObject()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  JS::Rooted<JSObject*> obj(aCx,
-                            JS::UnwrapArrayBuffer(&aArrayBuffer.toObject()));
-  if (!obj) {
-    return NS_ERROR_FAILURE;
-  }
-
-  uint8_t* bufferData = nullptr;
-  size_t bufferLength = 0;
-  bool isSharedMemory = false;
-
-  JS::GetArrayBufferLengthAndData(obj, &bufferLength, &isSharedMemory,
-                                  &bufferData);
-
-  // Throw for large ArrayBuffers to prevent truncation.
-  if (bufferLength > INT32_MAX) {
-    return NS_ERROR_ILLEGAL_VALUE;
-  }
-
-  return DecodeImageFromBuffer((char*)bufferData, bufferLength, aMimeType,
-                               aContainer);
-}
 
 NS_IMETHODIMP
 imgTools::DecodeImageFromBuffer(const char* aBuffer, uint32_t aSize,
@@ -624,13 +591,6 @@ imgTools::EncodeCroppedImage(imgIContainer* aContainer,
                   IntPoint(0, 0));
 
   return EncodeImageData(dataSurface, map, aMimeType, aOutputOptions, aStream);
-}
-
-NS_IMETHODIMP
-imgTools::CreateScriptedObserver(imgIScriptedNotificationObserver* aInner,
-                                 imgINotificationObserver** aObserver) {
-  NS_ADDREF(*aObserver = new ScriptedNotificationObserver(aInner));
-  return NS_OK;
 }
 
 NS_IMETHODIMP

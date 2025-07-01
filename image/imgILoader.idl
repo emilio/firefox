@@ -54,24 +54,22 @@ interface imgILoader : nsISupports
    * @param aContentPolicyType [optional] the nsContentPolicyType to
    *                           use for this load. Defaults to
    *                           nsIContentPolicy::TYPE_IMAGE
-
-
    * ImageLib does NOT keep a strong ref to the observer; this prevents
    * reference cycles.  This means that callers of loadImage should
    * make sure to Cancel() the resulting request before the observer
    * goes away.
    */
-  imgIRequest loadImageXPCOM(in nsIURI aURI,
-                             in nsIURI aInitialDocumentURL,
-                             in nsIReferrerInfo aReferrerInfo,
-                             in nsIPrincipal aLoadingPrincipal,
-                             in nsILoadGroup aLoadGroup,
-                             in imgINotificationObserver aObserver,
-                             in Document aLoadingDocument,
-                             in nsLoadFlags aLoadFlags,
-                             in nsISupports cacheKey,
-                             [optional]
-                             in nsContentPolicyType aContentPolicyType);
+  [noscript] imgIRequest loadImageXPCOM(in nsIURI aURI,
+                                        in nsIURI aInitialDocumentURL,
+                                        in nsIReferrerInfo aReferrerInfo,
+                                        in nsIPrincipal aLoadingPrincipal,
+                                        in nsILoadGroup aLoadGroup,
+                                        in imgINotificationObserver aObserver,
+                                        in Document aLoadingDocument,
+                                        in nsLoadFlags aLoadFlags,
+                                        in nsISupports cacheKey,
+                                        [optional]
+                                        in nsContentPolicyType aContentPolicyType);
 
   /**
    * Start the load and decode of an image.
@@ -90,8 +88,8 @@ interface imgILoader : nsISupports
    * reference cycles.  This means that callers of loadImageWithChannel should
    * make sure to Cancel() the resulting request before the observer goes away.
    */
-  imgIRequest loadImageWithChannelXPCOM(in nsIChannel aChannel,
-                                        in imgINotificationObserver aObserver,
-                                        in Document aLoadingDocument,
-                                        out nsIStreamListener aListener);
+  [noscript] imgIRequest loadImageWithChannelXPCOM(in nsIChannel aChannel,
+                                                   in imgINotificationObserver aObserver,
+                                                   in Document aLoadingDocument,
+                                                   out nsIStreamListener aListener);
 };

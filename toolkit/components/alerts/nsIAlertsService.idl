@@ -19,7 +19,7 @@ static constexpr nsLiteralString kAlertActionDisable = u"snooze"_ns;
 static constexpr nsLiteralString kAlertActionSettings = u"settings"_ns;
 %}
 
-[scriptable, uuid(a71a637d-de1d-47c6-a8d2-c60b2596f471)]
+[uuid(a71a637d-de1d-47c6-a8d2-c60b2596f471)]
 interface nsIAlertNotificationImageListener : nsISupports
 {
   /**
@@ -251,9 +251,9 @@ interface nsIAlertNotification : nsISupports
    *                  Not used by the libnotify backend, but the OS X backend
    *                  passes the pending notification.
    */
-  nsICancelable loadImage(in unsigned long aTimeout,
-                          in nsIAlertNotificationImageListener aListener,
-                          [optional] in nsISupports aUserData);
+  [noscript] nsICancelable loadImage(in unsigned long aTimeout,
+                                     in nsIAlertNotificationImageListener aListener,
+                                     [optional] in nsISupports aUserData);
 
   /**
    * Retrieves the action object by the action name or null if not.

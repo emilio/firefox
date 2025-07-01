@@ -21,7 +21,7 @@ interface nsIReferrerInfo;
  * @version 0.1
  * @see imagelib2
  */
-[scriptable, builtinclass, uuid(db0a945c-3883-424a-98d0-2ee0523b0255)]
+[uuid(db0a945c-3883-424a-98d0-2ee0523b0255)]
 interface imgIRequest : nsIRequest
 {
   /**

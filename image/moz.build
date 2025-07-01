@@ -33,7 +33,6 @@ XPIDL_SOURCES += [
     "imgILoader.idl",
     "imgINotificationObserver.idl",
     "imgIRequest.idl",
-    "imgIScriptedNotificationObserver.idl",
     "imgITools.idl",
     "nsIIconURI.idl",
 ]
@@ -100,7 +99,6 @@ UNIFIED_SOURCES += [
     "OrientedImage.cpp",
     "ProgressTracker.cpp",
     "RasterImage.cpp",
-    "ScriptedNotificationObserver.cpp",
     "ShutdownTracker.cpp",
     "SourceBuffer.cpp",
     "SurfaceCache.cpp",
