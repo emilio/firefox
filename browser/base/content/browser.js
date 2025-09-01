@@ -4093,8 +4093,8 @@ function duplicateTabIn(aTab, where, delta) {
 
 var MousePosTracker = {
   _listeners: new Set(),
-  _x: 0,
-  _y: 0,
+  _x: -1,
+  _y: -1,
 
   /**
    * Registers a listener.
@@ -4137,13 +4137,13 @@ var MousePosTracker = {
   },
 
   handleEvent(event) {
-    if (event.type === "mouseout" && event.currentTarget !== window) {
-      return;
+    if (event.type === "mouseout" && !event.relatedTarget) {
+      this._x = -1;
+      this._y = -1;
+    } else {
+      this._x = event.screenX - window.mozInnerScreenX;
+      this._y = event.screenY - window.mozInnerScreenY;
     }
-
-    this._x = event.screenX - window.mozInnerScreenX;
-    this._y = event.screenY - window.mozInnerScreenY;
-
     this._listeners.forEach(listener => {
       try {
         this._callListener(listener);
