@@ -408,6 +408,7 @@ var SidebarController = {
     this._switcherTarget = document.getElementById("sidebar-switcher-target");
     this._switcherArrow = document.getElementById("sidebar-switcher-arrow");
     this._hoverBlockerCount = 0;
+    this._expandOnHoverTask = null;
     if (
       Services.prefs.getBoolPref(
         "browser.tabs.allow_transparent_browser",
@@ -1263,7 +1264,7 @@ var SidebarController = {
     }
 
     if (expandOnHoverEnabled) {
-      await this._removeHoverStateBlocker();
+      this._removeHoverStateBlocker();
     }
   },
 
@@ -1408,35 +1409,21 @@ var SidebarController = {
   },
 
   _addHoverStateBlocker() {
+    this._expandOnHoverTask?.disarm();
+    this._expandOnHoverTask = null;
     this._hoverBlockerCount++;
     MousePosTracker.removeListener(this);
   },
 
-  async _removeHoverStateBlocker() {
-    if (this._hoverBlockerCount == 1) {
-      // Manually check mouse position
-      let isHovered;
-      MousePosTracker._callListener({
-        onMouseEnter: () => (isHovered = true),
-        onMouseLeave: () => (isHovered = false),
-        getMouseTargetRect: () => this.getMouseTargetRect(),
-      });
-
-      // Collapse sidebar if needed
-      if (this._state.launcherExpanded && !isHovered) {
-        if (this._animationEnabled && !window.gReduceMotion) {
-          this._animateSidebarMain();
-        }
-        this._state.launcherExpanded = false;
-        await this.waitUntilStable();
-      }
-
-      // Re-add MousePosTracker listener
-      MousePosTracker.addListener(this);
+  _removeHoverStateBlocker() {
+    if (this._hoverBlockerCount <= 0) {
+      return;
     }
-    if (this._hoverBlockerCount > 0) {
-      this._hoverBlockerCount--;
+    if (--this._hoverBlockerCount) {
+      return;
     }
+    // This will call the listener if needed.
+    MousePosTracker.addListener(this, /* reevaluateExit =*/ true);
   },
 
   _showToolbarButtonBadge() {
@@ -2197,51 +2184,46 @@ var SidebarController = {
     }
   },
 
-  debouncedMouseEnter() {
-    const contentArea = document.getElementById("tabbrowser-tabbox");
-    this._box.toggleAttribute("sidebar-launcher-hovered", true);
-    contentArea.toggleAttribute("sidebar-launcher-hovered", true);
-    this._state.launcherHoverActive = true;
-    if (this._animationEnabled && !window.gReduceMotion) {
-      this._animateSidebarMain();
-    }
-    this._state.launcherExpanded = true;
-    this._mouseEnterDeferred.resolve();
-  },
-
   onMouseLeave() {
-    if (!this._state.launcherExpanded) {
-      return;
-    }
-    this.mouseEnterTask.disarm();
-    this._mouseEnterDeferred.resolve();
-    const contentArea = document.getElementById("tabbrowser-tabbox");
-    this._box.toggleAttribute("sidebar-launcher-hovered", false);
-    contentArea.toggleAttribute("sidebar-launcher-hovered", false);
-    this._state.launcherHoverActive = false;
-    if (this._animationEnabled && !window.gReduceMotion) {
-      this._animateSidebarMain();
-    }
-    this._state.launcherExpanded = false;
+    this._onExpandOnHoverChange(false);
   },
 
   onMouseEnter() {
-    if (this._state.launcherExpanded) {
+    this._onExpandOnHoverChange(true);
+  },
+
+  _onExpandOnHoverChange(aEnter) {
+    this._expandOnHoverTask?.disarm();
+    this._expandOnHoverDeferred?.resolve();
+    this._expandOnHoverTask = null;
+    if (this._state.launcherExpanded == aEnter) {
       return;
     }
-    this._mouseEnterDeferred = Promise.withResolvers();
-    this.mouseEnterTask = new DeferredTask(
+    this._expandOnHoverDeferred = Promise.withResolvers();
+    this._expandOnHoverTask = new DeferredTask(
       () => {
-        this.debouncedMouseEnter();
+        this._debouncedExpandOnHoverChange(aEnter);
       },
       EXPAND_ON_HOVER_DEBOUNCE_RATE_MS,
       EXPAND_ON_HOVER_DEBOUNCE_TIMEOUT_MS
     );
-    this.mouseEnterTask?.arm();
+    this._expandOnHoverTask.arm();
+  },
+
+  _debouncedExpandOnHoverChange(aEnter) {
+    const contentArea = document.getElementById("tabbrowser-tabbox");
+    this._box.toggleAttribute("sidebar-launcher-hovered", aEnter);
+    contentArea.toggleAttribute("sidebar-launcher-hovered", aEnter);
+    this._state.launcherHoverActive = aEnter;
+    if (this._animationEnabled && !window.gReduceMotion) {
+      this._animateSidebarMain();
+    }
+    this._expandOnHoverDeferred.resolve();
+    this._state.launcherExpanded = aEnter;
   },
 
   get expandOnHoverComplete() {
-    return this._mouseEnterDeferred?.promise || Promise.resolve();
+    return this._expandOnHoverDeferred?.promise || Promise.resolve();
   },
 
   async setLauncherCollapsedWidth() {
@@ -2288,7 +2270,7 @@ var SidebarController = {
         break;
       case "popuphidden":
         if (e.composedTarget.id !== "tab-preview-panel") {
-          await this._removeHoverStateBlocker();
+          this._removeHoverStateBlocker();
         }
         break;
       default:

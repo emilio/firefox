@@ -4117,13 +4117,16 @@ var MousePosTracker = {
    *          returned by getMouseTargetRect. MousePosTracker always
    *          runs this inside of a requestAnimationFrame, since it
    *          assumes that the notification is used to update the DOM.
+   * @param reevaluateExit if true, guarantees that one of onMouseEnter or
+   *          onMouseLeave gets called, if the listener isn't present.
+   *          Otherwise only onMouseEnter is called if the position is inside.
    */
-  addListener(listener) {
+  addListener(listener, reevaluateExit = false) {
     if (this._listeners.has(listener)) {
       return;
     }
 
-    listener._hover = false;
+    listener._hover = reevaluateExit ? undefined : false;
     this._listeners.add(listener);
 
     this._callListener(listener);
