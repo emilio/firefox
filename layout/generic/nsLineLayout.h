@@ -77,8 +77,16 @@ class nsLineLayout {
   void BeginSpan(nsIFrame* aFrame, const ReflowInput* aSpanReflowInput,
                  nscoord aLeftEdge, nscoord aRightEdge, nscoord* aBaseline);
 
-  // Returns the width of the span
-  nscoord EndSpan(nsIFrame* aFrame);
+  // Returns the width of the span.
+  nscoord EndSpan(nsIFrame* aFrame, bool aForRewind = false);
+
+  bool CurrentSpanCanWrap() const { return !mCurrentSpan->mNoWrap; }
+
+  nscoord GetCurrentSpanISize() const {
+    return mCurrentSpan->mLastFrame
+               ? (mCurrentSpan->mICoord - mCurrentSpan->mIStart)
+               : 0;
+  }
 
   // This method attaches the last frame reflowed in this line layout
   // to that in the base line layout.

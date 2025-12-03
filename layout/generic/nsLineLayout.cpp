@@ -399,7 +399,7 @@ void nsLineLayout::BeginSpan(nsIFrame* aFrame,
   mSpanDepth++;
 }
 
-nscoord nsLineLayout::EndSpan(nsIFrame* aFrame) {
+nscoord nsLineLayout::EndSpan(nsIFrame* aFrame, bool aForRewind) {
   NS_ASSERTION(mSpanDepth > 0, "end-span without begin-span");
 #ifdef NOISY_REFLOW
   nsIFrame::IndentBy(stdout, mSpanDepth);
@@ -418,6 +418,9 @@ nscoord nsLineLayout::EndSpan(nsIFrame* aFrame) {
   mSpanDepth--;
   mCurrentSpan->mReflowInput = nullptr;  // no longer valid so null it out!
   mCurrentSpan = mCurrentSpan->mParent;
+  if (aForRewind) {
+    FreeSpan(psd);
+  }
   return iSizeResult;
 }
 
@@ -512,7 +515,7 @@ void nsLineLayout::PushFrame(nsIFrame* aFrame) {
 }
 
 void nsLineLayout::UnlinkFrame(PerFrameData* pfd) {
-  while (nullptr != pfd) {
+  while (pfd) {
     PerFrameData* next = pfd->mNext;
     if (pfd->mIsLinkedToBase) {
       // This frame is linked to a ruby base, and should not be freed
@@ -541,7 +544,7 @@ void nsLineLayout::UnlinkFrame(PerFrameData* pfd) {
 }
 
 void nsLineLayout::FreeFrame(PerFrameData* pfd) {
-  if (nullptr != pfd->mSpan) {
+  if (pfd->mSpan) {
     FreeSpan(pfd->mSpan);
   }
   nsLineLayout* outerLineLayout = GetOutermostLineLayout();
@@ -735,12 +738,8 @@ void nsLineLayout::ReflowFrame(nsIFrame* aFrame, nsReflowStatus& aReflowStatus,
   if (mCurrentSpan == mRootSpan) {
     pfd->mFrame->RemoveProperty(nsIFrame::LineBaselineOffset());
   } else {
-#ifdef DEBUG
-    bool hasLineOffset;
-    pfd->mFrame->GetProperty(nsIFrame::LineBaselineOffset(), &hasLineOffset);
-    NS_ASSERTION(!hasLineOffset,
+    NS_ASSERTION(!pfd->mFrame->HasProperty(nsIFrame::LineBaselineOffset()),
                  "LineBaselineOffset was set but was not expected");
-#endif
   }
 
   mJustificationInfo = JustificationInfo();
@@ -807,7 +806,7 @@ void nsLineLayout::ReflowFrame(nsIFrame* aFrame, nsReflowStatus& aReflowStatus,
       pfd->mOffsets = reflowInput.ComputedLogicalOffsets(frameWM);
     }
 
-    // Calculate whether the the frame should have a start margin and
+    // Calculate whether the frame should have a start margin and
     // subtract the margin from the available width if necessary.
     // The margin will be applied to the starting inline coordinates of
     // the frame in CanPlaceFrame() after reflowing the frame.
@@ -1095,12 +1094,12 @@ void nsLineLayout::AllowForStartMargin(PerFrameData* pfd,
         "large sizes, not attempts at intrinsic inline-size calculation");
     // For inline-ish and text-ish things (which don't compute widths
     // in the reflow input), adjust available inline-size to account
-    // for the start margin. The end margin will be accounted for when
-    // we finish flowing the frame.
+    // for the start margin and potential negative end margins. Positive end
+    // margins will be accounted when we finish flowing the frame.
     WritingMode wm = aReflowInput.GetWritingMode();
-    aReflowInput.SetAvailableISize(
-        aReflowInput.AvailableISize() -
-        pfd->mMargin.ConvertTo(wm, lineWM).IStart(wm));
+    const auto margin = pfd->mMargin.ConvertTo(wm, lineWM);
+    aReflowInput.SetAvailableISize(aReflowInput.AvailableISize() -
+                                   margin.IStart(wm));
   }
 }
 

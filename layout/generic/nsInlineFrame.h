@@ -147,6 +147,11 @@ class nsInlineFrame : public nsContainerFrame {
                     const ReflowInput& aReflowInput, InlineReflowInput& rs,
                     ReflowOutput& aMetrics, nsReflowStatus& aStatus);
 
+  void ReflowFramesWithinSpan(nsPresContext* aPresContext,
+                              const ReflowInput& aReflowInput,
+                              InlineReflowInput& rs, ReflowOutput& aMetrics,
+                              nsReflowStatus& aStatus);
+
   void ReflowInlineFrame(nsPresContext* aPresContext,
                          const ReflowInput& aReflowInput, InlineReflowInput& rs,
                          nsIFrame* aFrame, nsReflowStatus& aStatus);

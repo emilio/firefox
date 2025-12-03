@@ -15,6 +15,7 @@
 #include "mozilla/RestyleManager.h"
 #include "mozilla/SVGTextFrame.h"
 #include "mozilla/ServoStyleSet.h"
+#include "mozilla/StaticPrefs_layout.h"
 #include "nsBlockFrame.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsDisplayList.h"
@@ -465,10 +466,8 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
                                  ReflowOutput& aReflowOutput,
                                  nsReflowStatus& aStatus) {
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
-
   nsLineLayout* lineLayout = aReflowInput.mLineLayout;
-  bool inFirstLine = aReflowInput.mLineLayout->GetInFirstLine();
-  RestyleManager* restyleManager = aPresContext->RestyleManager();
+
   WritingMode frameWM = aReflowInput.GetWritingMode();
   WritingMode lineWM = aReflowInput.mLineLayout->GetWritingMode();
   LogicalMargin framePadding =
@@ -484,15 +483,108 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
       boxDecorationBreakClone) {
     startEdge = framePadding.IStart(frameWM);
   }
+
+  // If we have negative margins, things are a bit tricky, we should account for
+  // them unconditionally, and then try to break earlier if we don't fit.
+  const nscoord negativeMargin =
+      StaticPrefs::layout_inline_improved_negative_margins_enabled()
+          ? std::min(0,
+                     aReflowInput.ComputedLogicalMargin(frameWM).IEnd(frameWM))
+          : 0;
+
   nscoord availableISize = aReflowInput.AvailableISize();
   NS_ASSERTION(availableISize != NS_UNCONSTRAINEDSIZE,
                "should no longer use available widths");
   // Subtract off inline axis border+padding from availableISize
   availableISize -= startEdge;
   availableISize -= framePadding.IEnd(frameWM);
+
+  const nscoord availableISizeWithoutNegativeMargin = availableISize;
+  availableISize -= negativeMargin;
+
   lineLayout->BeginSpan(this, &aReflowInput, startEdge,
                         startEdge + availableISize, &mBaseline);
 
+  ReflowFramesWithinSpan(aPresContext, aReflowInput, irs, aReflowOutput,
+                         aStatus);
+
+  // If there's a negative margin that we shouldn't have applied, we need to
+  // rewind and try to re-layout with the right available size.
+  if (negativeMargin && aStatus.IsIncomplete() && !boxDecorationBreakClone &&
+      lineLayout->CurrentSpanCanWrap() &&
+      lineLayout->GetCurrentSpanISize() > availableISizeWithoutNegativeMargin) {
+    lineLayout->EndSpan(this, /* aForRewind = */ true);
+    lineLayout->BeginSpan(this, &aReflowInput, startEdge,
+                          startEdge + availableISizeWithoutNegativeMargin,
+                          &mBaseline);
+    ReflowFramesWithinSpan(aPresContext, aReflowInput, irs, aReflowOutput,
+                           aStatus);
+  }
+
+  NS_ASSERTION(!aStatus.IsComplete() || !GetOverflowFrames(),
+               "We can't be complete AND have overflow frames!");
+
+  // If after reflowing our children they take up no area then make
+  // sure that we don't either.
+  //
+  // Note: CSS demands that empty inline elements still affect the
+  // line-height calculations. However, continuations of an inline
+  // that are empty we force to empty so that things like collapsed
+  // whitespace in an inline element don't affect the line-height.
+  aReflowOutput.ISize(lineWM) = lineLayout->EndSpan(this);
+
+  // Compute final width.
+
+  // XXX Note that that the padding start and end are in the frame's
+  //     writing mode, but the metrics' inline-size is in the line's
+  //     writing mode. This makes sense if the line and frame are both
+  //     vertical or both horizontal, but what should happen with
+  //     orthogonal inlines?
+
+  // Make sure to not include our start border and padding if we have a prev
+  // continuation or if we're in a part of an {ib} split other than the first
+  // one.  For box-decoration-break:clone we always include our start border
+  // and padding since all continuations have them.
+  if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
+      boxDecorationBreakClone) {
+    aReflowOutput.ISize(lineWM) += framePadding.IStart(frameWM);
+  }
+
+  /*
+   * We want to only apply the end border and padding if we're the last
+   * continuation and either not in an {ib} split or the last part of it.  To
+   * be the last continuation we have to be complete (so that we won't get a
+   * next-in-flow) and have no non-fluid continuations on our continuation
+   * chain.  For box-decoration-break:clone we always apply the end border and
+   * padding since all continuations have them.
+   */
+  if ((aStatus.IsComplete() && !LastInFlow()->GetNextContinuation() &&
+       !FrameIsNonLastInIBSplit()) ||
+      boxDecorationBreakClone) {
+    aReflowOutput.ISize(lineWM) += framePadding.IEnd(frameWM);
+  }
+
+  nsLayoutUtils::SetBSizeFromFontMetrics(this, aReflowOutput, framePadding,
+                                         lineWM, frameWM);
+
+  // For now our overflow area is zero. The real value will be
+  // computed in |nsLineLayout::RelativePositionFrames|.
+  aReflowOutput.mOverflowAreas.Clear();
+
+#ifdef NOISY_FINAL_SIZE
+  ListTag(stdout);
+  printf(": metrics=%d,%d ascent=%d\n", aReflowOutput.Width(),
+         aReflowOutput.Height(), aReflowOutput.BlockStartAscent());
+#endif
+}
+
+void nsInlineFrame::ReflowFramesWithinSpan(nsPresContext* aPresContext,
+                                           const ReflowInput& aReflowInput,
+                                           InlineReflowInput& irs,
+                                           ReflowOutput& aReflowOutput,
+                                           nsReflowStatus& aStatus) {
+  nsLineLayout* lineLayout = aReflowInput.mLineLayout;
+  const bool inFirstLine = lineLayout->GetInFirstLine();
   // First reflow our principal children.
   nsIFrame* frame = mFrames.FirstChild();
   bool done = false;
@@ -503,7 +595,8 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
       do {
         child->SetParent(this);
         if (inFirstLine) {
-          restyleManager->ReparentComputedStyleForFirstLine(child);
+          aPresContext->RestyleManager()->ReparentComputedStyleForFirstLine(
+              child);
           nsLayoutUtils::MarkDescendantsDirty(child);
         }
         // We also need to do the same for |frame|'s next-in-flows that are in
@@ -536,7 +629,8 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
             if (mFrames.ContainsFrame(nextInFlow)) {
               nextInFlow->SetParent(this);
               if (inFirstLine) {
-                restyleManager->ReparentComputedStyleForFirstLine(nextInFlow);
+                aPresContext->RestyleManager()
+                    ->ReparentComputedStyleForFirstLine(nextInFlow);
                 nsLayoutUtils::MarkDescendantsDirty(nextInFlow);
               }
             } else {
@@ -601,62 +695,6 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
       frame = frame->GetNextSibling();
     }
   }
-
-  NS_ASSERTION(!aStatus.IsComplete() || !GetOverflowFrames(),
-               "We can't be complete AND have overflow frames!");
-
-  // If after reflowing our children they take up no area then make
-  // sure that we don't either.
-  //
-  // Note: CSS demands that empty inline elements still affect the
-  // line-height calculations. However, continuations of an inline
-  // that are empty we force to empty so that things like collapsed
-  // whitespace in an inline element don't affect the line-height.
-  aReflowOutput.ISize(lineWM) = lineLayout->EndSpan(this);
-
-  // Compute final width.
-
-  // XXX Note that that the padding start and end are in the frame's
-  //     writing mode, but the metrics' inline-size is in the line's
-  //     writing mode. This makes sense if the line and frame are both
-  //     vertical or both horizontal, but what should happen with
-  //     orthogonal inlines?
-
-  // Make sure to not include our start border and padding if we have a prev
-  // continuation or if we're in a part of an {ib} split other than the first
-  // one.  For box-decoration-break:clone we always include our start border
-  // and padding since all continuations have them.
-  if ((!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) ||
-      boxDecorationBreakClone) {
-    aReflowOutput.ISize(lineWM) += framePadding.IStart(frameWM);
-  }
-
-  /*
-   * We want to only apply the end border and padding if we're the last
-   * continuation and either not in an {ib} split or the last part of it.  To
-   * be the last continuation we have to be complete (so that we won't get a
-   * next-in-flow) and have no non-fluid continuations on our continuation
-   * chain.  For box-decoration-break:clone we always apply the end border and
-   * padding since all continuations have them.
-   */
-  if ((aStatus.IsComplete() && !LastInFlow()->GetNextContinuation() &&
-       !FrameIsNonLastInIBSplit()) ||
-      boxDecorationBreakClone) {
-    aReflowOutput.ISize(lineWM) += framePadding.IEnd(frameWM);
-  }
-
-  nsLayoutUtils::SetBSizeFromFontMetrics(this, aReflowOutput, framePadding,
-                                         lineWM, frameWM);
-
-  // For now our overflow area is zero. The real value will be
-  // computed in |nsLineLayout::RelativePositionFrames|.
-  aReflowOutput.mOverflowAreas.Clear();
-
-#ifdef NOISY_FINAL_SIZE
-  ListTag(stdout);
-  printf(": metrics=%d,%d ascent=%d\n", aReflowOutput.Width(),
-         aReflowOutput.Height(), aReflowOutput.BlockStartAscent());
-#endif
 }
 
 // Returns whether there's any remaining frame to pull.
