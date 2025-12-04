@@ -17,14 +17,12 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "nsBlockFrame.h"
-#include "nsCSSAnonBoxes.h"
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
 #include "nsLineLayout.h"
 #include "nsPlaceholderFrame.h"
 #include "nsPresContext.h"
-#include "nsPresContextInlines.h"
 #include "nsStyleChangeList.h"
 
 #ifdef DEBUG
@@ -347,21 +345,6 @@ void nsInlineFrame::Reflow(nsPresContext* aPresContext,
     }
   }
 
-  // It's also possible that we have an overflow list for ourselves
-#ifdef DEBUG
-  if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
-    // If it's our initial reflow, then we should not have an overflow list.
-    // However, add an assertion in case we get reflowed more than once with
-    // the initial reflow reason
-    nsFrameList* overflowFrames = GetOverflowFrames();
-    NS_ASSERTION(!overflowFrames || overflowFrames->IsEmpty(),
-                 "overflow list is not empty for initial reflow");
-  }
-#endif
-  if (!HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
-    DrainSelfOverflowListInternal(aReflowInput.mLineLayout->GetInFirstLine());
-  }
-
   // Set our own reflow input (additional state above and beyond aReflowInput).
   InlineReflowInput irs;
   irs.mPrevFrame = nullptr;
@@ -370,14 +353,7 @@ void nsInlineFrame::Reflow(nsPresContext* aPresContext,
   irs.mNextInFlow = (nsInlineFrame*)GetNextInFlow();
   irs.mSetParentPointer = lazilySetParentPointer;
 
-  if (mFrames.IsEmpty()) {
-    // Try to pull over one frame before starting so that we know
-    // whether we have an anonymous block or not.
-    (void)PullOneFrame(aPresContext, irs);
-  }
-
   ReflowFrames(aPresContext, aReflowInput, irs, aReflowOutput, aStatus);
-
   ReflowAbsoluteFrames(aPresContext, aReflowOutput, aReflowInput, aStatus);
 
   // Note: the line layout code will properly compute our
@@ -499,8 +475,9 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   availableISize -= startEdge;
   availableISize -= framePadding.IEnd(frameWM);
 
-  const nscoord availableISizeWithoutNegativeMargin = availableISize;
-  availableISize -= negativeMargin;
+  const nscoord availableISizeWithoutNegativeMargin =
+      std::max(0, availableISize);
+  availableISize = std::max(0, availableISize - negativeMargin);
 
   lineLayout->BeginSpan(this, &aReflowInput, startEdge,
                         startEdge + availableISize, &mBaseline);
@@ -512,7 +489,8 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   // rewind and try to re-layout with the right available size.
   if (negativeMargin && aStatus.IsIncomplete() && !boxDecorationBreakClone &&
       lineLayout->CurrentSpanCanWrap() &&
-      lineLayout->GetCurrentSpanISize() > availableISizeWithoutNegativeMargin) {
+      lineLayout->GetCurrentSpanISize() > availableISizeWithoutNegativeMargin &&
+      availableISizeWithoutNegativeMargin != availableISize) {
     lineLayout->EndSpan(this, /* aForRewind = */ true);
     lineLayout->BeginSpan(this, &aReflowInput, startEdge,
                           startEdge + availableISizeWithoutNegativeMargin,
@@ -584,6 +562,31 @@ void nsInlineFrame::ReflowFramesWithinSpan(nsPresContext* aPresContext,
                                            ReflowOutput& aReflowOutput,
                                            nsReflowStatus& aStatus) {
   nsLineLayout* lineLayout = aReflowInput.mLineLayout;
+  DrainSelfOverflowListInternal(lineLayout->GetInFirstLine());
+  if (mFrames.IsEmpty()) {
+    // Try to pull over one frame before starting so that we know
+    // whether we have an anonymous block or not.
+    PullOneFrame(aPresContext, irs);
+  }
+
+  if (IsLineFrame() && !GetPrevInFlow()) {
+    // XXX This is pretty sick, but what we do here is to pull-up, in
+    // advance, all of the next-in-flows children. We re-resolve their
+    // style while we are at at it so that when we reflow they have
+    // the right style.
+    //
+    // All of this is so that text-runs reflow properly.
+    irs.mPrevFrame = mFrames.LastChild();
+    for (;;) {
+      nsIFrame* frame = PullOneFrame(aPresContext, irs);
+      if (!frame) {
+        break;
+      }
+      irs.mPrevFrame = frame;
+    }
+    irs.mPrevFrame = nullptr;
+  }
+
   const bool inFirstLine = lineLayout->GetInFirstLine();
   // First reflow our principal children.
   nsIFrame* frame = mFrames.FirstChild();
@@ -1042,7 +1045,7 @@ void nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   MarkInReflow();
   MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
 
-  if (nullptr == aReflowInput.mLineLayout) {
+  if (!aReflowInput.mLineLayout) {
     return;  // XXX does this happen? why?
   }
 
@@ -1059,40 +1062,12 @@ void nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
     }
   }
 
-  // It's also possible that we have an overflow list for ourselves.
-  DrainSelfOverflowList();
-
   // Set our own reflow input (additional state above and beyond aReflowInput).
   InlineReflowInput irs;
   irs.mPrevFrame = nullptr;
   irs.mLineContainer = aReflowInput.mLineLayout->LineContainerFrame();
   irs.mLineLayout = aReflowInput.mLineLayout;
   irs.mNextInFlow = (nsInlineFrame*)GetNextInFlow();
-
-  bool wasEmpty = mFrames.IsEmpty();
-  if (wasEmpty) {
-    // Try to pull over one frame before starting so that we know
-    // whether we have an anonymous block or not.
-    PullOneFrame(aPresContext, irs);
-  }
-
-  if (nullptr == GetPrevInFlow()) {
-    // XXX This is pretty sick, but what we do here is to pull-up, in
-    // advance, all of the next-in-flows children. We re-resolve their
-    // style while we are at at it so that when we reflow they have
-    // the right style.
-    //
-    // All of this is so that text-runs reflow properly.
-    irs.mPrevFrame = mFrames.LastChild();
-    for (;;) {
-      nsIFrame* frame = PullOneFrame(aPresContext, irs);
-      if (!frame) {
-        break;
-      }
-      irs.mPrevFrame = frame;
-    }
-    irs.mPrevFrame = nullptr;
-  }
 
   NS_ASSERTION(!aReflowInput.mLineLayout->GetInFirstLine(),
                "Nested first-line frames? BOGUS");

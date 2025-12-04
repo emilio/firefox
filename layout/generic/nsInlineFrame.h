@@ -121,20 +121,14 @@ class nsInlineFrame : public nsContainerFrame {
  protected:
   // Additional reflow input used during our reflow methods
   struct InlineReflowInput {
-    nsIFrame* mPrevFrame;
-    nsInlineFrame* mNextInFlow;
-    nsIFrame* mLineContainer;
-    nsLineLayout* mLineLayout;
-    bool mSetParentPointer;  // when reflowing child frame first set its
-                             // parent frame pointer
+    nsIFrame* mPrevFrame = nullptr;
+    nsInlineFrame* mNextInFlow = nullptr;
+    nsIFrame* mLineContainer = nullptr;
+    nsLineLayout* mLineLayout = nullptr;
+    bool mSetParentPointer = false;  // when reflowing child frame first set its
+                                     // parent frame pointer
 
-    InlineReflowInput() {
-      mPrevFrame = nullptr;
-      mNextInFlow = nullptr;
-      mLineContainer = nullptr;
-      mLineLayout = nullptr;
-      mSetParentPointer = false;
-    }
+    InlineReflowInput() = default;
   };
 
   nsInlineFrame(ComputedStyle* aStyle, nsPresContext* aPresContext, ClassID aID)
@@ -143,18 +137,15 @@ class nsInlineFrame : public nsContainerFrame {
 
   LogicalSides GetLogicalSkipSides() const override;
 
-  void ReflowFrames(nsPresContext* aPresContext,
-                    const ReflowInput& aReflowInput, InlineReflowInput& rs,
-                    ReflowOutput& aMetrics, nsReflowStatus& aStatus);
+  void ReflowFrames(nsPresContext*, const ReflowInput&, InlineReflowInput&,
+                    ReflowOutput&, nsReflowStatus&);
 
-  void ReflowFramesWithinSpan(nsPresContext* aPresContext,
-                              const ReflowInput& aReflowInput,
-                              InlineReflowInput& rs, ReflowOutput& aMetrics,
-                              nsReflowStatus& aStatus);
+  void ReflowFramesWithinSpan(nsPresContext*, const ReflowInput&,
+                              InlineReflowInput&, ReflowOutput&,
+                              nsReflowStatus&);
 
-  void ReflowInlineFrame(nsPresContext* aPresContext,
-                         const ReflowInput& aReflowInput, InlineReflowInput& rs,
-                         nsIFrame* aFrame, nsReflowStatus& aStatus);
+  void ReflowInlineFrame(nsPresContext*, const ReflowInput&, InlineReflowInput&,
+                         nsIFrame*, nsReflowStatus&);
 
   // Returns whether there's any frame that PullOneFrame would pull from
   // aNextInFlow or any of aNextInFlow's next-in-flows.

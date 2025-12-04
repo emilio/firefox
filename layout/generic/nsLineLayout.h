@@ -282,7 +282,7 @@ class nsLineLayout {
    * Check whether frames overflowed the available width and CanPlaceFrame
    * requested backing up to a saved break position.
    */
-  bool NeedsBackup() { return mNeedBackup; }
+  bool NeedsBackup() const { return mNeedBackup; }
 
   // Line layout may place too much content on a line, overflowing its available
   // width. When that happens, if SetLastOptionalBreakPosition has been
