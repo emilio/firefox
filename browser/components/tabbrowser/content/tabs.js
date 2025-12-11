@@ -108,8 +108,11 @@
       // that shouldn't be a problem in practice since the arrowscrollbox
       // stops at element bounds when finishing scrolling.
       Object.defineProperty(this.arrowScrollbox, "lineScrollAmount", {
-        get: () =>
-          this.verticalMode ? this.#tabMinHeight : this._tabMinWidthPref,
+        get: () => {
+          let r = this.verticalMode ? this.#tabMinHeight : this._tabMinWidthPref;
+          console.log("XXX: lineScrollAmount", r);
+          return r;
+        },
       });
 
       this.baseConnect();
@@ -1198,16 +1201,24 @@
       // Use the current known height or a sane default.
       this.#tabMinHeight = height || 36;
 
+      dump(`#tabMinHeight (pre flush): = ${height}, (${document.documentElement.getAttribute("uidensity")})\n`);
+
       // The height we got may be incorrect if a flush is pending so re-check it after
       // a flush completes.
       window
-        .promiseDocumentFlushed(() => {})
+        .promiseDocumentFlushed(() => {
+          height =
+            window.windowUtils.getBoundsWithoutFlushing(
+              firstScrollableTab).height;
+          dump(`#tabMinHeight (cb): = ${height}, (${document.documentElement.getAttribute("uidensity")})\n`);
+        })
         .then(
           () => {
             height =
               window.windowUtils.getBoundsWithoutFlushing(
                 firstScrollableTab
               ).height;
+            dump(`#tabMinHeight (post flush): = ${height}, (${document.documentElement.getAttribute("uidensity")})\n`);
 
             if (height) {
               this.#tabMinHeight = height;
