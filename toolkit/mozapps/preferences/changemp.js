@@ -214,14 +214,11 @@ function checkPasswords() {
     }
   }
 
-  if (
+  ok.toggleAttribute(
+    "disabled",
     pw1 == pw2 &&
-    (pw1 != "" || Services.policies.isAllowed("removeMasterPassword"))
-  ) {
-    ok.setAttribute("disabled", "false");
-  } else {
-    ok.setAttribute("disabled", "true");
-  }
+      (pw1 != "" || Services.policies.isAllowed("removeMasterPassword"))
+  );
 }
 
 window.addEventListener("load", init);

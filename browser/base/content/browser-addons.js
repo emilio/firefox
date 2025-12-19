@@ -2831,7 +2831,7 @@ var gUnifiedExtensions = {
     if (forBrowserAction) {
       let area = CustomizableUI.getPlacementOfWidget(widgetId).area;
       let inToolbar = area != CustomizableUI.AREA_ADDONS;
-      pinButton.setAttribute("checked", inToolbar);
+      pinButton.toggleAttribute("checked", inToolbar);
 
       const placement = CustomizableUI.getPlacementOfWidget(widgetId);
       const notInPanel = placement?.area !== CustomizableUI.AREA_ADDONS;
@@ -2918,14 +2918,14 @@ var gUnifiedExtensions = {
   },
 
   async onPinToToolbarChange(menu, event) {
-    let shouldPinToToolbar = event.target.getAttribute("checked") == "true";
+    let shouldPinToToolbar = event.target.hasAttribute("checked");
     // Revert the checkbox back to its original state. This is because the
     // addon context menu handlers are asynchronous, and there seems to be
     // a race where the checkbox state won't get set in time to show the
     // right state. So we err on the side of caution, and presume that future
     // attempts to open this context menu on an extension button will show
     // the same checked state that we started in.
-    event.target.setAttribute("checked", !shouldPinToToolbar);
+    event.target.toggleAttribute("checked", !shouldPinToToolbar);
 
     let widgetId = this._getWidgetId(menu);
     if (!widgetId) {
