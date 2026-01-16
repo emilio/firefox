@@ -67,10 +67,11 @@ nsLayoutHistoryState::GetPresState(const nsACString& aKey, float* aScrollX,
     return NS_ERROR_FAILURE;
   }
 
-  *aScrollX = state->scrollState().x;
-  *aScrollY = state->scrollState().y;
-  *aAllowScrollOriginDowngrade = state->allowScrollOriginDowngrade();
-  *aRes = state->resolution();
+  const auto& sd = state->scrollData();
+  *aScrollX = sd.scrollState().x;
+  *aScrollY = sd.scrollState().y;
+  *aAllowScrollOriginDowngrade = sd.allowScrollOriginDowngrade();
+  *aRes = sd.resolution();
 
   return NS_OK;
 }
@@ -81,9 +82,11 @@ nsLayoutHistoryState::AddNewPresState(const nsACString& aKey, float aScrollX,
                                       bool aAllowScrollOriginDowngrade,
                                       float aRes) {
   UniquePtr<PresState> newState = NewPresState();
-  newState->scrollState() = nsPoint(aScrollX, aScrollY);
-  newState->allowScrollOriginDowngrade() = aAllowScrollOriginDowngrade;
-  newState->resolution() = aRes;
+  auto& sd = newState->scrollData();
+  // XXX float to nsPoint conversion is rather sus!
+  sd.scrollState() = nsPoint(aScrollX, aScrollY);
+  sd.resolution() = aRes;
+  sd.allowScrollOriginDowngrade() = aAllowScrollOriginDowngrade;
 
   mStates.InsertOrUpdate(nsCString(aKey), std::move(newState));
 
@@ -124,7 +127,8 @@ void nsLayoutHistoryState::SetScrollPositionOnly(const bool aFlag) {
 void nsLayoutHistoryState::ResetScrollState() {
   for (const auto& state : mStates.Values()) {
     if (state) {
-      state->scrollState() = nsPoint(0, 0);
+      // TODO: Should this reset the other adjacent scroll data?
+      state->scrollData().scrollState() = nsPoint();
     }
   }
 }
@@ -150,9 +154,11 @@ namespace mozilla {
 UniquePtr<PresState> NewPresState() {
   return MakeUnique<PresState>(
       /* contentData */ mozilla::void_t(),
-      /* scrollState */ nsPoint(0, 0),
-      /* allowScrollOriginDowngrade */ true,
-      /* resolution */ 1.0,
+      /* scrollData */
+      ScrollData(
+          /* scrollState */ nsPoint(),
+          /* resolution */ 1.0f,
+          /* allowScrollOriginDowngrade */ true),
       /* disabledSet */ false,
       /* disabled */ false,
       /* droppedDown */ false);

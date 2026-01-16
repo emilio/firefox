@@ -45,13 +45,19 @@ union PresContentData {
   CustomElementTuple;
 };
 
-struct PresState {
-  PresContentData contentData;
+struct ScrollData {
   // For frames where layout and visual viewport aren't one and the same thing,
   // scrollState will store the position of the *visual* viewport.
   nsPoint scrollState;
-  bool allowScrollOriginDowngrade;
+  // Only relevant for root scroll frames.
   float resolution;
+  bool allowScrollOriginDowngrade;
+};
+
+struct PresState {
+  // Form state, generally.
+  PresContentData contentData;
+  ScrollData scrollData;
   bool disabledSet;
   bool disabled;
   bool droppedDown;

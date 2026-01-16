@@ -7032,19 +7032,21 @@ UniquePtr<PresState> ScrollContainerFrame::SaveState() {
   if (mRestorePos.y != -1 && pt == mLastPos) {
     pt = mRestorePos;
   }
-  state->scrollState() = pt;
-  state->allowScrollOriginDowngrade() = allowScrollOriginDowngrade;
+  auto& sd = state->scrollData();
+  sd.scrollState() = pt;
+  sd.allowScrollOriginDowngrade() = allowScrollOriginDowngrade;
   if (mIsRoot) {
     // Only save resolution properties for root scroll frames
-    state->resolution() = PresShell()->GetResolution();
+    sd.resolution() = PresShell()->GetResolution();
   }
   return state;
 }
 
 NS_IMETHODIMP ScrollContainerFrame::RestoreState(PresState* aState) {
-  mRestorePos = aState->scrollState();
+  const auto& sd = aState->scrollData();
+  mRestorePos = sd.scrollState();
   MOZ_ASSERT(mLastScrollOrigin == ScrollOrigin::None);
-  mAllowScrollOriginDowngrade = aState->allowScrollOriginDowngrade();
+  mAllowScrollOriginDowngrade = sd.allowScrollOriginDowngrade();
   // When restoring state, we promote mLastScrollOrigin to a stronger value
   // from the default of eNone, to restore the behaviour that existed when
   // the state was saved. If mLastScrollOrigin was a weaker value previously,
@@ -7061,11 +7063,11 @@ NS_IMETHODIMP ScrollContainerFrame::RestoreState(PresState* aState) {
                     ToString(mRestorePos).c_str(), ToString(mLastPos).c_str());
 
   // Resolution properties should only exist on root scroll frames.
-  MOZ_ASSERT(mIsRoot || aState->resolution() == 1.0);
+  MOZ_ASSERT(mIsRoot || sd.resolution() == 1.0);
 
   if (mIsRoot) {
     PresShell()->SetResolutionAndScaleTo(
-        aState->resolution(), ResolutionChangeOrigin::MainThreadRestore);
+        sd.resolution(), ResolutionChangeOrigin::MainThreadRestore);
   }
   return NS_OK;
 }

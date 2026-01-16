@@ -843,7 +843,7 @@ void nsTextControlFrame::SetInitialChildList(ChildListID aListID,
       NS_ASSERTION(statefulFrame,
                    "unexpected type of frame for the anonymous div");
       UniquePtr<PresState> fakePresState = NewPresState();
-      fakePresState->scrollState() = contentScrollPos;
+      fakePresState->scrollData().scrollState() = contentScrollPos;
       statefulFrame->RestoreState(fakePresState.get());
     }
   } else {
@@ -877,9 +877,8 @@ nsTextControlFrame::RestoreState(PresState* aState) {
 
   // Most likely, we don't have our anonymous content constructed yet, which
   // would cause us to end up here.  In this case, we'll just store the scroll
-  // pos ourselves, and forward it to the scroll frame later when it's
-  // created.
-  SetProperty(ContentScrollPos(), aState->scrollState());
+  // pos ourselves, and forward it to the scroll frame later when it's created.
+  SetProperty(ContentScrollPos(), aState->scrollData().scrollState());
   return NS_OK;
 }
 
