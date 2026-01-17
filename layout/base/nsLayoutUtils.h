@@ -225,12 +225,6 @@ class nsLayoutUtils {
   static mozilla::ScrollContainerFrame* FindScrollContainerFrameFor(ViewID aId);
 
   /**
-   * Helper for FindScrollContainerFrameFor(), also used in DisplayPortUtils.
-   * Most clients should use FindScrollContainerFrameFor().
-   */
-  static nsIFrame* GetScrollContainerFrameFromContent(nsIContent* aContent);
-
-  /**
    * Find the ID for a given scroll container frame.
    */
   static ViewID FindIDForScrollContainerFrame(

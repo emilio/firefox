@@ -247,12 +247,6 @@ class DisplayPortUtils {
   static void RemoveDisplayPort(nsIContent* aContent);
 
   /**
-   * Set minimal display port margins during painting.
-   */
-  static void SetMinimalDisplayPortDuringPainting(nsIContent* aContent,
-                                                  PresShell* aPresShell);
-
-  /**
    * Return true if aPresContext's viewport has a displayport.
    */
   static bool ViewportHasDisplayPort(nsPresContext* aPresContext);

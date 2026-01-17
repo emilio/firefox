@@ -220,6 +220,15 @@ class ScrollFrameActivityTracker final
 };
 static StaticAutoPtr<ScrollFrameActivityTracker> gScrollFrameActivityTracker;
 
+struct ScrollContainerFrame::DisplayPortData {
+  // Timer to remove the displayport some time after scrolling has stopped
+  nsCOMPtr<nsITimer> mDisplayPortExpiryTimer;
+  Maybe<nsRect> mDisplayPortBase;
+  DisplayPortMargins mMargins;
+  uint32_t mPriority = 0;
+  bool mPainted = false;
+};
+
 ScrollContainerFrame* NS_NewScrollContainerFrame(mozilla::PresShell* aPresShell,
                                                  ComputedStyle* aStyle,
                                                  bool aIsRoot) {
@@ -338,11 +347,7 @@ void ScrollContainerFrame::Destroy(DestroyContext& aContext) {
     PresShell()->CancelReflowCallback(this);
     mPostedReflowCallback = false;
   }
-
-  if (mDisplayPortExpiryTimer) {
-    mDisplayPortExpiryTimer->Cancel();
-    mDisplayPortExpiryTimer = nullptr;
-  }
+  RemoveDisplayPort();
   if (mActivityExpirationState.IsTracked()) {
     gScrollFrameActivityTracker->RemoveObject(this);
   }
@@ -2583,13 +2588,14 @@ bool ScrollContainerFrame::IsAlwaysActive() const {
 
 void ScrollContainerFrame::RemoveDisplayPortCallback(nsITimer* aTimer,
                                                      void* aClosure) {
-  ScrollContainerFrame* sf = static_cast<ScrollContainerFrame*>(aClosure);
+  auto* sf = static_cast<ScrollContainerFrame*>(aClosure);
 
   // This function only ever gets called from the expiry timer, so it must
   // be non-null here. Set it to null here so that we don't keep resetting
   // it unnecessarily in MarkRecentlyScrolled().
-  MOZ_ASSERT(sf->mDisplayPortExpiryTimer);
-  sf->mDisplayPortExpiryTimer = nullptr;
+  MOZ_ASSERT(sf->mDisplayPortData);
+  MOZ_ASSERT(sf->mDisplayPortData->mDisplayPortExpiryTimer);
+  sf->mDisplayPortData->mDisplayPortExpiryTimer = nullptr;
 
   if (!sf->AllowDisplayPortExpiration() || sf->mIsParentToActiveScrollFrames) {
     // If this is a scroll parent for some other scrollable frame, don't
@@ -2614,17 +2620,14 @@ void ScrollContainerFrame::RemoveDisplayPortCallback(nsITimer* aTimer,
   // different position that's ok; this scrollframe hasn't been scrolled
   // recently and so the reset should be correct.
 
-  nsIContent* content = sf->GetContent();
-
   if (ScrollContainerFrame::ShouldActivateAllScrollFrames(nullptr, sf)) {
     // If we are activating all scroll frames then we only want to remove the
     // regular display port and downgrade to a minimal display port.
-    MOZ_ASSERT(!content->GetProperty(nsGkAtoms::MinimalDisplayPort));
-    content->SetProperty(nsGkAtoms::MinimalDisplayPort,
-                         reinterpret_cast<void*>(true));
+    MOZ_ASSERT(!sf->IsMinimalDisplayPort());
+    sf->SetIsMinimalDisplayPort(true);
   } else {
-    content->RemoveProperty(nsGkAtoms::MinimalDisplayPort);
-    DisplayPortUtils::RemoveDisplayPort(content);
+    sf->SetIsMinimalDisplayPort(false);
+    sf->RemoveDisplayPort();
     // Be conservative and unflag this this scrollframe as being scrollable by
     // APZ. If it is still scrollable this will get flipped back soon enough.
     sf->mScrollableByAPZ = false;
@@ -2679,11 +2682,17 @@ void ScrollContainerFrame::MarkRecentlyScrolled() {
 }
 
 void ScrollContainerFrame::ResetDisplayPortExpiryTimer() {
-  if (mDisplayPortExpiryTimer) {
-    mDisplayPortExpiryTimer->InitWithNamedFuncCallback(
+  if (mDisplayPortData && mDisplayPortData->mDisplayPortExpiryTimer) {
+    mDisplayPortData->mDisplayPortExpiryTimer->InitWithNamedFuncCallback(
         RemoveDisplayPortCallback, this,
         StaticPrefs::apz_displayport_expiry_ms(), nsITimer::TYPE_ONE_SHOT,
         "ScrollContainerFrame::ResetDisplayPortExpiryTimer"_ns);
+  }
+}
+
+void ScrollContainerFrame::ClearDisplayPortExpiryTimer() {
+  if (mDisplayPortData && mDisplayPortData->mDisplayPortExpiryTimer) {
+    mDisplayPortData->mDisplayPortExpiryTimer->Cancel();
   }
 }
 
@@ -2702,11 +2711,67 @@ bool ScrollContainerFrame::AllowDisplayPortExpiration() {
     return false;
   }
 
-  if (ShouldActivateAllScrollFrames(nullptr, this) &&
-      GetContent()->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+  if (ShouldActivateAllScrollFrames(nullptr, this) && mIsMinimalDisplayPort) {
     return false;
   }
   return true;
+}
+
+void ScrollContainerFrame::SetDisplayPortMargins(
+    const DisplayPortMargins& aMargins, uint32_t aPriority) {
+  auto& dpd = EnsureDisplayPortData();
+  if (dpd.mPriority > aPriority) {
+    return;
+  }
+  if (dpd.mMargins.mVisualOffset != CSSPoint() &&
+      aMargins.mVisualOffset == CSSPoint()) {
+    // If we hit this, then it's possible that we're setting a displayport
+    // that is wrong because the old one had a layout/visual adjustment and
+    // the new one does not.
+    MOZ_LOG(sDisplayportLog, LogLevel::Warning,
+            ("Dropping visual offset %s",
+             ToString(dpd.mMargins.mVisualOffset).c_str()));
+  }
+  dpd.mMargins = aMargins;
+  dpd.mPriority = aPriority;
+}
+
+void ScrollContainerFrame::RemoveDisplayPort() {
+  ClearDisplayPortExpiryTimer();
+  mDisplayPortData = nullptr;
+}
+
+auto ScrollContainerFrame::EnsureDisplayPortData() -> DisplayPortData& {
+  if (!mDisplayPortData) {
+    mDisplayPortData = MakeUnique<DisplayPortData>();
+  }
+  return *mDisplayPortData;
+}
+
+void ScrollContainerFrame::SetDisplayPortBase(const nsRect& aBase) {
+  EnsureDisplayPortData().mDisplayPortBase = Some(aBase);
+}
+
+Maybe<nsRect> ScrollContainerFrame::GetDisplayPortBase() const {
+  return mDisplayPortData ? mDisplayPortData->mDisplayPortBase : Nothing();
+}
+
+const DisplayPortMargins* ScrollContainerFrame::GetDisplayPortMargins() const {
+  return mDisplayPortData ? &mDisplayPortData->mMargins : nullptr;
+}
+
+uint32_t ScrollContainerFrame::GetDisplayPortPriority() const {
+  return mDisplayPortData ? mDisplayPortData->mPriority : 0;
+}
+
+bool ScrollContainerFrame::GetWasDisplayPortPainted() const {
+  return mDisplayPortData ? mDisplayPortData->mPainted : false;
+}
+
+void ScrollContainerFrame::SetWasDisplayPortPainted(bool aPainted) {
+  if (mDisplayPortData) {
+    mDisplayPortData->mPainted = aPainted;
+  }
 }
 
 void ScrollContainerFrame::TriggerDisplayPortExpiration() {
@@ -2719,8 +2784,9 @@ void ScrollContainerFrame::TriggerDisplayPortExpiration() {
     return;
   }
 
-  if (!mDisplayPortExpiryTimer) {
-    mDisplayPortExpiryTimer = NS_NewTimer();
+  auto& dpd = EnsureDisplayPortData();
+  if (!dpd.mDisplayPortExpiryTimer) {
+    dpd.mDisplayPortExpiryTimer = NS_NewTimer();
   }
   ResetDisplayPortExpiryTimer();
 }
@@ -3084,8 +3150,7 @@ void ScrollContainerFrame::ScrollToImpl(
   bool schedulePaint = true;
   if (nsLayoutUtils::AsyncPanZoomEnabled(this) &&
       !nsLayoutUtils::ShouldDisableApzForElement(content) &&
-      !content->GetProperty(nsGkAtoms::MinimalDisplayPort) &&
-      StaticPrefs::apz_paint_skipping_enabled()) {
+      !mIsMinimalDisplayPort && StaticPrefs::apz_paint_skipping_enabled()) {
     // If APZ is enabled with paint-skipping, there are certain conditions in
     // which we can skip paints:
     // 1) If APZ triggered this scroll, and the tile-aligned displayport is
@@ -4164,8 +4229,7 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
     // Since mWillBuildScrollableLayer = HasDisplayPort || mZoomableByAPZ we can
     // simplify this check to avoid getting the display port again.
-    if (mZoomableByAPZ ||
-        !GetContent()->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+    if (mZoomableByAPZ || !mIsMinimalDisplayPort) {
       MOZ_ASSERT(DisplayPortUtils::HasNonMinimalDisplayPort(GetContent()) ||
                  mZoomableByAPZ);
       aBuilder->SetContainsNonMinimalDisplayPort();
@@ -4394,14 +4458,13 @@ nsRect ScrollContainerFrame::RestrictToRootDisplayPort(
 bool ScrollContainerFrame::DecideScrollableLayerEnsureDisplayport(
     nsDisplayListBuilder* aBuilder) {
   MOZ_ASSERT(ShouldActivateAllScrollFrames(aBuilder, this));
-  nsIContent* content = GetContent();
-  bool hasDisplayPort = DisplayPortUtils::HasDisplayPort(content);
+  bool hasDisplayPort = !!mDisplayPortData;
 
   // Note this intentionally differs from DecideScrollableLayer below by not
   // checking ShouldActivateAllScrollFrames.
   if (!hasDisplayPort && aBuilder->IsPaintingToWindow() &&
       nsLayoutUtils::AsyncPanZoomEnabled(this) && WantAsyncScroll()) {
-    DisplayPortUtils::SetMinimalDisplayPortDuringPainting(content, PresShell());
+    mIsMinimalDisplayPort = true;
     hasDisplayPort = true;
   }
 
@@ -4428,7 +4491,7 @@ bool ScrollContainerFrame::DecideScrollableLayer(
   if (aSetBase && !hasDisplayPort && aBuilder->IsPaintingToWindow() &&
       ShouldActivateAllScrollFrames(aBuilder, this) &&
       nsLayoutUtils::AsyncPanZoomEnabled(this) && WantAsyncScroll()) {
-    DisplayPortUtils::SetMinimalDisplayPortDuringPainting(content, PresShell());
+    mIsMinimalDisplayPort = true;
     hasDisplayPort = true;
   }
 
@@ -4476,14 +4539,13 @@ bool ScrollContainerFrame::DecideScrollableLayer(
         }
         displayportBase -= mScrollPort.TopLeft();
       }
-
-      DisplayPortUtils::SetDisplayPortBase(GetContent(), displayportBase);
+      EnsureDisplayPortData().mDisplayPortBase = Some(displayportBase);
     }
 
     // If we don't have aSetBase == true then should have already
     // been called with aSetBase == true which should have set a
     // displayport base.
-    MOZ_ASSERT(content->GetProperty(nsGkAtoms::DisplayPortBase));
+    MOZ_ASSERT(mDisplayPortData);
     nsRect displayPort;
     hasDisplayPort = DisplayPortUtils::GetDisplayPort(
         content, &displayPort,
@@ -4851,10 +4913,9 @@ void ScrollContainerFrame::ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit,
       }
 
       DisplayPortUtils::CalculateAndSetDisplayPortMargins(
-          GetScrollTargetFrame(), DisplayPortUtils::RepaintMode::Repaint);
-      nsIFrame* frame = do_QueryFrame(GetScrollTargetFrame());
+          this, DisplayPortUtils::RepaintMode::Repaint);
       DisplayPortUtils::SetZeroMarginDisplayPortOnAsyncScrollableAncestors(
-          frame);
+          this);
     }
 
     SchedulePaint();

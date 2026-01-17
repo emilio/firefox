@@ -515,21 +515,20 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
     return NS_ERROR_INVALID_ARG;
   }
 
-  bool hadDisplayPort = false;
-  bool wasPainted = false;
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aElement);
+  if (!sf) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  bool hadDisplayPort = DisplayPortUtils::HasDisplayPort(aElement);
+  bool wasPainted = sf->GetWasDisplayPortPainted();
   nsRect oldDisplayPort;
-  {
-    DisplayPortPropertyData* currentData =
-        static_cast<DisplayPortPropertyData*>(
-            aElement->GetProperty(nsGkAtoms::DisplayPort));
-    if (currentData) {
-      if (currentData->mPriority > aPriority) {
-        return NS_OK;
-      }
-      hadDisplayPort = true;
-      oldDisplayPort = currentData->mRect;
-      wasPainted = currentData->mPainted;
-    }
+  DisplayPortUtils::GetDisplayPort(aElement, &oldDisplayPort);
+
+  uint32_t currentPriority = sf->GetDisplayPortPriority();
+  if (currentPriority > aPriority) {
+    return NS_OK;
   }
 
   nsRect displayport(nsPresContext::CSSPixelsToAppUnits(aXPx),
@@ -537,11 +536,15 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
                      nsPresContext::CSSPixelsToAppUnits(aWidthPx),
                      nsPresContext::CSSPixelsToAppUnits(aHeightPx));
 
-  aElement->RemoveProperty(nsGkAtoms::MinimalDisplayPort);
-  aElement->SetProperty(
-      nsGkAtoms::DisplayPort,
-      new DisplayPortPropertyData(displayport, aPriority, wasPainted),
-      nsINode::DeleteProperty<DisplayPortPropertyData>);
+  sf->SetIsMinimalDisplayPort(false);
+
+  // Convert rect to margins based on scroll position
+  // For now, use empty margins and set the rect as the base
+  DisplayPortMargins margins =
+      DisplayPortMargins::ForScrollContainerFrame(sf, ScreenMargin());
+  sf->SetDisplayPortMargins(margins, aPriority);
+  sf->SetDisplayPortBase(displayport);
+  sf->SetWasDisplayPortPainted(wasPainted);
 
   DisplayPortUtils::InvalidateForDisplayPortChange(aElement, hadDisplayPort,
                                                    oldDisplayPort, displayport);

@@ -31,6 +31,8 @@ class nsAtom;
 class AutoContainsBlendModeCapturer;
 
 namespace mozilla {
+struct DisplayPortMargins;
+struct DisplayPortMarginsPropertyData;
 struct nsDisplayListCollection;
 class PresShell;
 class PresState;
@@ -1011,8 +1013,19 @@ class ScrollContainerFrame : public nsContainerFrame,
   bool DecideScrollableLayer(nsDisplayListBuilder* aBuilder,
                              nsRect* aVisibleRect, nsRect* aDirtyRect,
                              bool aSetBase, bool* aDirtyRectHasBeenOverriden);
+  bool IsMinimalDisplayPort() const { return mIsMinimalDisplayPort; }
+  void SetIsMinimalDisplayPort(bool aVal) { mIsMinimalDisplayPort = aVal; }
   bool AllowDisplayPortExpiration();
   void ResetDisplayPortExpiryTimer();
+  void ClearDisplayPortExpiryTimer();
+  void SetDisplayPortMargins(const DisplayPortMargins&, uint32_t aPriority);
+  void SetDisplayPortBase(const nsRect&);
+  Maybe<nsRect> GetDisplayPortBase() const;
+  const DisplayPortMargins* GetDisplayPortMargins() const;
+  uint32_t GetDisplayPortPriority() const;
+  bool GetWasDisplayPortPainted() const;
+  void SetWasDisplayPortPainted(bool aPainted);
+  void RemoveDisplayPort();
 
   void ScheduleSyntheticMouseMove();
   static void ScrollActivityCallback(nsITimer* aTimer, void* anInstance);
@@ -1399,9 +1412,6 @@ class ScrollContainerFrame : public nsContainerFrame,
 
   layers::ScrollableLayerGuid::ViewID mScrollParentID;
 
-  // Timer to remove the displayport some time after scrolling has stopped
-  nsCOMPtr<nsITimer> mDisplayPortExpiryTimer;
-
   ScrollAnchorContainer mAnchor;
 
   // We keep holding a strong reference for each snap target element until the
@@ -1429,6 +1439,7 @@ class ScrollContainerFrame : public nsContainerFrame,
 
   bool mAllowScrollOriginDowngrade : 1;
   bool mHadDisplayPortAtLastFrameUpdate : 1;
+  bool mIsMinimalDisplayPort : 1 = false;
 
   // True if the most recent reflow of the scroll container frame has
   // the vertical scrollbar shown.
@@ -1548,6 +1559,10 @@ class ScrollContainerFrame : public nsContainerFrame,
   UniquePtr<ScrollSnapTargetIds> mLastSnapTargetIds;
   // Lazily created on demand, see StickyScrollContainer::GetOrCreateForFrame.
   UniquePtr<StickyScrollContainer> mStickyContainer;
+  struct DisplayPortData;
+  UniquePtr<DisplayPortData> mDisplayPortData;
+
+  DisplayPortData& EnsureDisplayPortData();
 };
 
 }  // namespace mozilla

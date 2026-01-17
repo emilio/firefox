@@ -2282,10 +2282,6 @@ STATIC_ATOMS = [
     # Atom("Remote", "remote"),  # "remote" is present above
     Atom("RemoteId", "_remote_id"),
     Atom("RemoteType", "remoteType"),
-    Atom("DisplayPort", "_displayport"),
-    Atom("DisplayPortMargins", "_displayportmargins"),
-    Atom("DisplayPortBase", "_displayportbase"),
-    Atom("MinimalDisplayPort", "_minimaldisplayport"),
     Atom("forceMousewheelAutodir", "_force_mousewheel_autodir"),
     Atom("forceMousewheelAutodirHonourRoot", "_force_mousewheel_autodir_honourroot"),
     Atom("forcemessagemanager", "forcemessagemanager"),

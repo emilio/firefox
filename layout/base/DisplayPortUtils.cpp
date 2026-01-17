@@ -177,64 +177,52 @@ static nsRect GetDisplayPortFromMarginsData(
   // to a base rect. Then we align the expanded rect based on the alignment
   // requested, and finally, clamp it to the size of the scrollable rect.
 
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (!sf) {
+    // Turns out we can't really compute it. Oops. We still should return
+    // something sane.
+    NS_WARNING(
+        "Attempting to get a displayport from a content with no scroller");
+    return nsRect();
+  }
+
   nsRect base;
-  if (nsRect* baseData = static_cast<nsRect*>(
-          aContent->GetProperty(nsGkAtoms::DisplayPortBase))) {
+  if (Maybe<nsRect> baseData = sf->GetDisplayPortBase()) {
     base = *baseData;
   } else {
     // In theory we shouldn't get here, but we do sometimes (see bug 1212136).
     // Fall through for graceful handling.
   }
 
-  nsIFrame* frame = nsLayoutUtils::GetScrollContainerFrameFromContent(aContent);
-  if (!frame) {
-    // Turns out we can't really compute it. Oops. We still should return
-    // something sane.
-    NS_WARNING(
-        "Attempting to get a displayport from a content with no primary "
-        "frame!");
-    return base;
-  }
-
-  bool isRoot = false;
-  if (aContent->OwnerDoc()->GetRootElement() == aContent) {
-    isRoot = true;
-  }
-
-  ScrollContainerFrame* scrollContainerFrame = frame->GetScrollTargetFrame();
-  nsPoint scrollPos;
-  if (scrollContainerFrame) {
-    scrollPos = scrollContainerFrame->GetScrollPosition();
-  }
-
-  nsPresContext* presContext = frame->PresContext();
-  int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
+  nsPoint scrollPos = sf->GetScrollPosition();
+  nsPresContext* pc = sf->PresContext();
+  int32_t auPerDevPixel = pc->AppUnitsPerDevPixel();
 
   LayoutDeviceToScreenScale2D res =
       LayoutDeviceToParentLayerScale(
-          presContext->PresShell()->GetCumulativeResolution()) *
-      nsLayoutUtils::GetTransformToAncestorScaleCrossProcessForFrameMetrics(
-          frame);
+          pc->PresShell()->GetCumulativeResolution()) *
+      nsLayoutUtils::GetTransformToAncestorScaleCrossProcessForFrameMetrics(sf);
 
   // Calculate the expanded scrollable rect, which we'll be clamping the
   // displayport to.
   nsRect expandedScrollableRect =
-      nsLayoutUtils::CalculateExpandedScrollableRect(frame);
+      nsLayoutUtils::CalculateExpandedScrollableRect(sf);
 
   // GetTransformToAncestorScale() can return 0. In this case, just return the
   // base rect (clamped to the expanded scrollable rect), as other calculations
   // would run into divisions by zero.
-  if (res == LayoutDeviceToScreenScale2D(0, 0)) {
+  if (res == LayoutDeviceToScreenScale2D()) {
     // Make sure the displayport remains within the scrollable rect.
     return base.MoveInsideAndClamp(expandedScrollableRect - scrollPos);
   }
 
   // First convert the base rect to screen pixels
   LayoutDeviceToScreenScale2D parentRes = res;
-  if (isRoot) {
+  if (sf->IsRootScrollFrameOfDocument()) {
     // the base rect for root scroll frames is specified in the parent document
     // coordinate space, so it doesn't include the local resolution.
-    float localRes = presContext->PresShell()->GetResolution();
+    float localRes = pc->PresShell()->GetResolution();
     parentRes.xScale /= localRes;
     parentRes.yScale /= localRes;
   }
@@ -253,15 +241,13 @@ static nsRect GetDisplayPortFromMarginsData(
   //   the choosing of the resolution to display-list building time.
   ScreenSize alignment;
 
-  PresShell* presShell = presContext->PresShell();
+  PresShell* presShell = pc->PresShell();
   MOZ_ASSERT(presShell);
 
   ScreenMargin margins = aMarginsData->mMargins.GetRelativeToLayoutViewport(
-      aOptions.mGeometryType, scrollContainerFrame,
-      presContext->CSSToDevPixelScale() * res);
+      aOptions.mGeometryType, sf, pc->CSSToDevPixelScale() * res);
 
-  if (presShell->IsDisplayportSuppressed() ||
-      aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+  if (presShell->IsDisplayportSuppressed() || sf->IsMinimalDisplayPort()) {
     alignment = ScreenSize(1, 1);
   } else {
     // Moving the displayport is relatively expensive with WR so we use a larger
@@ -315,40 +301,28 @@ static bool GetDisplayPortData(
     DisplayPortMarginsPropertyData** aOutMarginsData) {
   MOZ_ASSERT(aOutRectData && aOutMarginsData);
 
-  *aOutRectData = static_cast<DisplayPortPropertyData*>(
-      aContent->GetProperty(nsGkAtoms::DisplayPort));
-  *aOutMarginsData = static_cast<DisplayPortMarginsPropertyData*>(
-      aContent->GetProperty(nsGkAtoms::DisplayPortMargins));
+  *aOutRectData = nullptr;
+  *aOutMarginsData = nullptr;
 
-  if (!*aOutRectData && !*aOutMarginsData) {
-    // This content element has no displayport data at all
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (!sf) {
     return false;
   }
 
-  if (*aOutRectData && *aOutMarginsData) {
-    // choose margins if equal priority
-    if ((*aOutRectData)->mPriority > (*aOutMarginsData)->mPriority) {
-      *aOutMarginsData = nullptr;
-    } else {
-      *aOutRectData = nullptr;
-    }
+  const DisplayPortMargins* margins = sf->GetDisplayPortMargins();
+  if (!margins) {
+    return false;
   }
 
-  NS_ASSERTION((*aOutRectData == nullptr) != (*aOutMarginsData == nullptr),
-               "Only one of aOutRectData or aOutMarginsData should be set!");
+  static DisplayPortMarginsPropertyData marginsData{DisplayPortMargins(), 0,
+                                                    false};
+  marginsData.mMargins = *margins;
+  marginsData.mPriority = sf->GetDisplayPortPriority();
+  marginsData.mPainted = sf->GetWasDisplayPortPainted();
+  *aOutMarginsData = &marginsData;
 
   return true;
-}
-
-static bool GetWasDisplayPortPainted(nsIContent* aContent) {
-  DisplayPortPropertyData* rectData = nullptr;
-  DisplayPortMarginsPropertyData* marginsData = nullptr;
-
-  if (!GetDisplayPortData(aContent, &rectData, &marginsData)) {
-    return false;
-  }
-
-  return rectData ? rectData->mPainted : marginsData->mPainted;
 }
 
 bool DisplayPortUtils::IsMissingDisplayPortBaseRect(nsIContent* aContent) {
@@ -356,7 +330,9 @@ bool DisplayPortUtils::IsMissingDisplayPortBaseRect(nsIContent* aContent) {
   DisplayPortMarginsPropertyData* marginsData = nullptr;
 
   if (GetDisplayPortData(aContent, &rectData, &marginsData) && marginsData) {
-    return !aContent->GetProperty(nsGkAtoms::DisplayPortBase);
+    ScrollContainerFrame* sf =
+        nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+    return sf && !sf->GetDisplayPortBase().isSome();
   }
 
   return false;
@@ -401,12 +377,16 @@ static bool GetDisplayPortImpl(nsIContent* aContent, nsRect* aResult,
     isDisplayportSuppressed = presShell->IsDisplayportSuppressed();
   }
 
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  bool isMinimalDisplayPort = sf && sf->IsMinimalDisplayPort();
+
   nsRect result;
   if (rectData) {
     result = GetDisplayPortFromRectData(aContent, rectData);
   } else if (isDisplayportSuppressed ||
              nsLayoutUtils::ShouldDisableApzForElement(aContent) ||
-             aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+             isMinimalDisplayPort) {
     // Note: the above conditions should be in sync with the conditions in
     // WillUseEmptyDisplayPortMargins.
 
@@ -468,12 +448,15 @@ void DisplayPortUtils::MarkDisplayPortAsPainted(nsIContent* aContent) {
 }
 
 bool DisplayPortUtils::HasNonMinimalDisplayPort(nsIContent* aContent) {
-  return !aContent->GetProperty(nsGkAtoms::MinimalDisplayPort) &&
-         HasDisplayPort(aContent);
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  return (!sf || !sf->IsMinimalDisplayPort()) && HasDisplayPort(aContent);
 }
 
 bool DisplayPortUtils::HasNonMinimalNonZeroDisplayPort(nsIContent* aContent) {
-  if (aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (sf && sf->IsMinimalDisplayPort()) {
     return false;
   }
 
@@ -574,62 +557,36 @@ bool DisplayPortUtils::SetDisplayPortMargins(
   MOZ_ASSERT(aContent);
   MOZ_ASSERT(aContent->GetComposedDoc() == aPresShell->GetDocument());
 
-  DisplayPortMarginsPropertyData* currentData =
-      static_cast<DisplayPortMarginsPropertyData*>(
-          aContent->GetProperty(nsGkAtoms::DisplayPortMargins));
-  if (currentData && currentData->mPriority > aPriority) {
+  auto* scrollFrame = nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (!scrollFrame) {
     return false;
   }
 
-  if (currentData && currentData->mMargins.mVisualOffset != CSSPoint() &&
-      aMargins.mVisualOffset == CSSPoint()) {
-    // If we hit this, then it's possible that we're setting a displayport
-    // that is wrong because the old one had a layout/visual adjustment and
-    // the new one does not.
-    MOZ_LOG(sDisplayportLog, LogLevel::Warning,
-            ("Dropping visual offset %s",
-             ToString(currentData->mMargins.mVisualOffset).c_str()));
-  }
-
-  nsIFrame* scrollFrame =
-      nsLayoutUtils::GetScrollContainerFrameFromContent(aContent);
-
   nsRect oldDisplayPort;
   bool hadDisplayPort = false;
-  bool wasPainted = GetWasDisplayPortPainted(aContent);
   if (scrollFrame) {
     // We only use the two return values from this function to call
     // InvalidateForDisplayPortChange. InvalidateForDisplayPortChange does
     // nothing if aContent does not have a frame. So getting the displayport is
     // useless if the content has no frame, so we avoid calling this to avoid
     // triggering a warning about not having a frame.
-    hadDisplayPort = GetDisplayPort(aContent, &oldDisplayPort);
+    hadDisplayPort = GetDisplayPort(scrollFrame->GetContent(), &oldDisplayPort);
   }
 
-  aContent->SetProperty(
-      nsGkAtoms::DisplayPortMargins,
-      new DisplayPortMarginsPropertyData(aMargins, aPriority, wasPainted),
-      nsINode::DeleteProperty<DisplayPortMarginsPropertyData>);
+  scrollFrame->SetDisplayPortMargins(aMargins, aPriority);
 
   if (aClearMinimalDisplayPortProperty ==
       ClearMinimalDisplayPortProperty::Yes) {
     if (MOZ_LOG_TEST(sDisplayportLog, LogLevel::Debug) &&
-        aContent->GetProperty(nsGkAtoms::MinimalDisplayPort)) {
-      mozilla::layers::ScrollableLayerGuid::ViewID viewID =
-          mozilla::layers::ScrollableLayerGuid::NULL_SCROLL_ID;
+        scrollFrame->IsMinimalDisplayPort()) {
+      auto viewID = mozilla::layers::ScrollableLayerGuid::NULL_SCROLL_ID;
       nsLayoutUtils::FindIDFor(aContent, &viewID);
       MOZ_LOG(sDisplayportLog, LogLevel::Debug,
               ("SetDisplayPortMargins removing MinimalDisplayPort prop on "
                "scrollId=%" PRIu64 "\n",
                viewID));
     }
-    aContent->RemoveProperty(nsGkAtoms::MinimalDisplayPort);
-  }
-
-  ScrollContainerFrame* scrollContainerFrame =
-      scrollFrame ? scrollFrame->GetScrollTargetFrame() : nullptr;
-  if (!scrollContainerFrame) {
-    return true;
+    scrollFrame->SetIsMinimalDisplayPort(false);
   }
 
   nsRect newDisplayPort;
@@ -658,13 +615,13 @@ bool DisplayPortUtils::SetDisplayPortMargins(
   InvalidateForDisplayPortChange(aContent, hadDisplayPort, oldDisplayPort,
                                  newDisplayPort, aRepaintMode);
 
-  scrollContainerFrame->TriggerDisplayPortExpiration();
+  scrollFrame->TriggerDisplayPortExpiration();
 
   // Display port margins changing means that the set of visible frames may
   // have drastically changed. Check if we should schedule an update.
-  hadDisplayPort = scrollContainerFrame
-                       ->GetDisplayPortAtLastApproximateFrameVisibilityUpdate(
-                           &oldDisplayPort);
+  hadDisplayPort =
+      scrollFrame->GetDisplayPortAtLastApproximateFrameVisibilityUpdate(
+          &oldDisplayPort);
 
   bool needVisibilityUpdate = !hadDisplayPort;
   // Check if the total size has changed by a large factor.
@@ -678,9 +635,8 @@ bool DisplayPortUtils::SetDisplayPortMargins(
   }
   // Check if it's moved by a significant amount.
   if (!needVisibilityUpdate) {
-    if (nsRect* baseData = static_cast<nsRect*>(
-            aContent->GetProperty(nsGkAtoms::DisplayPortBase))) {
-      nsRect base = *baseData;
+    if (Maybe<nsRect> baseData = scrollFrame->GetDisplayPortBase()) {
+      const nsRect& base = *baseData;
       if ((std::abs(newDisplayPort.X() - oldDisplayPort.X()) > base.width) ||
           (std::abs(newDisplayPort.XMost() - oldDisplayPort.XMost()) >
            base.width) ||
@@ -700,25 +656,26 @@ bool DisplayPortUtils::SetDisplayPortMargins(
 
 void DisplayPortUtils::SetDisplayPortBase(nsIContent* aContent,
                                           const nsRect& aBase) {
+  auto* scrollFrame = nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (!scrollFrame) {
+    return;
+  }
   if (MOZ_LOG_TEST(sDisplayportLog, LogLevel::Verbose)) {
     ViewID viewId = nsLayoutUtils::FindOrCreateIDFor(aContent);
     MOZ_LOG(sDisplayportLog, LogLevel::Verbose,
             ("Setting base rect %s for scrollId=%" PRIu64 "\n",
              ToString(aBase).c_str(), viewId));
   }
-  if (nsRect* baseData = static_cast<nsRect*>(
-          aContent->GetProperty(nsGkAtoms::DisplayPortBase))) {
-    *baseData = aBase;
-    return;
-  }
-
-  aContent->SetProperty(nsGkAtoms::DisplayPortBase, new nsRect(aBase),
-                        nsINode::DeleteProperty<nsRect>);
+  scrollFrame->SetDisplayPortBase(aBase);
 }
 
 void DisplayPortUtils::SetDisplayPortBaseIfNotSet(nsIContent* aContent,
                                                   const nsRect& aBase) {
-  if (aContent->GetProperty(nsGkAtoms::DisplayPortBase)) {
+  auto* scrollFrame = nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  if (!scrollFrame) {
+    return;
+  }
+  if (scrollFrame->GetDisplayPortBase().isNothing()) {
     return;
   }
   if (MOZ_LOG_TEST(sDisplayportLog, LogLevel::Verbose)) {
@@ -727,30 +684,14 @@ void DisplayPortUtils::SetDisplayPortBaseIfNotSet(nsIContent* aContent,
             ("Setting base rect %s for scrollId=%" PRIu64 "\n",
              ToString(aBase).c_str(), viewId));
   }
-
-  aContent->SetProperty(nsGkAtoms::DisplayPortBase, new nsRect(aBase),
-                        nsINode::DeleteProperty<nsRect>);
+  scrollFrame->SetDisplayPortBase(aBase);
 }
 
 void DisplayPortUtils::RemoveDisplayPort(nsIContent* aContent) {
-  aContent->RemoveProperty(nsGkAtoms::DisplayPort);
-  aContent->RemoveProperty(nsGkAtoms::DisplayPortMargins);
-}
-
-void DisplayPortUtils::SetMinimalDisplayPortDuringPainting(
-    nsIContent* aContent, PresShell* aPresShell) {
-  // SetDisplayPortMargins calls TriggerDisplayPortExpiration which starts a
-  // display port expiry timer for display ports that do expire. However
-  // minimal display ports do not expire, so the display port has to be
-  // marked before the SetDisplayPortMargins call so the expiry timer
-  // doesn't get started.
-  aContent->SetProperty(nsGkAtoms::MinimalDisplayPort,
-                        reinterpret_cast<void*>(true));
-
-  DisplayPortUtils::SetDisplayPortMargins(
-      aContent, aPresShell, DisplayPortMargins::Empty(aContent),
-      DisplayPortUtils::ClearMinimalDisplayPortProperty::No, 0,
-      DisplayPortUtils::RepaintMode::DoNotRepaint);
+  if (auto* scrollFrame =
+          nsLayoutUtils::FindScrollContainerFrameFor(aContent)) {
+    scrollFrame->RemoveDisplayPort();
+  }
 }
 
 bool DisplayPortUtils::ViewportHasDisplayPort(nsPresContext* aPresContext) {
@@ -1009,9 +950,13 @@ bool DisplayPortUtils::WillUseEmptyDisplayPortMargins(nsIContent* aContent) {
     return false;
   }
 
+  ScrollContainerFrame* sf =
+      nsLayoutUtils::FindScrollContainerFrameFor(aContent);
+  bool isMinimalDisplayPort = sf && sf->IsMinimalDisplayPort();
+
   // Note these conditions should be in sync with the conditions where we use
   // empty margins to calculate display port in GetDisplayPortImpl
-  return aContent->GetProperty(nsGkAtoms::MinimalDisplayPort) ||
+  return isMinimalDisplayPort ||
          frame->PresShell()->IsDisplayportSuppressed() ||
          nsLayoutUtils::ShouldDisableApzForElement(aContent);
 }

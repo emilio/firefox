@@ -621,30 +621,21 @@ nsIContent* nsLayoutUtils::FindContentFor(ViewID aId) {
   }
 }
 
-nsIFrame* nsLayoutUtils::GetScrollContainerFrameFromContent(
-    nsIContent* aContent) {
-  nsIFrame* frame = aContent->GetPrimaryFrame();
-  if (aContent->OwnerDoc()->GetRootElement() == aContent) {
-    PresShell* presShell = frame ? frame->PresShell() : nullptr;
-    if (!presShell) {
-      presShell = aContent->OwnerDoc()->GetPresShell();
-    }
-    // We want the scroll container frame, the root scroll frame differs from
-    // all others in that the primary frame is not the scroll frame.
-    nsIFrame* rootScrollContainerFrame =
-        presShell ? presShell->GetRootScrollContainerFrame() : nullptr;
-    if (rootScrollContainerFrame) {
-      frame = rootScrollContainerFrame;
-    }
-  }
-  return frame;
-}
-
 ScrollContainerFrame* nsLayoutUtils::FindScrollContainerFrameFor(
     nsIContent* aContent) {
-  nsIFrame* scrollContainerFrame = GetScrollContainerFrameFromContent(aContent);
-  return scrollContainerFrame ? scrollContainerFrame->GetScrollTargetFrame()
-                              : nullptr;
+  if (aContent->IsRootElement()) {
+    // We want the scroll container frame, the root scroll frame differs from
+    // all others in that the primary frame is not the scroll frame.
+    if (auto* ps = aContent->OwnerDoc()->GetPresShell()) {
+      if (auto* sc = ps->GetRootScrollContainerFrame()) {
+        return sc;
+      }
+    }
+  }
+  if (nsIFrame* frame = aContent->GetPrimaryFrame()) {
+    return frame->GetScrollTargetFrame();
+  }
+  return nullptr;
 }
 
 ScrollContainerFrame* nsLayoutUtils::FindScrollContainerFrameFor(ViewID aId) {
@@ -8671,12 +8662,13 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
       DisplayPortUtils::MarkDisplayPortAsPainted(aContent);
     }
 
+    ScrollContainerFrame* sf = FindScrollContainerFrameFor(aContent);
     metrics.SetHasNonZeroDisplayPortMargins(false);
-    if (DisplayPortMarginsPropertyData* currentData =
-            static_cast<DisplayPortMarginsPropertyData*>(
-                aContent->GetProperty(nsGkAtoms::DisplayPortMargins))) {
-      if (currentData->mMargins.mMargins != ScreenMargin()) {
-        metrics.SetHasNonZeroDisplayPortMargins(true);
+    if (sf) {
+      if (const DisplayPortMargins* margins = sf->GetDisplayPortMargins()) {
+        if (margins->mMargins != ScreenMargin()) {
+          metrics.SetHasNonZeroDisplayPortMargins(true);
+        }
       }
     }
 
@@ -8697,8 +8689,7 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
                           metrics.GetDisplayPort());
     }
 
-    metrics.SetMinimalDisplayPort(
-        aContent->GetProperty(nsGkAtoms::MinimalDisplayPort));
+    metrics.SetMinimalDisplayPort(sf && sf->IsMinimalDisplayPort());
   }
 
   ScrollContainerFrame* scrollContainerFrame =
