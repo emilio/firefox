@@ -108,7 +108,7 @@ def import_clang_tidy(source_dir, build_clang_tidy_alpha, build_clang_tidy_exter
     do_import(clang_plugin_path, clang_tidy_path, import_options)
 
 
-def build_package(package_build_dir, cmake_args):
+def build_package(package_build_dir, package_install_dir, cmake_args):
     if not os.path.exists(package_build_dir):
         os.mkdir(package_build_dir)
     # If CMake has already been run, it may have been run with different
@@ -121,6 +121,18 @@ def build_package(package_build_dir, cmake_args):
 
     run_in(package_build_dir, ["cmake"] + cmake_args)
     run_in(package_build_dir, ["ninja", "install", "-v"])
+
+    # Manually install some files that aren't installed by default, if present.
+    extra_binaries = [
+        "clangd-indexer",
+        "clangd-index-server",
+    ]
+    install_bin_dir = os.path.join(package_install_dir, "bin")
+    for extra_binary in extra_binaries:
+        path = os.path.join(package_build_dir, "bin", extra_binary)
+        if not os.path.exists(path):
+            continue
+        shutil.copy2(path, install_bin_dir)
 
 
 @contextmanager
@@ -209,6 +221,7 @@ def build_one_stage(
     target,
     targets,
     is_final_stage=False,
+    build_clang_tidy=False,
     profile=None,
     bolt=False,
 ):
@@ -280,6 +293,10 @@ def build_one_stage(
             ]
         projects = ["clang", "lld"]
         if is_final_stage:
+            if build_clang_tidy:
+                cmake_args += [
+                    "-DCLANGD_ENABLE_REMOTE=ON",
+                ]
             projects.append("clang-tools-extra")
         else:
             cmake_args.append("-DLLVM_TOOL_LLI_BUILD=OFF")
@@ -381,7 +398,7 @@ def build_one_stage(
     cmake_args = []
     cmake_args += cmake_base_args(cc, cxx, asm, ar, ranlib, libtool, ldflags, inst_dir)
     cmake_args += [src_dir]
-    build_package(build_dir, cmake_args)
+    build_package(build_dir, inst_dir, cmake_args)
 
     # For some reasons the import library clang.lib of clang.exe is not
     # installed, so we copy it by ourselves.
@@ -470,6 +487,8 @@ def prune_final_dir_for_clang_tidy(final_dir, target):
         "clang-format",
         "clang-tidy",
         "clangd",
+        "clangd-indexer",
+        "clangd-index-server",
         "clang-query",
         "run-clang-tidy",
     ]
@@ -792,6 +811,7 @@ def main():
             target,
             targets,
             is_final_stage=(stages == 1),
+            build_clang_tidy=build_clang_tidy,
         )
 
     if stages >= 2 and skip_stages < 2:
@@ -824,6 +844,7 @@ def main():
             target,
             targets,
             is_final_stage=(stages == 2 and not pgo),
+            build_clang_tidy=build_clang_tidy,
             profile="gen" if pgo else None,
         )
 
@@ -900,6 +921,7 @@ def main():
             target,
             targets,
             is_final_stage=(stages == 4),
+            build_clang_tidy=build_clang_tidy,
             profile=profile,
             bolt=bolt,
         )

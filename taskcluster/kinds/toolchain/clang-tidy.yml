@@ -11,6 +11,8 @@ task-defaults:
     worker-type: b-linux-docker-large-amd
     worker:
         max-run-time: 3600
+        docker-image:
+            in-tree: deb13-toolchain-build
     run:
         toolchain-artifact: public/build/clang-tidy.tar.zst
         resources:

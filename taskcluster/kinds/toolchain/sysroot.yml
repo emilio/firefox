@@ -208,6 +208,9 @@ linux64-toolchain-sysroot:
             - gcc-multilib
             - lib32stdc++-8-dev
             - libxml2-dev
+            - libgrpc++-dev
+            - libprotobuf-dev
+            - protobuf-compiler-grpc
             # For minidump-stackwalk
             - libcurl4-openssl-dev
             - libssl-dev
@@ -235,6 +238,9 @@ linux64-toolchain-sysroot-gcc10:
             - gcc-multilib
             - lib32stdc++-10-dev
             - libxml2-dev
+            - libgrpc++-dev
+            - libprotobuf-dev
+            - protobuf-compiler-grpc
             # For minidump-stackwalk
             - libcurl4-openssl-dev
             - libssl-dev
@@ -254,3 +260,6 @@ linux64-aarch64-toolchain-sysroot:
             # For clang
             - binutils-dev
             - libxml2-dev
+            - libgrpc++-dev
+            - libprotobuf-dev
+            - protobuf-compiler-grpc

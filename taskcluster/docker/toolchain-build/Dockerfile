@@ -32,7 +32,10 @@ RUN apt-get update && \
       libbz2-dev \
       libexpat1-dev \
       libffi-dev \
+      libgrpc-dev \
+      libgrpc++-dev \
       libncursesw5-dev \
+      libprotobuf-dev \
       libsqlite3-dev \
       libssl-dev \
       libtool \
@@ -45,6 +48,7 @@ RUN apt-get update && \
       p7zip-full \
       pkg-config \
       procps \
+      protobuf-compiler-grpc \
       python3-requests \
       python3-toml \
       scons \
