@@ -196,6 +196,7 @@ linux64-toolchain-sysroot:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-8>'}
             GCC_VERSION: '8'
+            DIST: 'trixie'
     treeherder:
         symbol: TL(sysroot-toolchain)
     dependencies:
@@ -226,6 +227,7 @@ linux64-toolchain-sysroot-gcc10:
         env:
             PACKAGES_TASKS: {task-reference: '<gcc-10>'}
             GCC_VERSION: '10'
+            DIST: 'trixie'
     treeherder:
         symbol: TL(sysroot-toolchain-gcc10)
     dependencies:
@@ -252,6 +254,9 @@ linux64-toolchain-sysroot-gcc10:
 
 linux64-aarch64-toolchain-sysroot:
     description: "Sysroot for aarch64 linux64 toolchain builds"
+    worker:
+        env:
+            DIST: 'trixie'
     treeherder:
         symbol: TLA64(sysroot-toolchain)
     run:

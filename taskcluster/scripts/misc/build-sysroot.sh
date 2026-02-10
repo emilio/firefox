@@ -46,7 +46,7 @@ buster)
 bullseye)
   gcc_version=10
   ;;
-bookworm)
+bookworm|trixie)
   gcc_version=12
   ;;
 esac
