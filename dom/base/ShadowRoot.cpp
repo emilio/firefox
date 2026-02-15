@@ -70,41 +70,28 @@ ShadowRoot::ShadowRoot(Element* aElement, ShadowRootMode aMode,
 
   SetHost(aElement);
 
-  // Nodes in a shadow tree should never store a value
-  // in the subtree root pointer, nodes in the shadow tree
-  // track the subtree root using GetContainingShadow().
-  ClearSubtreeRootPointer();
-
   uint32_t flags = NODE_IS_IN_SHADOW_TREE;
-
   if (aMode == ShadowRootMode::Closed) {
     flags |= SHADOW_ROOT_MODE_CLOSED;
   }
-
   if (aDelegatesFocus == Element::DelegatesFocus::Yes) {
     flags |= SHADOW_ROOT_DELEGATES_FOCUS;
   }
-
   if (aSlotAssignment == SlotAssignmentMode::Manual) {
     flags |= SHADOW_ROOT_SLOT_ASSIGNMENT_MANUAL;
   }
-
   if (aElement->IsHTMLElement(nsGkAtoms::details)) {
     flags |= SHADOW_ROOT_IS_DETAILS_SHADOW_TREE;
   }
-
   if (aDeclarative == Declarative::Yes) {
     flags |= SHADOW_ROOT_IS_DECLARATIVE;
   }
-
   if (aIsClonable == IsClonable::Yes) {
     flags |= SHADOW_ROOT_IS_CLONABLE;
   }
-
   if (aIsSerializable == IsSerializable::Yes) {
     flags |= SHADOW_ROOT_IS_SERIALIZABLE;
   }
-
   SetFlags(flags);
   if (Host()->IsInNativeAnonymousSubtree()) {
     // NOTE(emilio): We could consider just propagating the
@@ -118,21 +105,13 @@ ShadowRoot::ShadowRoot(Element* aElement, ShadowRootMode aMode,
     SetIsNativeAnonymousRoot();
   }
   Bind();
-
-  ExtendedDOMSlots()->mContainingShadow = this;
 }
 
 ShadowRoot::~ShadowRoot() {
   if (IsInComposedDoc()) {
     OwnerDoc()->RemoveComposedDocShadowRoot(*this);
   }
-
   MOZ_DIAGNOSTIC_ASSERT(!OwnerDoc()->IsComposedDocShadowRoot(*this));
-
-  UnsetFlags(NODE_IS_IN_SHADOW_TREE);
-
-  // nsINode destructor expects mSubtreeRoot == this.
-  SetSubtreeRootPointer(this);
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(ShadowRootAuthorStylesMallocSizeOf)

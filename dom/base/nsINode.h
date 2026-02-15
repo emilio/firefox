@@ -1266,7 +1266,12 @@ class nsINode : public mozilla::dom::EventTarget {
    * null.  It may return 'this' (e.g. for document nodes, and nodes that
    * are the roots of disconnected subtrees).
    */
-  nsINode* SubtreeRoot() const;
+  nsINode* SubtreeRoot() const {
+#ifdef DEBUG
+    AssertSubtreeRootIsInSync();
+#endif
+    return mSubtreeRoot;
+  }
 
   /*
    * Get context object's shadow-including root if options's composed is true,
@@ -1391,6 +1396,9 @@ class nsINode : public mozilla::dom::EventTarget {
   T* FirstAncestorOfType() const;
 
  private:
+#ifdef DEBUG
+  void AssertSubtreeRootIsInSync() const;
+#endif
   /**
    * Walks aNode, its attributes and, if aDeep is true, its descendant nodes.
    * If aClone is true the nodes will be cloned. If aNewNodeInfoManager is
@@ -1657,7 +1665,12 @@ class nsINode : public mozilla::dom::EventTarget {
   /**
    * Gets the root of the node tree for this content if it is in a shadow tree.
    */
-  mozilla::dom::ShadowRoot* GetContainingShadow() const;
+  mozilla::dom::ShadowRoot* GetContainingShadow() const {
+    return IsInShadowTree()
+               ? reinterpret_cast<mozilla::dom::ShadowRoot*>(mSubtreeRoot)
+               : nullptr;
+  }
+
   /**
    * Gets the shadow host if this content is in a shadow tree. That is, the host
    * of |GetContainingShadow|, if its not null.
@@ -2343,13 +2356,9 @@ class nsINode : public mozilla::dom::EventTarget {
   void ClearHandlingClick() { ClearBoolFlag(NodeHandlingClick); }
 
   void SetSubtreeRootPointer(nsINode* aSubtreeRoot) {
-    NS_ASSERTION(aSubtreeRoot, "aSubtreeRoot can never be null!");
-    NS_ASSERTION(!(IsContent() && IsInUncomposedDoc()) && !IsInShadowTree(),
-                 "Shouldn't be here!");
+    MOZ_ASSERT(aSubtreeRoot, "aSubtreeRoot can never be null!");
     mSubtreeRoot = aSubtreeRoot;
   }
-
-  void ClearSubtreeRootPointer() { mSubtreeRoot = nullptr; }
 
  public:
   // Makes nsINode object keep aObject alive. If a callback is provided, it's
@@ -2685,15 +2694,13 @@ class nsINode : public mozilla::dom::EventTarget {
   nsCOMPtr<nsIContent> mNextSibling;
   nsIContent* MOZ_NON_OWNING_REF mPreviousOrLastSibling;
 
-  union {
-    // Pointer to our primary frame.  Might be null.
-    nsIFrame* mPrimaryFrame;
+  // Pointer to the root of our subtree.
+  // This reference is non-owning and safe, since it either points to the
+  // object itself, or is reset by ClearSubtreeRootPointer.
+  nsINode* MOZ_NON_OWNING_REF mSubtreeRoot;
 
-    // Pointer to the root of our subtree.  Might be null.
-    // This reference is non-owning and safe, since it either points to the
-    // object itself, or is reset by ClearSubtreeRootPointer.
-    nsINode* MOZ_NON_OWNING_REF mSubtreeRoot;
-  };
+  // Pointer to our primary frame.  Might be null.
+  nsIFrame* mPrimaryFrame = nullptr;
 
   // Storage for more members that are usually not needed; allocated lazily.
   nsSlots* mSlots;
