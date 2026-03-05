@@ -23,6 +23,7 @@ class PresShell;
 class nsTableColGroupFrame final : public nsContainerFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsTableColGroupFrame)
+  NS_DECL_QUERYFRAME
 
   /**
    * instantiate a new instance of nsTableRowFrame.

@@ -6676,7 +6676,7 @@ static bool AllChildListsAreEffectivelyEmpty(nsIFrame* aFrame) {
     // We have some existing frame, usually that would be considered as making
     // this list nonempty. But let's make an exception for the synthetic
     // colgroup that tables have, since that gets created unconditionally.
-    if (listID == FrameChildListID::ColGroup) {
+    if (listID == FrameChildListID::Principal && aFrame->IsTableFrame()) {
       if (nsIFrame* f = list.OnlyChild(); f && IsSyntheticColGroup(f)) {
         continue;
       }
@@ -6708,21 +6708,6 @@ static bool IsOnlyMeaningfulChildOfWrapperPseudo(nsIFrame* aFrame,
     // having a table frame.
     if (!wrapper->PrincipalChildList().OnlyChild()) {
       return false;
-    }
-    // Similarly we can't remove the table if there's still a non-anonymous col
-    // group (unless aFrame _is_ the non-anonymous colgroup).
-    if (aFrame->IsTableColGroupFrame()) {
-      return aParent->PrincipalChildList().IsEmpty() &&
-             IsOnlyNonWhitespaceFrameInList(
-                 aParent->GetChildList(FrameChildListID::ColGroup), aFrame);
-    }
-    const auto& colGroupList =
-        aParent->GetChildList(FrameChildListID::ColGroup);
-    if (!colGroupList.IsEmpty()) {
-      nsIFrame* f = colGroupList.OnlyChild();
-      if (!f || !IsSyntheticColGroup(f)) {
-        return false;
-      }
     }
   }
   if (aFrame->IsTableCaption()) {

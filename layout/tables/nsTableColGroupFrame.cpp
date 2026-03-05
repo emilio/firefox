@@ -100,22 +100,6 @@ nsresult nsTableColGroupFrame::AddColsToTable(int32_t aFirstColIndex,
   return NS_OK;
 }
 
-nsTableColGroupFrame* nsTableColGroupFrame::GetLastRealColGroup(
-    nsTableFrame* aTableFrame) {
-  const nsFrameList& colGroups = aTableFrame->GetColGroups();
-
-  auto lastColGroup = static_cast<nsTableColGroupFrame*>(colGroups.LastChild());
-  if (!lastColGroup) {
-    return nullptr;
-  }
-
-  if (!lastColGroup->IsSynthetic()) {
-    return lastColGroup;
-  }
-
-  return static_cast<nsTableColGroupFrame*>(lastColGroup->GetPrevSibling());
-}
-
 // don't set mColCount here, it is done in AddColsToTable
 void nsTableColGroupFrame::SetInitialChildList(ChildListID aListID,
                                                nsFrameList&& aChildList) {
@@ -367,8 +351,7 @@ void nsTableColGroupFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // "All css properties of table-column and table-column-group boxes are
   // ignored, except when explicitly specified by this specification."
   // CSS outlines and box-shadows fall into this category, so we skip them
-  // on these boxes.
-  MOZ_ASSERT_UNREACHABLE("Colgroups don't paint themselves");
+  // on these boxes. Colgroup backgrounds are drawn by nsTableFrame.
 }
 
 nsTableColFrame* nsTableColGroupFrame::GetFirstColumn() {
@@ -405,6 +388,9 @@ nsTableColGroupFrame* NS_NewTableColGroupFrame(PresShell* aPresShell,
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsTableColGroupFrame)
+NS_QUERYFRAME_HEAD(nsTableColGroupFrame)
+  NS_QUERYFRAME_ENTRY(nsTableColGroupFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 void nsTableColGroupFrame::InvalidateFrame(uint32_t aDisplayItemKey,
                                            bool aRebuildDisplayItems) {

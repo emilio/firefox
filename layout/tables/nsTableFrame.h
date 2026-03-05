@@ -224,16 +224,10 @@ class nsTableFrame : public nsContainerFrame {
                                       mozilla::LayoutFrameType aChildType);
   bool IsAutoBSize(mozilla::WritingMode aWM);
 
-  /** @return true if aDisplayType represents a rowgroup of any sort
-   * (header, footer, or body)
-   */
-  bool IsRowGroup(mozilla::StyleDisplay aDisplayType) const;
-
-  const nsFrameList& GetChildList(ChildListID aListID) const override;
-  void GetChildLists(nsTArray<ChildList>* aLists) const override;
-
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
+
+  int32_t GetRealColStart() const;
 
   /** Get the outer half (i.e., the part outside the height and width of
    *  the table) of the largest segment (?) of border-collapsed border on
@@ -317,8 +311,6 @@ class nsTableFrame : public nsContainerFrame {
                    const LogicalMargin& aBorderPadding,
                    mozilla::TableReflowMode aReflowMode,
                    nsIFrame*& aLastChildReflowed, nsReflowStatus& aStatus);
-
-  nsFrameList& GetColGroups();
 
   ComputedStyle* GetParentComputedStyle(
       nsIFrame** aProviderFrame) const override;
@@ -484,10 +476,9 @@ class nsTableFrame : public nsContainerFrame {
   /** Insert multiple rowgroups into the table cellmap handling
    * @param aRowGroups - iterator that iterates over the rowgroups to insert
    */
-  void InsertRowGroups(const nsFrameList::Slice& aRowGroups);
-
+  void InsertRowGroups(const nsFrameList::Slice& aNewFrames);
   void InsertColGroups(int32_t aStartColIndex,
-                       const nsFrameList::Slice& aColgroups);
+                       const nsFrameList::Slice& aNewFrames);
 
   void RemoveCol(nsTableColGroupFrame* aColGroupFrame, int32_t aColIndex,
                  bool aRemoveFromCache, bool aRemoveFromCellMap);
@@ -629,6 +620,11 @@ class nsTableFrame : public nsContainerFrame {
 
  public:
   using RowGroupArray = AutoTArray<nsTableRowGroupFrame*, 8>;
+  using ColGroupArray = AutoTArray<nsTableColGroupFrame*, 8>;
+  struct Groups {
+    RowGroupArray mRowGroups;
+    ColGroupArray mColGroups;
+  };
 
  protected:
   // Push all our non-repeatable child frames from the aRowGroups array, in
@@ -646,8 +642,9 @@ class nsTableFrame : public nsContainerFrame {
   //
   // @param aHead Outparam for the first thead if there is any.
   // @param aFoot Outparam for the first tfoot if there is any.
-  RowGroupArray OrderedRowGroups(nsTableRowGroupFrame** aHead = nullptr,
-                                 nsTableRowGroupFrame** aFoot = nullptr) const;
+  Groups OrderedGroups(nsTableRowGroupFrame** aHead = nullptr,
+                       nsTableRowGroupFrame** aFoot = nullptr) const;
+  RowGroupArray OrderedRowGroups() const { return OrderedGroups().mRowGroups; }
 
   // Returns true if there are any cells above the row at
   // aRowIndex and spanning into the row at aRowIndex, the number of
@@ -658,10 +655,6 @@ class nsTableFrame : public nsContainerFrame {
   // which spans into the next row,  the number of effective
   // columns limits the search up to that column
   bool RowHasSpanningCells(int32_t aRowIndex, int32_t aNumEffCols);
-
- protected:
-  bool HaveReflowedColGroups() const;
-  void SetHaveReflowedColGroups(bool aValue);
 
  public:
   bool IsBorderCollapse() const;
@@ -797,10 +790,9 @@ class nsTableFrame : public nsContainerFrame {
 #endif
   // DATA MEMBERS
   AutoTArray<nsTableColFrame*, 8> mColFrames;
+  nsTableColGroupFrame* mSyntheticColGroup = nullptr;
 
   struct TableBits {
-    uint32_t mHaveReflowedColGroups : 1;  // have the col groups gotten their
-                                          // initial reflow
     uint32_t mHasPctCol : 1;        // does any cell or col have a pct width
     uint32_t mCellSpansPctCol : 1;  // does any cell span a col with a pct width
                                     // (or containing a cell with a pct width)
@@ -824,22 +816,7 @@ class nsTableFrame : public nsContainerFrame {
                                                 // between rows, cols, and cells
   // the layout strategy for this frame
   mozilla::UniquePtr<nsITableLayoutStrategy> mTableLayoutStrategy;
-  nsFrameList mColGroups;  // the list of colgroup frames
 };
-
-inline bool nsTableFrame::IsRowGroup(mozilla::StyleDisplay aDisplayType) const {
-  return mozilla::StyleDisplay::TableHeaderGroup == aDisplayType ||
-         mozilla::StyleDisplay::TableFooterGroup == aDisplayType ||
-         mozilla::StyleDisplay::TableRowGroup == aDisplayType;
-}
-
-inline void nsTableFrame::SetHaveReflowedColGroups(bool aValue) {
-  mBits.mHaveReflowedColGroups = aValue;
-}
-
-inline bool nsTableFrame::HaveReflowedColGroups() const {
-  return (bool)mBits.mHaveReflowedColGroups;
-}
 
 inline bool nsTableFrame::HasPctCol() const { return (bool)mBits.mHasPctCol; }
 
@@ -870,10 +847,6 @@ inline void nsTableFrame::SetNeedToCollapse(bool aValue) {
 
 inline bool nsTableFrame::NeedToCollapse() const {
   return (bool)static_cast<nsTableFrame*>(FirstInFlow())->mBits.mNeedToCollapse;
-}
-
-inline nsFrameList& nsTableFrame::GetColGroups() {
-  return static_cast<nsTableFrame*>(FirstInFlow())->mColGroups;
 }
 
 inline nsTArray<nsTableColFrame*>& nsTableFrame::GetColCache() {
