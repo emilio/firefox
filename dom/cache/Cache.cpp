@@ -346,8 +346,7 @@ already_AddRefed<Promise> Cache::AddAll(
         return nullptr;
       }
     } else {
-      requestOrString.SetAsUTF8String().ShareOrDependUpon(
-          aRequestList[i].GetAsUTF8String());
+      requestOrString.SetAsUTF8String() = aRequestList[i].GetAsUTF8String();
     }
 
     RootedDictionary<RequestInit> requestInit(aContext);

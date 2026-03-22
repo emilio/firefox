@@ -448,7 +448,7 @@ void TypeUtils::CheckAndSetBodyUsed(JSContext* aCx, Request& aRequest,
 SafeRefPtr<InternalRequest> TypeUtils::ToInternalRequest(const nsACString& aIn,
                                                          ErrorResult& aRv) {
   RequestOrUTF8String requestOrString;
-  requestOrString.SetAsUTF8String().ShareOrDependUpon(aIn);
+  requestOrString.SetAsUTF8String() = aIn;
 
   // Re-create a GlobalObject stack object so we can use webidl Constructors.
   AutoJSAPI jsapi;

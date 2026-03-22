@@ -7099,18 +7099,18 @@ def getJSToNativeConversionInfo(
         if isOptional:
             if type.isUTF8String():
                 declType = "Optional<nsACString>"
-                holderType = CGGeneric("binding_detail::FakeString<char>")
+                holderType = CGGeneric("nsAutoCString")
             else:
                 declType = "Optional<nsAString>"
-                holderType = CGGeneric("binding_detail::FakeString<char16_t>")
+                holderType = CGGeneric("nsAutoString")
             conversionCode = "%s" "${declName} = &${holderName};\n" % getConversionCode(
                 "${holderName}"
             )
         else:
             if type.isUTF8String():
-                declType = "binding_detail::FakeString<char>"
+                declType = "nsAutoCString"
             else:
-                declType = "binding_detail::FakeString<char16_t>"
+                declType = "nsAutoString"
             holderType = None
             conversionCode = getConversionCode("${declName}")
 
@@ -14933,7 +14933,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             decls = ""
             idName = "id"
 
-        decls += "FakeString<char16_t> %s;\n" % argName
+        decls += "nsAutoString %s;\n" % argName
 
         main = fill(
             """
@@ -19252,7 +19252,6 @@ class CGBindingRoot(CGThing):
         bindingDeclareHeaders.update(dict.fromkeys(unionHeaders, True))
         bindingHeaders.update(dict.fromkeys(unionImplheaders, True))
         bindingDeclareHeaders["mozilla/dom/UnionMember.h"] = len(unionStructs) > 0
-        bindingDeclareHeaders["mozilla/dom/FakeString.h"] = len(unionStructs) > 0
         # BindingUtils.h is only needed for SetToObject.
         # If it stops being inlined or stops calling CallerSubsumes
         # both this bit and the bit in UnionTypes can be removed.
