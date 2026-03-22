@@ -206,6 +206,11 @@ class nsTStringRepr {
 
   constexpr bool IsEmpty() const { return mLength == 0; }
 
+  constexpr bool IsAdoptedBuffer() const {
+    return (mDataFlags & DataFlags::OWNED) &&
+           !(mDataFlags & DataFlags::STRINGBUFFER);
+  }
+
   constexpr bool IsLiteral() const {
     return !!(mDataFlags & DataFlags::LITERAL);
   }

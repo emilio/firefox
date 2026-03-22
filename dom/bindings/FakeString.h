@@ -39,7 +39,9 @@ struct MOZ_GSL_OWNER FakeString {
         mInlineCapacity(kInlineCapacity - 1) {}
 
   ~FakeString() {
-    if (mDataFlags & DataFlags::REFCOUNTED) {
+    if (mDataFlags & DataFlags::OWNED) {
+      MOZ_ASSERT(mDataFlags & DataFlags::STRINGBUFFER,
+                 "FakeString doesn't support adopted strings");
       MOZ_ASSERT(mDataInitialized);
       StringBuffer::FromData(mData)->Release();
     }
@@ -56,7 +58,7 @@ struct MOZ_GSL_OWNER FakeString {
         mDataFlags &= ~DataFlags::TERMINATED;
       }
     } else {
-      AssignFromStringBuffer(sharedBuffer.forget(), aString.Length());
+      Assign(sharedBuffer.forget(), aString.Length());
     }
   }
 
@@ -106,7 +108,7 @@ struct MOZ_GSL_OWNER FakeString {
         return false;
       }
 
-      AssignFromStringBuffer(buf.forget(), aLength);
+      Assign(buf.forget(), aLength);
     }
 
     MOZ_ASSERT(mDataInitialized);
@@ -123,7 +125,9 @@ struct MOZ_GSL_OWNER FakeString {
     }
 
     RefPtr<StringBuffer> buffer;
-    if (mDataFlags & DataFlags::REFCOUNTED) {
+    if (mDataFlags & DataFlags::OWNED) {
+      MOZ_ASSERT(mDataFlags & DataFlags::STRINGBUFFER,
+                 "FakeString doesn't support adopted strings");
       // Make sure we'll drop it when we're done.
       buffer = dont_AddRef(StringBuffer::FromData(mData));
       // And make sure we don't release it twice by accident.
@@ -149,10 +153,13 @@ struct MOZ_GSL_OWNER FakeString {
     return true;
   }
 
-  void AssignFromStringBuffer(already_AddRefed<StringBuffer> aBuffer,
-                              size_t aLength) {
+  void Assign(StringBuffer* aBuffer, size_t aLength) {
+    Assign(do_AddRef(aBuffer), aLength);
+  }
+
+  void Assign(already_AddRefed<StringBuffer> aBuffer, size_t aLength) {
     InitData(static_cast<char_type*>(aBuffer.take()->Data()), aLength);
-    mDataFlags |= DataFlags::REFCOUNTED;
+    mDataFlags |= DataFlags::STRINGBUFFER | DataFlags::OWNED;
   }
 
   // The preferred way to assign literals to a FakeString.  This should only be
@@ -211,7 +218,7 @@ struct MOZ_GSL_OWNER FakeString {
 
   bool IsMutable() {
     return (mDataFlags & DataFlags::INLINE) ||
-           ((mDataFlags & DataFlags::REFCOUNTED) &&
+           ((mDataFlags & DataFlags::OWNED) &&
             !StringBuffer::FromData(mData)->IsReadonly());
   }
 
@@ -254,16 +261,5 @@ struct MOZ_GSL_OWNER FakeString {
   };
 };
 }  // namespace mozilla::dom::binding_detail
-
-namespace mozilla {
-
-template <typename CharT>
-inline void AssignFromStringBuffer(
-    StringBuffer* aBuffer, size_t aLength,
-    dom::binding_detail::FakeString<CharT>& aDest) {
-  aDest.AssignFromStringBuffer(do_AddRef(aBuffer), aLength);
-}
-
-}  // namespace mozilla
 
 #endif /* mozilla_dom_FakeString_h_ */
