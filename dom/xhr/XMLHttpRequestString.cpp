@@ -51,32 +51,9 @@ class XMLHttpRequestStringBuffer final {
     return mData.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
   }
 
-  [[nodiscard]] bool GetAsString(DOMString& aString, uint32_t aLength) {
-    MutexAutoLock lock(mMutex);
-    MOZ_ASSERT(aLength <= mData.Length());
-
-    if (StringBuffer* buf = mData.GetStringBuffer()) {
-      // FIXME(emilio): Is this buffer guaranteed to be terminated? The previous
-      // code effectively made that assumption, and it seems to hold, since
-      // Assign() asserts against it... But that raises the question of "when is
-      // aLength ever different to mData.Length()?".
-      //
-      // If the answer is "never", that means that we can simplify this code to
-      // `return aString.Assign(mData, fallible);`, and just not take aLength...
-      // Bug 1408793 has further discussion.
-      aString.Assign(buf, aLength);
-      return true;
-    }
-
-    // We can get here if mData is empty.  In that case it won't have an
-    // nsStringBuffer....
-    MOZ_ASSERT(mData.IsEmpty());
-    return aString.Assign(mData, fallible);
-  }
-
   void CreateSnapshot(XMLHttpRequestStringSnapshot& aSnapshot) {
     MutexAutoLock lock(mMutex);
-    aSnapshot.Set(this, mData.Length());
+    aSnapshot.Set(this);
   }
 
  private:
@@ -124,31 +101,26 @@ void XMLHttpRequestString::CreateSnapshot(
 // ---------------------------------------------------------------------------
 // XMLHttpRequestStringSnapshot
 
-XMLHttpRequestStringSnapshot::XMLHttpRequestStringSnapshot()
-    : mLength(0), mVoid(false) {}
+XMLHttpRequestStringSnapshot::XMLHttpRequestStringSnapshot() : mVoid(false) {}
 
 XMLHttpRequestStringSnapshot::~XMLHttpRequestStringSnapshot() = default;
 
 void XMLHttpRequestStringSnapshot::ResetInternal(bool aIsVoid) {
   mBuffer = nullptr;
-  mLength = 0;
   mVoid = aIsVoid;
 }
 
-void XMLHttpRequestStringSnapshot::Set(XMLHttpRequestStringBuffer* aBuffer,
-                                       uint32_t aLength) {
+void XMLHttpRequestStringSnapshot::Set(XMLHttpRequestStringBuffer* aBuffer) {
   MOZ_ASSERT(aBuffer);
-  MOZ_ASSERT(aLength <= aBuffer->UnsafeLength());
 
   mBuffer = aBuffer;
-  mLength = aLength;
   mVoid = false;
 }
 
 bool XMLHttpRequestStringSnapshot::GetAsString(DOMString& aString) const {
   if (mBuffer) {
     MOZ_ASSERT(!mVoid);
-    return mBuffer->GetAsString(aString, mLength);
+    return mBuffer->GetAsString(aString);
   }
 
   if (mVoid) {
