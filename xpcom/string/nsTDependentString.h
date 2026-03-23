@@ -50,19 +50,24 @@ class MOZ_GSL_POINTER nsTDependentString : public nsTString<T> {
   typedef typename base_string_type::DataFlags DataFlags;
   typedef typename base_string_type::ClassFlags ClassFlags;
 
+ protected:
+  nsTDependentString(const char_type* aData MOZ_LIFETIME_BOUND,
+                     size_type aLength, DataFlags aExtraDataFlags)
+      : string_type(const_cast<char_type*>(aData), aLength,
+                    DataFlags::TERMINATED | aExtraDataFlags, ClassFlags(0)) {
+    this->AssertValidDependentString();
+  }
+
  public:
-  /**
-   * constructors
-   */
-
-  nsTDependentString(const char_type* aStart MOZ_LIFETIME_BOUND,
-                     const char_type* aEnd MOZ_LIFETIME_BOUND);
-
   nsTDependentString(const char_type* aData MOZ_LIFETIME_BOUND,
                      size_type aLength)
-      : string_type(const_cast<char_type*>(aData), aLength,
-                    DataFlags::TERMINATED, ClassFlags(0)) {
-    this->AssertValidDependentString();
+      : nsTDependentString(const_cast<char_type*>(aData), aLength,
+                           DataFlags(0)) {}
+
+  nsTDependentString(const char_type* aStart MOZ_LIFETIME_BOUND,
+                     const char_type* aEnd MOZ_LIFETIME_BOUND)
+      : nsTDependentString(aStart, aEnd - aStart) {
+    MOZ_RELEASE_ASSERT(aStart <= aEnd, "Overflow!");
   }
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
@@ -72,10 +77,7 @@ class MOZ_GSL_POINTER nsTDependentString : public nsTString<T> {
 #endif
 
   explicit nsTDependentString(const char_type* aData MOZ_LIFETIME_BOUND)
-      : string_type(const_cast<char_type*>(aData), char_traits::length(aData),
-                    DataFlags::TERMINATED, ClassFlags(0)) {
-    string_type::AssertValidDependentString();
-  }
+      : nsTDependentString(aData, char_traits::length(aData)) {}
 
 #if defined(MOZ_USE_CHAR16_WRAPPER)
   template <typename Q = T, typename EnableIfChar16 = mozilla::Char16OnlyT<Q>>

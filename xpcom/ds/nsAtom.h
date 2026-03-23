@@ -289,7 +289,9 @@ class nsAutoAtomCString : public nsAutoCString {
 class nsDependentAtomString : public nsDependentString {
  public:
   explicit nsDependentAtomString(const nsAtom* aAtom)
-      : nsDependentString(aAtom->GetUTF16String(), aAtom->GetLength()) {}
+      : nsDependentString(
+            aAtom->GetUTF16String(), aAtom->GetLength(),
+            aAtom->IsStatic() ? DataFlags::LITERAL : DataFlags::STRINGBUFFER) {}
 };
 
 // Checks if the ascii chars in a given atom are already lowercase.
