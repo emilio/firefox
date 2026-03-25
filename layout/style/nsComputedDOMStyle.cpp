@@ -470,11 +470,11 @@ void nsComputedDOMStyle::GetPropertyValue(
 /* static */
 already_AddRefed<const ComputedStyle> nsComputedDOMStyle::GetComputedStyle(
     Element* aElement, const PseudoStyleRequest& aPseudo,
-    StyleType aStyleType) {
+    ResolveLazily aResolveLazily) {
   if (Document* doc = aElement->GetComposedDoc()) {
     doc->FlushPendingNotifications(FlushType::Style);
   }
-  return GetComputedStyleNoFlush(aElement, aPseudo, aStyleType);
+  return GetComputedStyleNoFlush(aElement, aPseudo, aResolveLazily);
 }
 
 /**
@@ -513,17 +513,18 @@ static bool IsInFlatTree(const Element& aElement) {
 already_AddRefed<const ComputedStyle>
 nsComputedDOMStyle::GetComputedStyleNoFlush(const Element* aElement,
                                             const PseudoStyleRequest& aPseudo,
-                                            StyleType aStyleType) {
+                                            ResolveLazily aResolveLazily) {
   return DoGetComputedStyleNoFlush(
       aElement, aPseudo, nsContentUtils::GetPresShellForContent(aElement),
-      aStyleType);
+      StyleType::All, aResolveLazily);
 }
 
 already_AddRefed<const ComputedStyle>
 nsComputedDOMStyle::DoGetComputedStyleNoFlush(const Element* aElement,
                                               const PseudoStyleRequest& aPseudo,
                                               PresShell* aPresShell,
-                                              StyleType aStyleType) {
+                                              StyleType aStyleType,
+                                              ResolveLazily aResolveLazily) {
   MOZ_ASSERT(aElement, "NULL element");
 
   // If the content has a pres shell, we must use it.  Otherwise we'd
@@ -532,9 +533,7 @@ nsComputedDOMStyle::DoGetComputedStyleNoFlush(const Element* aElement,
   // content that's actually *in* a document will get the style from the
   // correct document.
   PresShell* presShell = nsContentUtils::GetPresShellForContent(aElement);
-  bool inDocWithShell = true;
   if (!presShell) {
-    inDocWithShell = false;
     presShell = aPresShell;
     if (!presShell) {
       return nullptr;
@@ -552,18 +551,18 @@ nsComputedDOMStyle::DoGetComputedStyleNoFlush(const Element* aElement,
     return nullptr;
   }
 
-  // XXX the !aElement->IsHTMLElement(nsGkAtoms::area)
-  // check is needed due to bug 135040 (to avoid using
-  // mPrimaryFrame). Remove it once that's fixed.
-  if (inDocWithShell && aStyleType == StyleType::All &&
-      !aElement->IsHTMLElement(nsGkAtoms::area)) {
+  if (aStyleType == StyleType::All) [[likely]] {
     if (const Element* element = aElement->GetPseudoElement(aPseudo)) {
-      if (element->HasServoData()) {
-        const ComputedStyle* result =
-            Servo_Element_GetMaybeOutOfDateStyle(element);
+      const ComputedStyle* result =
+          Servo_Element_GetMaybeOutOfDateStyle(element);
+      if (result) {
         return do_AddRef(result);
       }
     }
+  }
+
+  if (aResolveLazily == ResolveLazily::No) {
+    return nullptr;
   }
 
   // No frame has been created, or we have a pseudo, or we're looking
@@ -1112,7 +1111,8 @@ void nsComputedDOMStyle::UpdateCurrentStyleSources(
     RefPtr<const ComputedStyle> resolvedComputedStyle =
         DoGetComputedStyleNoFlush(
             mElement, mPseudo,
-            presShellForContent ? presShellForContent : mPresShell, mStyleType);
+            presShellForContent ? presShellForContent : mPresShell, mStyleType,
+            ResolveLazily::Yes);
     if (!resolvedComputedStyle) {
       ClearComputedStyle();
       return;

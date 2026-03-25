@@ -41,6 +41,11 @@ struct nsMargin;
 class nsROCSSPrimitiveValue;
 class nsStyleGradient;
 
+// Whether styles in display: none subtrees, or pseudo-element styles should get
+// lazy resolution. Lazy resolution is comparatively expensive and should only
+// matter on cases where the node is in a display: none subtree or so.
+enum class ResolveLazily : bool { No, Yes };
+
 class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
                                  public nsStubMutationObserver {
  private:
@@ -90,11 +95,18 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
 
   static already_AddRefed<const ComputedStyle> GetComputedStyle(
       Element* aElement, const PseudoStyleRequest& aType = {},
-      StyleType = StyleType::All);
-
+      ResolveLazily = ResolveLazily::No);
+  static already_AddRefed<const ComputedStyle> GetComputedStyle(
+      Element* aElement, ResolveLazily aResolveLazily) {
+    return GetComputedStyle(aElement, {}, aResolveLazily);
+  }
   static already_AddRefed<const ComputedStyle> GetComputedStyleNoFlush(
       const Element* aElement, const PseudoStyleRequest& aPseudo = {},
-      StyleType aStyleType = StyleType::All);
+      ResolveLazily = ResolveLazily::No);
+  static already_AddRefed<const ComputedStyle> GetComputedStyleNoFlush(
+      const Element* aElement, ResolveLazily aResolveLazily) {
+    return GetComputedStyleNoFlush(aElement, {}, aResolveLazily);
+  }
 
   static already_AddRefed<const ComputedStyle>
   GetUnanimatedComputedStyleNoFlush(Element*, const PseudoStyleRequest&);
@@ -162,8 +174,8 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
   void SetFrameComputedStyle(RefPtr<const ComputedStyle>, uint64_t aGeneration);
 
   static already_AddRefed<const ComputedStyle> DoGetComputedStyleNoFlush(
-      const Element*, const PseudoStyleRequest&, mozilla::PresShell*,
-      StyleType);
+      const Element*, const PseudoStyleRequest&, mozilla::PresShell*, StyleType,
+      ResolveLazily);
 
 #define COMPUTED_STYLE_ACCESSOR(name_)         \
   const nsStyle##name_* Style##name_() const { \

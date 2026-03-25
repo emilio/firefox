@@ -76,7 +76,7 @@ struct DeclarationTraits<ComputedStyleDeclarations> {
     auto valueList = StylePropertyTypedValueList::None();
 
     RefPtr<const ComputedStyle> style =
-        nsComputedDOMStyle::GetComputedStyle(aElement);
+        nsComputedDOMStyle::GetComputedStyle(aElement, ResolveLazily::Yes);
     if (!style) {
       return valueList;
     }

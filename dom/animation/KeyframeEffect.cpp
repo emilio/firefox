@@ -1036,10 +1036,11 @@ already_AddRefed<const ComputedStyle> KeyframeEffect::GetTargetComputedStyle(
                                         mTarget.mPseudoRequest);
 
   return aFlushType == Flush::Style
-             ? nsComputedDOMStyle::GetComputedStyle(mTarget.mElement,
-                                                    mTarget.mPseudoRequest)
+             ? nsComputedDOMStyle::GetComputedStyle(
+                   mTarget.mElement, mTarget.mPseudoRequest, ResolveLazily::Yes)
              : nsComputedDOMStyle::GetComputedStyleNoFlush(
-                   mTarget.mElement, mTarget.mPseudoRequest);
+                   mTarget.mElement, mTarget.mPseudoRequest,
+                   ResolveLazily::Yes);
 }
 
 #ifdef DEBUG

@@ -243,7 +243,8 @@ bool DoForComputedStyle(const Element* aElement, Func aFunc) {
   }
 
   if (RefPtr<const ComputedStyle> computedStyle =
-          nsComputedDOMStyle::GetComputedStyleNoFlush(aElement)) {
+          nsComputedDOMStyle::GetComputedStyleNoFlush(aElement,
+                                                      ResolveLazily::Yes)) {
     aFunc(computedStyle.get());
     return true;
   }

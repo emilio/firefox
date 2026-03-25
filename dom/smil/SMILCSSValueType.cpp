@@ -435,7 +435,8 @@ void SMILCSSValueType::ValueFromString(NonCustomCSSPropertyId aPropId,
   }
 
   RefPtr<const ComputedStyle> computedStyle =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(aTargetElement);
+      nsComputedDOMStyle::GetComputedStyleNoFlush(aTargetElement,
+                                                  ResolveLazily::Yes);
   if (!computedStyle) {
     return;
   }

@@ -92,7 +92,8 @@ static already_AddRefed<const ComputedStyle> GetCleanComputedStyleForElement(
   if (!pc) {
     return nullptr;
   }
-  return nsComputedDOMStyle::GetComputedStyle(aElement, aPseudo);
+  return nsComputedDOMStyle::GetComputedStyle(aElement, aPseudo,
+                                              ResolveLazily::Yes);
 }
 
 /* static */

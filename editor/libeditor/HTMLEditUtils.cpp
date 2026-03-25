@@ -350,6 +350,10 @@ template bool HTMLEditUtils::PointIsImmediatelyBeforeCurrentBlockBoundary(
     const EditorRawDOMPointInText& aPoint,
     IgnoreInvisibleLineBreak aIgnoreInvisibleLineBreak);
 
+// TODO(emilio): Editor should probably not be poking at unstyled subtrees
+// before flushing before?
+static constexpr auto kResolveLazily = ResolveLazily::Yes;
+
 bool HTMLEditUtils::ElementIsEditableRoot(const Element& aElement) {
   MOZ_ASSERT(!aElement.IsInNativeAnonymousSubtree());
   if (NS_WARN_IF(!aElement.IsEditable()) ||
@@ -462,7 +466,8 @@ bool HTMLEditUtils::IsBlockElement(const nsIContent& aContent,
     return true;
   }
   RefPtr<const ComputedStyle> elementStyle =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(aContent.AsElement());
+      nsComputedDOMStyle::GetComputedStyleNoFlush(aContent.AsElement(),
+                                                  kResolveLazily);
   if (MOZ_UNLIKELY(!elementStyle)) {  // If aContent is not in the composed tree
     return IsHTMLBlockElementByDefault(aContent);
   }
@@ -517,7 +522,8 @@ bool HTMLEditUtils::IsInlineContent(const nsIContent& aContent,
     return false;
   }
   RefPtr<const ComputedStyle> elementStyle =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(aContent.AsElement());
+      nsComputedDOMStyle::GetComputedStyleNoFlush(aContent.AsElement(),
+                                                  kResolveLazily);
   if (MOZ_UNLIKELY(!elementStyle)) {  // If aContent is not in the composed tree
     return !IsHTMLBlockElementByDefault(aContent);
   }
@@ -566,7 +572,8 @@ bool HTMLEditUtils::ParentElementIsGridOrFlexContainer(
       nsComputedDOMStyle::GetComputedStyleNoFlush(
           aMaybeFlexOrGridItemContent.IsElement()
               ? aMaybeFlexOrGridItemContent.AsElement()
-              : parentElement);
+              : parentElement,
+          kResolveLazily);
   if (MOZ_UNLIKELY(!elementStyle)) {
     return false;
   }
@@ -576,7 +583,8 @@ bool HTMLEditUtils::ParentElementIsGridOrFlexContainer(
   }
   const RefPtr<const ComputedStyle> parentElementStyle =
       aMaybeFlexOrGridItemContent.IsElement()
-          ? nsComputedDOMStyle::GetComputedStyleNoFlush(parentElement)
+          ? nsComputedDOMStyle::GetComputedStyleNoFlush(parentElement,
+                                                        kResolveLazily)
           : elementStyle;
   if (MOZ_UNLIKELY(!parentElementStyle)) {
     return false;
@@ -610,7 +618,7 @@ bool HTMLEditUtils::IsInclusiveAncestorCSSDisplayNone(
   for (const Element* element :
        aContent.InclusiveFlatTreeAncestorsOfType<Element>()) {
     RefPtr<const ComputedStyle> elementStyle =
-        nsComputedDOMStyle::GetComputedStyleNoFlush(element);
+        nsComputedDOMStyle::GetComputedStyleNoFlush(element, kResolveLazily);
     if (MOZ_LIKELY(elementStyle)) {
       const nsStyleDisplay* styleDisplay = elementStyle->StyleDisplay();
       if (MOZ_UNLIKELY(styleDisplay->mDisplay == StyleDisplay::None)) {
@@ -673,7 +681,7 @@ bool HTMLEditUtils::IsInlineStyleElement(const nsIContent& aContent) {
 
 bool HTMLEditUtils::IsDisplayOutsideInline(const Element& aElement) {
   RefPtr<const ComputedStyle> elementStyle =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement);
+      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement, kResolveLazily);
   if (!elementStyle) {
     return false;
   }
@@ -683,7 +691,7 @@ bool HTMLEditUtils::IsDisplayOutsideInline(const Element& aElement) {
 
 bool HTMLEditUtils::IsDisplayInsideFlowRoot(const Element& aElement) {
   RefPtr<const ComputedStyle> elementStyle =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement);
+      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement, kResolveLazily);
   if (!elementStyle) {
     return false;
   }
@@ -2536,7 +2544,8 @@ bool HTMLEditUtils::IsEmptyNode(nsPresContext* aPresContext,
     }
 
     RefPtr<const ComputedStyle> elementStyle =
-        nsComputedDOMStyle::GetComputedStyleNoFlush(aNode.AsElement());
+        nsComputedDOMStyle::GetComputedStyleNoFlush(aNode.AsElement(),
+                                                    kResolveLazily);
     // If there is no style information like in a document fragment, let's refer
     // the default style.
     if (MOZ_UNLIKELY(!elementStyle)) {

@@ -462,8 +462,8 @@ bool EffectCompositor::ComposeServoAnimationRuleForEffect(
   // We can get computed style without flush, because |CommitStyles| should have
   // already flushed styles.
   RefPtr<const ComputedStyle> style =
-      nsComputedDOMStyle::GetComputedStyleNoFlush(target.mElement,
-                                                  target.mPseudoRequest);
+      nsComputedDOMStyle::GetComputedStyleNoFlush(
+          target.mElement, target.mPseudoRequest, ResolveLazily::Yes);
   aEffect.UpdateBaseStyle(style);
 
   EffectSet* effectSet = EffectSet::Get(target);
