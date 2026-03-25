@@ -2,34 +2,36 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-## Placeholders for date and time inputs
-
-datetime-year-placeholder = yyyy
-datetime-month-placeholder = mm
-datetime-day-placeholder = dd
-datetime-time-placeholder = --
-
 ## Field labels for input type=date
 
-datetime-year =
+datetime-year-2 =
     .aria-label = Year
-datetime-month =
+    .placeholder = yyyy
+datetime-month-2 =
     .aria-label = Month
-datetime-day =
+    .placeholder = mm
+datetime-day-2 =
     .aria-label = Day
+    .placeholder = dd
 
 ## Field labels for input type=time
 
-datetime-hour =
+datetime-hour-2 =
     .aria-label = Hours
-datetime-minute =
+    .placeholder = --
+
+datetime-minute-2 =
     .aria-label = Minutes
-datetime-second =
+    .placeholder = --
+datetime-second-2 =
     .aria-label = Seconds
-datetime-millisecond =
+    .placeholder = --
+datetime-millisecond-2 =
     .aria-label = Milliseconds
-datetime-dayperiod =
+    .placeholder = --
+datetime-dayperiod-2 =
     .aria-label = AM/PM
+    .placeholder = --
 
 ## Calendar button for input type=date
 

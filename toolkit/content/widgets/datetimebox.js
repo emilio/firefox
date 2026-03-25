@@ -27,12 +27,9 @@ this.DateTimeBoxWidget = class {
         locales.push("en-US");
       }
     }
-    // The DOMLocalization instance needs to allow for sync methods so that
-    // the placeholder value may be determined and set during the
-    // createEditFieldAndAppend() call.
     this.l10n = new this.window.DOMLocalization(
       ["toolkit/global/datetimebox.ftl"],
-      /* aSync = */ true,
+      /* aSync = */ false,
       undefined,
       locales
     );
@@ -325,7 +322,6 @@ this.DateTimeBoxWidget = class {
 
   createEditFieldAndAppend(
     aL10nId,
-    aPlaceholderId,
     aIsNumeric,
     aMinDigits,
     aMaxLength,
@@ -337,11 +333,8 @@ this.DateTimeBoxWidget = class {
     let field = this.shadowRoot.createElementAndAppendChildAt(root, "span");
     field.classList.add("datetime-edit-field");
     field.setAttribute("aria-valuetext", "");
+    field.setAttribute("data-l10n-attrs", "placeholder");
     this.setFieldTabIndexAttribute(field);
-
-    const placeholder = this.l10n.formatValueSync(aPlaceholderId);
-    field.placeholder = placeholder;
-    field.textContent = placeholder;
     this.l10n.setAttributes(field, aL10nId);
 
     // Used to store the non-formatted value, cleared when value is
@@ -470,7 +463,7 @@ this.DateTimeBoxWidget = class {
   }
 
   clearFieldValue(aField) {
-    aField.textContent = aField.placeholder;
+    aField.textContent = "";
     aField.setAttribute("value", "");
     aField.setAttribute("aria-valuetext", "");
     if (aField.classList.contains("numeric")) {
@@ -811,8 +804,7 @@ this.DateTimeBoxWidget = class {
       switch (part.type) {
         case "year":
           this.mYearField = this.createEditFieldAndAppend(
-            "datetime-year",
-            "datetime-year-placeholder",
+            "datetime-year-2",
             true,
             this.mYearLength,
             this.mMaxYear.toString().length,
@@ -824,8 +816,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "month":
           this.mMonthField = this.createEditFieldAndAppend(
-            "datetime-month",
-            "datetime-month-placeholder",
+            "datetime-month-2",
             true,
             this.mMonthDayLength,
             this.mMonthDayLength,
@@ -837,8 +828,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "day":
           this.mDayField = this.createEditFieldAndAppend(
-            "datetime-day",
-            "datetime-day-placeholder",
+            "datetime-day-2",
             true,
             this.mMonthDayLength,
             this.mMonthDayLength,
@@ -850,8 +840,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "hour":
           this.mHourField = this.createEditFieldAndAppend(
-            "datetime-hour",
-            "datetime-time-placeholder",
+            "datetime-hour-2",
             true,
             this.mMaxLength,
             this.mMaxLength,
@@ -863,8 +852,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "minute":
           this.mMinuteField = this.createEditFieldAndAppend(
-            "datetime-minute",
-            "datetime-time-placeholder",
+            "datetime-minute-2",
             true,
             this.mMaxLength,
             this.mMaxLength,
@@ -876,8 +864,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "second":
           this.mSecondField = this.createEditFieldAndAppend(
-            "datetime-second",
-            "datetime-time-placeholder",
+            "datetime-second-2",
             true,
             this.mMaxLength,
             this.mMaxLength,
@@ -895,8 +882,7 @@ this.DateTimeBoxWidget = class {
             );
             span.textContent = this.mMillisecSeparatorText;
             this.mMillisecField = this.createEditFieldAndAppend(
-              "datetime-millisecond",
-              "datetime-time-placeholder",
+              "datetime-millisecond-2",
               true,
               this.mMillisecMaxLength,
               this.mMillisecMaxLength,
@@ -909,8 +895,7 @@ this.DateTimeBoxWidget = class {
           break;
         case "dayPeriod":
           this.mDayPeriodField = this.createEditFieldAndAppend(
-            "datetime-dayperiod",
-            "datetime-time-placeholder",
+            "datetime-dayperiod-2",
             false
           );
           this.addEventListenersToField(this.mDayPeriodField);
@@ -1541,10 +1526,7 @@ this.DateTimeBoxWidget = class {
     if (!this.mDayPeriodField) {
       return "";
     }
-
-    let placeholder = this.mDayPeriodField.placeholder;
-    let value = this.mDayPeriodField.textContent;
-    return value == placeholder ? "" : value;
+    return this.mDayPeriodField.textContent;
   }
 
   setDayPeriodValue(aValue) {
