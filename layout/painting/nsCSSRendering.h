@@ -105,16 +105,6 @@ struct nsCSSRendering {
   typedef mozilla::image::ImgDrawResult ImgDrawResult;
   typedef nsIFrame::Sides Sides;
 
-  /**
-   * Initialize any static variables used by nsCSSRendering.
-   */
-  static void Init();
-
-  /**
-   * Clean up any static variables used by nsCSSRendering.
-   */
-  static void Shutdown();
-
   static bool IsBoxDecorationSlice(const nsStyleBorder& aStyleBorder);
   static nsRect BoxDecorationRectForBorder(
       nsIFrame* aFrame, const nsRect& aBorderArea, Sides aSkipSides,
@@ -508,18 +498,6 @@ struct nsCSSRendering {
                                        const nsRect& aClipRect,
                                        const nsStyleImageLayers::Layer& aLayer,
                                        uint32_t aFlags);
-
-  /**
-   * Called when we start creating a display list. The frame tree will not
-   * change until a matching EndFrameTreeLocked is called.
-   */
-  static void BeginFrameTreesLocked();
-  /**
-   * Called when we've finished using a display list. When all
-   * BeginFrameTreeLocked calls have been balanced by an EndFrameTreeLocked,
-   * the frame tree may start changing again.
-   */
-  static void EndFrameTreesLocked();
 
   // Draw a border segment in the table collapsing border model with beveling
   // corners.

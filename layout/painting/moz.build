@@ -27,6 +27,10 @@ EXPORTS += [
     "WindowRenderer.h",
 ]
 
+EXPORTS.mozilla += [
+    "InlineBackgroundData.h",
+]
+
 UNIFIED_SOURCES += [
     "ActiveLayerTracker.cpp",
     "DashedCornerFinder.cpp",
@@ -35,6 +39,7 @@ UNIFIED_SOURCES += [
     "DisplayListClipState.cpp",
     "DottedCornerFinder.cpp",
     "HitTestInfo.cpp",
+    "InlineBackgroundData.cpp",
     "nsCSSRendering.cpp",
     "nsCSSRenderingBorders.cpp",
     "nsCSSRenderingGradients.cpp",

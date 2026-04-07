@@ -164,7 +164,6 @@ nsresult nsLayoutStatics::Initialize() {
   nsCellMap::Init();
 
   StaticPresData::Init();
-  nsCSSRendering::Init();
   css::ImageLoader::Init();
 
   rv = HTMLDNSPrefetch::Initialize();
@@ -309,7 +308,6 @@ void nsLayoutStatics::Shutdown() {
   EditorController::Shutdown();
   HTMLEditorController::Shutdown();
   HTMLDNSPrefetch::Shutdown();
-  nsCSSRendering::Shutdown();
   StaticPresData::Shutdown();
   nsCellMap::Shutdown();
   ActiveLayerTracker::Shutdown();
