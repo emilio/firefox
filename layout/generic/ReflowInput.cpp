@@ -27,6 +27,7 @@
 #include "nsIFrameInlines.h"
 #include "nsIPercentBSizeObserver.h"
 #include "nsImageFrame.h"
+#include "nsInlineFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsLineBox.h"
 #include "nsPresContext.h"
@@ -2463,6 +2464,11 @@ static void UpdateProp(nsIFrame* aFrame,
   }
 }
 
+static bool IsInlineWrappingBlocks(const nsIFrame* aFrame) {
+  const nsInlineFrame* i = do_QueryFrame(aFrame);
+  return i && i->IsWrappingBlocks();
+}
+
 void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
                                        LayoutFrameType aFrameType,
                                        ComputeSizeFlags aFlags,
@@ -2494,7 +2500,7 @@ void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
         widgetPadding, presContext->AppUnitsPerDevPixel());
     SetComputedLogicalPadding(wm, LogicalMargin(wm, padding));
     needPaddingProp = false;
-  } else if (mFrame->IsInSVGTextSubtree()) {
+  } else if (mFrame->IsInSVGTextSubtree() || IsInlineWrappingBlocks(mFrame)) {
     SetComputedLogicalPadding(wm, LogicalMargin(wm));
     needPaddingProp = false;
   } else if (aPadding) {  // padding is an input arg
@@ -2548,7 +2554,7 @@ void SizeComputationInput::InitOffsets(WritingMode aCBWM, nscoord aPercentBasis,
     border = LogicalMargin(
         wm, LayoutDevicePixel::ToAppUnits(widgetBorder,
                                           presContext->AppUnitsPerDevPixel()));
-  } else if (mFrame->IsInSVGTextSubtree()) {
+  } else if (mFrame->IsInSVGTextSubtree() || IsInlineWrappingBlocks(mFrame)) {
     // Do nothing since the border local variable is initialized all zero.
   } else if (aBorder) {  // border is an input arg
     border = *aBorder;
@@ -2853,7 +2859,7 @@ bool SizeComputationInput::ComputeMargin(WritingMode aCBWM,
                                          nscoord aPercentBasis,
                                          LayoutFrameType aFrameType) {
   // SVG text frames have no margin.
-  if (mFrame->IsInSVGTextSubtree()) {
+  if (mFrame->IsInSVGTextSubtree() || IsInlineWrappingBlocks(mFrame)) {
     return false;
   }
 

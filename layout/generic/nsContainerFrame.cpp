@@ -611,9 +611,16 @@ void nsContainerFrame::DoInlineMinISize(const IntrinsicSizeInput& aInput,
                                         InlineMinISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
+      const bool block = kid->IsBlockOutside();
+      if (block) {
+        data->ForceBreak();
+      }
       const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
                                         GetWritingMode());
       kid->AddInlineMinISize(kidInput, data);
+      if (block) {
+        data->ForceBreak();
+      }
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -623,9 +630,16 @@ void nsContainerFrame::DoInlinePrefISize(const IntrinsicSizeInput& aInput,
                                          InlinePrefISizeData* aData) {
   auto handleChildren = [&](auto frame, auto data) {
     for (nsIFrame* kid : frame->mFrames) {
+      const bool block = kid->IsBlockOutside();
+      if (block) {
+        data->ForceBreak();
+      }
       const IntrinsicSizeInput kidInput(aInput, kid->GetWritingMode(),
                                         GetWritingMode());
       kid->AddInlinePrefISize(kidInput, data);
+      if (block) {
+        data->ForceBreak();
+      }
     }
   };
   DoInlineIntrinsicISize(aData, handleChildren);
@@ -1202,8 +1216,8 @@ void nsContainerFrame::DeleteNextInFlowChild(DestroyContext& aContext,
 void nsContainerFrame::PushChildrenToOverflow(nsIFrame* aFromChild,
                                               nsIFrame* aPrevSibling) {
   MOZ_ASSERT(aFromChild, "null pointer");
-  MOZ_ASSERT(aPrevSibling, "pushing first child");
-  MOZ_ASSERT(aPrevSibling->GetNextSibling() == aFromChild, "bad prev sibling");
+  MOZ_ASSERT(!aPrevSibling || aPrevSibling->GetNextSibling() == aFromChild,
+             "bad prev sibling");
 
   // Add the frames to our overflow list (let our next in flow drain
   // our overflow list when it is ready)

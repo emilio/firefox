@@ -10510,7 +10510,8 @@ nsIFrame* nsCSSFrameConstructor::ConstructInline(
     }
   }
 
-  if (aItem.mIsAllInline || !firstBlock) {
+  if (aItem.mIsAllInline || !firstBlock ||
+      StaticPrefs::layout_new_ib_splits_enabled()) {
     // This part is easy.  We either already know we have no non-inline kids,
     // or haven't found any when constructing actual frames (the latter can
     // happen only if out-of-flows that we thought had no containing block
@@ -11094,7 +11095,8 @@ bool nsCSSFrameConstructor::WipeContainingBlock(
   // do/while with breaks to take us to the "go and reconstruct" code.
   do {
     if (IsInlineFrame(aFrame)) {
-      if (aItems.AreAllItemsInline()) {
+      if (aItems.AreAllItemsInline() ||
+          StaticPrefs::layout_new_ib_splits_enabled()) {
         // We can just put the kids in.
         return false;
       }

@@ -6,7 +6,6 @@
 
 #include "nsInlineFrame.h"
 
-#include "gfxContext.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/Likely.h"
 #include "mozilla/PresShell.h"
@@ -16,6 +15,7 @@
 #include "nsBlockFrame.h"
 #include "nsDisplayList.h"
 #include "nsGkAtoms.h"
+#include "nsIFrameInlines.h"
 #include "nsLayoutUtils.h"
 #include "nsLineLayout.h"
 #include "nsPlaceholderFrame.h"
@@ -58,6 +58,11 @@ nsInlineFrame::InlineReflowInput::InlineReflowInput(
       mLineContainer(aReflowInput.mLineLayout->LineContainerFrame()),
       mLineLayout(aReflowInput.mLineLayout),
       mSetParentDuringReflow(aSetParentDuringReflow) {}
+
+bool nsInlineFrame::IsWrappingBlocks() const {
+  auto* fc = mFrames.FirstChild();
+  return fc && fc->IsBlockOutside() && GetPrevContinuation();
+}
 
 void nsInlineFrame::InvalidateFrame(uint32_t aDisplayItemKey,
                                     bool aRebuildDisplayItems) {
@@ -239,13 +244,19 @@ void nsInlineFrame::StealFrame(nsIFrame* aChild) {
 
 void nsInlineFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                      const nsDisplayListSet& aLists) {
-  BuildDisplayListForInline(aBuilder, aLists);
+  if (IsWrappingBlocks()) {
+    // Don't draw decorations and such of inlines that wrap blocks.
+    BuildDisplayListForNonBlockChildren(aBuilder, aLists,
+                                        DisplayChildFlag::Inline);
+  } else {
+    BuildDisplayListForInline(aBuilder, aLists);
+  }
 
   // The sole purpose of this is to trigger display of the selection
   // window for Named Anchors, which don't have any children and
   // normally don't have any size, but in Editor we use CSS to display
   // an image to represent this "hidden" element.
-  if (!mFrames.FirstChild()) {
+  if (mFrames.IsEmpty()) {
     DisplaySelectionOverlay(aBuilder, aLists.Content());
   }
 }
@@ -633,6 +644,14 @@ void nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   NS_ASSERTION(!aStatus.IsComplete() || !GetOverflowFrames(),
                "We can't be complete AND have overflow frames!");
 
+  // Even if all our children fit, we might need an empty continuation if we're
+  // wrapping blocks and need decorations like border / padding.
+  if (aStatus.IsComplete() && IsWrappingBlocks() && GetPrevContinuation() &&
+      !FirstContinuation()->GetUsedBorderAndPadding().IsAllZero()) {
+    aStatus.SetIncomplete();
+    aStatus.SetInlineLineBreakAfter();
+  }
+
   // If after reflowing our children they take up no area then make
   // sure that we don't either.
   //
@@ -710,10 +729,35 @@ void nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
                                       nsReflowStatus& aStatus) {
   nsLineLayout* lineLayout = aReflowInput.mLineLayout;
   bool reflowingFirstLetter = lineLayout->GetFirstLetterStyleOK();
-  bool pushedFrame;
+  bool pushedFrame = false;
   aStatus.Reset();
-  lineLayout->ReflowFrame(aFrame, aStatus, nullptr, pushedFrame);
+  // Force a break if we have any border / padding and find a block.
+  const bool forceBlockBreak = [&] {
+    if (!aFrame->IsBlockOutside()) {
+      return false;
+    }
+    if (aReflowInput.ComputedPhysicalBorderPadding().IsAllZero()) {
+      // If there is no border / padding, don't bother with splitting.
+      return false;
+    }
+    if (aFrame != mFrames.FirstChild()) {
+      if (!mFrames.FirstChild()->IsBlockOutside()) {
+        return true;
+      }
+    } else if (!GetPrevContinuation()) {
+      return true;
+    }
+    // block -> block, no need to split.
+    return false;
+  }();
 
+  if (forceBlockBreak) {
+    aStatus.SetIncomplete();
+    aStatus.SetInlineLineBreakAfter();
+    PushFrames(aPresContext, aFrame, irs.mPrevFrame, irs);
+    return;
+  }
+  lineLayout->ReflowFrame(aFrame, aStatus, nullptr, pushedFrame);
   if (aStatus.IsInlineBreakBefore()) {
     if (aFrame != mFrames.FirstChild()) {
       // Change break-before status into break-after since we have
@@ -752,8 +796,7 @@ void nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
   }
 
   if (!aStatus.IsFullyComplete() && !reflowingFirstLetter) {
-    nsIFrame* nextFrame = aFrame->GetNextSibling();
-    if (nextFrame) {
+    if (nsIFrame* nextFrame = aFrame->GetNextSibling()) {
       PushFrames(aPresContext, nextFrame, aFrame, irs);
     }
   }

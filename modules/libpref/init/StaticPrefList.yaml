@@ -10643,6 +10643,11 @@
   value: 4096
   mirror: always
 
+- name: layout.new-ib-splits.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Test-only pref, if this is true, partial pre-rendered transform animations
 # get stuck when it reaches to the pre-rendered boundaries and the pre-render
 # region is never updated.

@@ -73,6 +73,10 @@ class nsInlineFrame : public nsContainerFrame {
       mozilla::ComputeSizeFlags aFlags) override;
   nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const override;
 
+  // Whether this inline wraps block frames, in which case we don't render any
+  // decorations.
+  bool IsWrappingBlocks() const;
+
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aReflowOutput,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
@@ -128,7 +132,6 @@ class nsInlineFrame : public nsContainerFrame {
     nsInlineFrame* mNextInFlow = nullptr;
     nsIFrame* mLineContainer = nullptr;
     nsLineLayout* mLineLayout = nullptr;
-
     // Yes if we should set each child frame's parent pointer when reflowing it,
     // having deferred that when we pulled the frames from our prev-in-flow's
     // overflow list. See nsInlineFrame::Reflow().
