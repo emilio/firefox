@@ -161,15 +161,15 @@ export class AutoScrollChild extends JSWindowActorChild {
     }
 
     if (!this._scrollable) {
-      let direction = this.computeWindowScrollDirection(aNode.ownerGlobal);
+      let direction = this.computeWindowScrollDirection(aNode.documentGlobal);
       if (direction) {
         this._scrolldir = direction;
-        this._scrollable = aNode.ownerGlobal;
-      } else if (aNode.ownerGlobal.frameElement) {
+        this._scrollable = aNode.documentGlobal;
+      } else if (aNode.documentGlobal.frameElement) {
         // Note, in case of out of process iframes frameElement is null, and
         // a caller is supposed to communicate to iframe's parent on its own to
         // support cross process scrolling.
-        this.findNearestScrollableElement(aNode.ownerGlobal.frameElement);
+        this.findNearestScrollableElement(aNode.documentGlobal.frameElement);
       }
     }
   }
@@ -185,7 +185,7 @@ export class AutoScrollChild extends JSWindowActorChild {
       return;
     }
 
-    let content = event.originalTarget.ownerGlobal;
+    let content = event.originalTarget.documentGlobal;
 
     // In some configurations like Print Preview, content.performance
     // (which we use below) is null. Autoscrolling is broken in Print
@@ -343,7 +343,7 @@ export class AutoScrollChild extends JSWindowActorChild {
       behavior: "instant",
     });
 
-    this._scrollable.documentGlobal.requestAnimationFrame(this.autoscrollLoop);
+    (this._scrollable.documentGlobal || this._scrollable.ownerGlobal).requestAnimationFrame(this.autoscrollLoop);
   }
 
   canStartAutoScrollWith(event) {

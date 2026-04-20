@@ -86,8 +86,8 @@ export class PromptListener {
    */
   handleEvent(event) {
     const chromeWin = event.target.opener
-      ? event.target.opener.documentGlobal
-      : event.target.documentGlobal;
+      ? event.target.opener
+      : (event.target.documentGlobal || event.target.ownerGlobal);
     const curBrowser = this.#curBrowserFn && this.#curBrowserFn();
 
     // For Marionette (WebDriver classic) we only care about events which come
@@ -256,9 +256,7 @@ export class PromptListener {
       return container.contains(prompt.docShell.chromeEventHandler);
     }
 
-    return (
-      prompt.documentGlobal == window || prompt.opener?.documentGlobal == window
-    );
+    return prompt == window || prompt.opener == window;
   }
 
   #register() {
