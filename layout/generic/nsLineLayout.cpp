@@ -805,6 +805,13 @@ void nsLineLayout::ReflowFrame(nsIFrame* aFrame, nsReflowStatus& aReflowStatus,
     // For now, set the available block-size to unconstrained always.
     LogicalSize availSize = mLineContainerRI.ComputedSize(frameWM);
     availSize.BSize(frameWM) = NS_UNCONSTRAINEDSIZE;
+    // Block-outside frames placed in a float-impacted inline line need to
+    // shrink to fit alongside the float; otherwise their full-width sizing
+    // would cause the line to be pushed below the float.
+    if (mImpactedByFloats && aFrame->IsBlockOutside() &&
+        availableSpaceOnLine < availSize.ISize(frameWM)) {
+      availSize.ISize(frameWM) = std::max(nscoord(0), availableSpaceOnLine);
+    }
     reflowInputHolder.emplace(mPresContext, *psd->mReflowInput, aFrame,
                               availSize);
     ReflowInput& reflowInput = *reflowInputHolder;

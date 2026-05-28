@@ -60,8 +60,17 @@ nsInlineFrame::InlineReflowInput::InlineReflowInput(
       mSetParentDuringReflow(aSetParentDuringReflow) {}
 
 bool nsInlineFrame::IsWrappingBlocks() const {
+  auto* prev = static_cast<nsInlineFrame*>(GetPrevContinuation());
+  if (!prev) {
+    return false;
+  }
   auto* fc = mFrames.FirstChild();
-  return fc && fc->IsBlockOutside() && GetPrevContinuation();
+  if (!fc) {
+    if (auto* oflow = prev->GetOverflowFrames()) {
+      fc = oflow->FirstChild();
+    }
+  }
+  return fc && fc->IsBlockOutside();
 }
 
 void nsInlineFrame::InvalidateFrame(uint32_t aDisplayItemKey,
@@ -758,6 +767,7 @@ void nsInlineFrame::ReflowInlineFrame(nsPresContext* aPresContext,
     return;
   }
   lineLayout->ReflowFrame(aFrame, aStatus, nullptr, pushedFrame);
+
   if (aStatus.IsInlineBreakBefore()) {
     if (aFrame != mFrames.FirstChild()) {
       // Change break-before status into break-after since we have
