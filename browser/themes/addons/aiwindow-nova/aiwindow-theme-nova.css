@@ -10,8 +10,6 @@ body {
   --smartwindow-box-shadow: light-dark(var(--color-violet-70), var(--color-violet-50));
 
   /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
-  background-color: color-mix(in srgb, var(--ai-background-color) 80%, transparent) !important;
-  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
   box-shadow: 0 0 80px 0 color-mix(in srgb, var(--smartwindow-box-shadow) 60%, transparent);
 }
 

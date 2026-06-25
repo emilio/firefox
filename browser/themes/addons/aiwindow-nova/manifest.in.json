@@ -42,6 +42,11 @@
       "toolbar_field_text_focus": "{toolbar.field.text.color.focus}",
       "toolbar_top_separator": "transparent",
       "toolbar_bottom_separator": "{color.violet-desaturated.20}"
+    },
+    "images": {
+      "additional_backgrounds": [
+        { "linear-gradient": "color-mix(in srgb, #f5f4fe 80%, transparent)" }
+      ]
     }
   },
 
@@ -75,6 +80,11 @@
       "toolbar_field_text_focus": "{toolbar.field.text.color.focus}",
       "toolbar_top_separator": "transparent",
       "toolbar_bottom_separator": "{color.gray.60}"
+    },
+    "images": {
+      "additional_backgrounds": [
+        { "linear-gradient": "color-mix(in srgb, #1d1f30 80%, transparent)" }
+      ]
     }
   },
 
