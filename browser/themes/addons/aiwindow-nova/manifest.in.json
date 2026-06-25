@@ -1,0 +1,83 @@
+{
+  "manifest_version": 3,
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "firefox-aiwindow-nova@mozilla.org"
+    }
+  },
+
+  "name": "Firefox AI Window Nova",
+  "description": "Nova theme for AI Window",
+  "author": "Mozilla",
+  "version": "1.0.0",
+
+  "theme": {
+    "properties": {
+      "color_scheme": "light",
+      "ai_background_color": "#f5f4fe",
+      "link_color": ".color.violet.50.value"
+    },
+    "colors": {
+      "frame": "#f5f4fe",
+      "frame_inactive": "#f5f4fe",
+      "icons": ".toolbarbutton.icon.fill.@base.value.light",
+      "icons_attention": ".color.accent.primary.@base.value.light",
+      "popup": ".background.color.box.@base.value.light",
+      "popup_border": ".color.gray.10.value",
+      "popup_highlight": ".urlbarview.background.color.selected.value.light",
+      "popup_highlight_text": ".urlbarview.text.color.selected.value.light",
+      "popup_text": ".text.color.@base.value.brand.light",
+      "tab_background_text": ".text.color.@base.value.brand.light",
+      "tab_line": "transparent",
+      "tab_loading": ".color.accent.primary.@base.value.light",
+      "toolbar": "transparent",
+      "toolbar_field": ".background.color.box.@base.value.light",
+      "toolbar_field_border": ".toolbar.field.border.color.@base.value.light",
+      "toolbar_field_border_focus": ".toolbar.field.border.color.focus.value.default",
+      "toolbar_field_focus": ".toolbar.field.background.color.focus.value.default",
+      "toolbar_field_text": ".toolbar.field.text.color.@base.value.light",
+      "toolbar_field_text_focus": ".toolbar.field.text.color.focus.value.default",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": ".color.violet-desaturated.20.value"
+    }
+  },
+
+  "dark_theme": {
+    "properties": {
+      "color_scheme": "dark",
+      "ai_background_color": "#1d1f30",
+      "link_color": ".color.violet.20.value"
+    },
+    "colors": {
+      "frame": "#1d1f30",
+      "frame_inactive": "#1d1f30",
+      "icons": ".toolbarbutton.icon.fill.@base.value.dark",
+      "icons_attention": ".color.accent.primary.@base.value.dark",
+      "popup": ".background.color.box.@base.value.dark",
+      "popup_border": ".color.gray.60.value",
+      "popup_highlight": ".urlbarview.background.color.selected.value.dark",
+      "popup_highlight_text": ".urlbarview.text.color.selected.value.dark",
+      "popup_text": ".text.color.@base.value.brand.dark",
+      "tab_background_text": ".text.color.@base.value.brand.dark",
+      "tab_line": "transparent",
+      "tab_loading": ".color.accent.primary.@base.value.dark",
+      "toolbar": "transparent",
+      "toolbar_field": ".background.color.box.@base.value.dark",
+      "toolbar_field_border": ".toolbar.field.border.color.@base.value.dark",
+      "toolbar_field_border_focus": ".toolbar.field.border.color.focus.value.default",
+      "toolbar_field_focus": ".toolbar.field.background.color.focus.value.default",
+      "toolbar_field_text": ".toolbar.field.text.color.@base.value.dark",
+      "toolbar_field_text_focus": ".toolbar.field.text.color.focus.value.default",
+      "toolbar_top_separator": "transparent",
+      "toolbar_bottom_separator": ".color.gray.60.value"
+    }
+  },
+
+  "theme_experiment": {
+    "stylesheet": "aiwindow-theme-nova.css",
+    "properties": {
+      "ai_background_color": "--ai-background-color"
+    }
+  }
+}
