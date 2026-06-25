@@ -4,19 +4,6 @@
 
 body {
   --tabpanel-background-color: transparent;
-  /* Due to transparency, these tokens are defined here instead of within the manifest under "button_background_active" and "button_background_hover" */
-  --toolbarbutton-background-color-active: light-dark(
-    color-mix(in srgb, var(--color-violet-desaturated-60) 30%, transparent),
-    color-mix(in srgb, var(--color-violet-30) 36%, transparent)
-  );
-  --toolbarbutton-background-color-hover: light-dark(
-    color-mix(in srgb, var(--color-violet-desaturated-60) 16%, transparent),
-    color-mix(in srgb, var(--color-violet-30) 24%, transparent)
-  );
-  --tab-background-color-hover: light-dark(
-    color-mix(in srgb, var(--color-violet-desaturated-60) 16%, transparent),
-    color-mix(in srgb, var(--color-violet-30) 24%, transparent)
-  );
 }
 
 #navigator-toolbox {

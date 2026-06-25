@@ -19,6 +19,8 @@
       "link_color": "{color.violet.50}"
     },
     "colors": {
+      "button_background_active": "color-mix(in srgb, {color.violet-desaturated.60} 30%, transparent)",
+      "button_background_hover": "color-mix(in srgb, {color.violet-desaturated.60} 16%, transparent)",
       "frame": "#f5f4fe",
       "frame_inactive": "#f5f4fe",
       "icons": "{toolbarbutton.icon.fill.@base}",
@@ -50,6 +52,8 @@
       "link_color": "{color.violet.20}"
     },
     "colors": {
+      "button_background_active": "color-mix(in srgb, {color.violet.30} 36%, transparent)",
+      "button_background_hover": "color-mix(in srgb, {color.violet.30} 24%, transparent)",
       "frame": "#1d1f30",
       "frame_inactive": "#1d1f30",
       "icons": "{toolbarbutton.icon.fill.@base}",
