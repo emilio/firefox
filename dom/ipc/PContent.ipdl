@@ -211,7 +211,7 @@ struct SystemFontListEntry {
     nsCString faceName;
     nsCString filepath;
     uint32_t  weightRange;
-    uint32_t  stretchRange;
+    uint32_t  widthRange;
     uint32_t  styleRange;
     uint8_t   index;
     FontVisibility visibility;

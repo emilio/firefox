@@ -74,15 +74,14 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   // used for data fonts where the fontentry takes ownership
   // of the font data and the FT_Face
   explicit gfxFontconfigFontEntry(const nsACString& aFaceName,
-                                  WeightRange aWeight, StretchRange aStretch,
+                                  WeightRange aWeight, WidthRange aWidth,
                                   SlantStyleRange aStyle,
                                   RefPtr<mozilla::gfx::SharedFTFace>&& aFace);
 
   // used for @font-face local system fonts with explicit patterns
   explicit gfxFontconfigFontEntry(const nsACString& aFaceName,
                                   FcPattern* aFontPattern, WeightRange aWeight,
-                                  StretchRange aStretch,
-                                  SlantStyleRange aStyle);
+                                  WidthRange aWidth, SlantStyleRange aStyle);
 
   gfxFontEntry* Clone() const override;
 
@@ -278,11 +277,11 @@ class gfxFcPlatformFontList final : public gfxPlatformFontList {
   already_AddRefed<gfxFontEntry> LookupLocalFont(
       FontVisibilityProvider* aFontVisibilityProvider,
       const nsACString& aFontName, WeightRange aWeightForEntry,
-      StretchRange aStretchForEntry, SlantStyleRange aStyleForEntry) override;
+      WidthRange aWidthForEntry, SlantStyleRange aStyleForEntry) override;
 
   already_AddRefed<gfxFontEntry> MakePlatformFont(
       const nsACString& aFontName, WeightRange aWeightForEntry,
-      StretchRange aStretchForEntry, SlantStyleRange aStyleForEntry,
+      WidthRange aWidthForEntry, SlantStyleRange aStyleForEntry,
       const uint8_t* aFontData, uint32_t aLength) override;
 
   bool FindAndAddFamiliesLocked(

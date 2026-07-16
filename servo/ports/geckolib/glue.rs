@@ -141,7 +141,7 @@ use style::values::animated::{Animate, Procedure, ToAnimatedZero};
 use style::values::computed::easing::ComputedTimingFunction;
 use style::values::computed::effects::Filter;
 use style::values::computed::font::{
-    FamilyName, FontFamily, FontFamilyList, FontStretch, FontStyle, FontWeight, GenericFontFamily,
+    FamilyName, FontFamily, FontFamilyList, FontStyle, FontWeight, FontWidth, GenericFontFamily,
 };
 use style::values::computed::length_percentage::{
     AllowAnchorPosResolutionInCalcPercentage, Unpacked,
@@ -3786,14 +3786,14 @@ pub extern "C" fn Servo_FontFaceRule_GetFontWeight(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_FontFaceRule_GetFontStretch(
+pub extern "C" fn Servo_FontFaceRule_GetFontWidth(
     rule: &LockedFontFaceRule,
-    out: &mut font_face::ComputedFontStretchRange,
+    out: &mut font_face::ComputedFontWidthRange,
 ) -> bool {
     read_locked_arc_worker(rule, |rule: &FontFaceRule| {
         match rule
             .descriptors
-            .font_stretch
+            .font_width
             .as_ref()
             .and_then(|f| f.compute())
         {
@@ -9982,7 +9982,7 @@ pub unsafe extern "C" fn Servo_ParseFontShorthandForMatching(
     data: *mut URLExtraData,
     family: &mut FontFamilyList,
     style: &mut FontStyle,
-    stretch: &mut FontStretch,
+    width: &mut FontWidth,
     weight: &mut FontWeight,
     size: Option<&mut f32>,
     small_caps: Option<&mut bool>,
@@ -10031,13 +10031,13 @@ pub unsafe extern "C" fn Servo_ParseFontShorthandForMatching(
         },
     };
 
-    *stretch = match font.font_stretch {
-        specified::FontStretch::Keyword(ref k) => k.compute(),
-        specified::FontStretch::Stretch(ref p) => match p.compute() {
-            Some(v) => FontStretch::from_percentage(v.0),
+    *width = match font.font_width {
+        specified::FontWidth::Keyword(ref k) => k.compute(),
+        specified::FontWidth::Width(ref p) => match p.compute() {
+            Some(v) => FontWidth::from_percentage(v.0),
             None => return false,
         },
-        specified::FontStretch::System(_) => return false,
+        specified::FontWidth::System(_) => return false,
     };
 
     *weight = match font.font_weight {
@@ -10335,15 +10335,12 @@ pub extern "C" fn Servo_FontWeight_ToCss(w: &FontWeight, result: &mut nsACString
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_FontStretch_ToCss(s: &FontStretch, result: &mut nsACString) {
+pub extern "C" fn Servo_FontWidth_ToCss(s: &FontWidth, result: &mut nsACString) {
     s.to_css(&mut CssWriter::new(result)).unwrap()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_FontStretch_SerializeKeyword(
-    s: &FontStretch,
-    result: &mut nsACString,
-) -> bool {
+pub extern "C" fn Servo_FontWidth_SerializeKeyword(s: &FontWidth, result: &mut nsACString) -> bool {
     let kw = match s.as_keyword() {
         Some(kw) => kw,
         None => return false,

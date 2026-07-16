@@ -5649,7 +5649,7 @@ var gCSSProperties = {
       "font-size",
       "line-height",
       "font-family",
-      "font-stretch",
+      "font-width",
       "font-size-adjust",
       "font-feature-settings",
       "font-language-override",
@@ -5870,8 +5870,8 @@ var gCSSProperties = {
       "cap-height, 0.8",
     ],
   },
-  "font-stretch": {
-    domProp: "fontStretch",
+  "font-width": {
+    domProp: "fontWidth",
     inherited: true,
     type: CSS_TYPE_LONGHAND,
     applies_to_first_letter: true,
@@ -10501,6 +10501,18 @@ var gCSSProperties = {
   },
 
   // Aliases
+  "font-stretch": {
+    domProp: "fontStretch",
+    inherited: true,
+    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    alias_for: "font-width",
+    applies_to_first_letter: true,
+    applies_to_first_line: true,
+    applies_to_marker: true,
+    applies_to_placeholder: true,
+    applies_to_cue: true,
+    subproperties: ["font-width"],
+  },
   "word-wrap": {
     domProp: "wordWrap",
     inherited: true,

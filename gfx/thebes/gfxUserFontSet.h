@@ -236,8 +236,8 @@ class gfxUserFontEntry;
 class gfxOTSMessageContext;
 
 struct gfxUserFontAttributes {
-  using FontStretch = mozilla::FontStretch;
-  using StretchRange = mozilla::StretchRange;
+  using FontWidth = mozilla::FontWidth;
+  using WidthRange = mozilla::WidthRange;
   using FontSlantStyle = mozilla::FontSlantStyle;
   using SlantStyleRange = mozilla::SlantStyleRange;
   using FontWeight = mozilla::FontWeight;
@@ -247,9 +247,9 @@ struct gfxUserFontAttributes {
   using RangeFlags = gfxFontEntry::RangeFlags;
 
   WeightRange mWeight = WeightRange(FontWeight::NORMAL);
-  StretchRange mStretch = StretchRange(FontStretch::NORMAL);
+  WidthRange mWidth = WidthRange(FontWidth::NORMAL);
   SlantStyleRange mStyle = SlantStyleRange(FontSlantStyle::NORMAL);
-  RangeFlags mRangeFlags = RangeFlags::eAutoWeight | RangeFlags::eAutoStretch |
+  RangeFlags mRangeFlags = RangeFlags::eAutoWeight | RangeFlags::eAutoWidth |
                            RangeFlags::eAutoSlantStyle;
   mozilla::StyleFontDisplay mFontDisplay = mozilla::StyleFontDisplay::Auto;
   float mAscentOverride = -1.0;
@@ -270,8 +270,8 @@ class gfxUserFontSet {
   friend class gfxOTSMessageContext;
 
  public:
-  using FontStretch = mozilla::FontStretch;
-  using StretchRange = mozilla::StretchRange;
+  using FontWidth = mozilla::FontWidth;
+  using WidthRange = mozilla::WidthRange;
   using FontSlantStyle = mozilla::FontSlantStyle;
   using SlantStyleRange = mozilla::SlantStyleRange;
   using FontWeight = mozilla::FontWeight;
@@ -285,8 +285,8 @@ class gfxUserFontSet {
   void Destroy();
 
   // creates a font face without adding it to a particular family
-  // weight - [100, 900] (multiples of 100)
-  // stretch = [FontStretch::UltraCondensed(), FontStretch::UltraExpanded()]
+  // weight = [100, 900] (multiples of 100)
+  // width = [FontWidth::UltraCondensed(), FontWidth::UltraExpanded()]
   // italic style = constants in gfxFontConstants.h, e.g. NS_FONT_STYLE_NORMAL
   // language override = result of calling
   // nsLayoutUtils::ParseFontLanguageOverride
@@ -452,7 +452,7 @@ class gfxUserFontSet {
             mozilla::HashString(aKey->mFontEntry->FamilyName()),
             aKey->mFontEntry->Weight().AsScalar(),
             aKey->mFontEntry->SlantStyle().AsScalar(),
-            aKey->mFontEntry->Stretch().AsScalar(),
+            aKey->mFontEntry->Width().AsScalar(),
             aKey->mFontEntry->AutoRangeFlags(),
             aKey->mFontEntry->mLanguageOverride);
       }

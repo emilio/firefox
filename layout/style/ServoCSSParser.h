@@ -25,7 +25,7 @@ class ServoStyleSet;
 struct URLExtraData;
 struct StyleAbsoluteColor;
 struct StyleFontFamilyList;
-struct StyleFontStretch;
+struct StyleFontWidth;
 struct StyleFontWeight;
 struct StyleFontStyle;
 struct StyleLockedDeclarationBlock;
@@ -188,13 +188,13 @@ class ServoCSSParser {
 
   /**
    * Parse a font shorthand for FontFaceSet matching, so we only care about
-   * FontFamily, FontStyle, FontStretch, and FontWeight.
+   * FontFamily, FontStyle, FontWidth, and FontWeight.
    *
    * @param aValue The specified value.
    * @param aUrl The parser url extra data.
    * @param aList The parsed FontFamily list. (output)
    * @param aStyle The parsed FontStyle. (output)
-   * @param aStretch The parsed FontStretch. (output)
+   * @param aWidth The parsed FontWidth. (output)
    * @param aWeight The parsed FontWeight. (output)
    * @param aSize If non-null, returns the parsed font size. (output)
    * @param aSmallCaps If non-null, whether small-caps was specified (output)
@@ -202,9 +202,8 @@ class ServoCSSParser {
    */
   static bool ParseFontShorthandForMatching(
       const nsACString& aValue, URLExtraData* aUrl, StyleFontFamilyList& aList,
-      StyleFontStyle& aStyle, StyleFontStretch& aStretch,
-      StyleFontWeight& aWeight, float* aSize = nullptr,
-      bool* aSmallCaps = nullptr);
+      StyleFontStyle& aStyle, StyleFontWidth& aWidth, StyleFontWeight& aWeight,
+      float* aSize = nullptr, bool* aSmallCaps = nullptr);
 
   /**
    * Get a URLExtraData from a document.

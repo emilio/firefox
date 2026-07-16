@@ -14,7 +14,8 @@ typedef (ArrayBuffer or ArrayBufferView) BinaryData;
 dictionary FontFaceDescriptors {
   UTF8String style = "normal";
   UTF8String weight = "normal";
-  UTF8String stretch = "normal";
+  UTF8String width;
+  UTF8String stretch;  // alias for width, sets the same attribute
   UTF8String unicodeRange = "U+0-10FFFF";
   UTF8String variant = "normal";
   UTF8String featureSettings = "normal";
@@ -38,7 +39,7 @@ interface FontFace {
   [SetterThrows] attribute UTF8String family;
   [SetterThrows] attribute UTF8String style;
   [SetterThrows] attribute UTF8String weight;
-  [SetterThrows] attribute UTF8String stretch;
+  [SetterThrows, BindingAlias="stretch"] attribute UTF8String width;
   [SetterThrows] attribute UTF8String unicodeRange;
   [SetterThrows] attribute UTF8String variant;
   [SetterThrows] attribute UTF8String featureSettings;

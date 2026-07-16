@@ -1134,8 +1134,8 @@ inline void StyleFontWeight::ToString(nsACString& aString) const {
   Servo_FontWeight_ToCss(this, &aString);
 }
 
-inline void StyleFontStretch::ToString(nsACString& aString) const {
-  Servo_FontStretch_ToCss(this, &aString);
+inline void StyleFontWidth::ToString(nsACString& aString) const {
+  Servo_FontWidth_ToCss(this, &aString);
 }
 
 inline void StyleFontStyle::ToString(nsACString& aString) const {
@@ -1159,7 +1159,7 @@ inline float StyleFontStyle::SlantAngle() const {
   return IsNormal() ? 0 : IsItalic() ? DEFAULT_OBLIQUE_DEGREES : ObliqueAngle();
 }
 
-using FontStretch = StyleFontStretch;
+using FontWidth = StyleFontWidth;
 using FontSlantStyle = StyleFontStyle;
 using FontWeight = StyleFontWeight;
 
