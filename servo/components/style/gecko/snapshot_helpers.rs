@@ -106,8 +106,12 @@ impl structs::nsAttrName {
 #[inline(always)]
 pub fn find_attr<'a>(
     attrs: &'a [structs::AttrArray_InternalAttr],
+    filter: u32,
     name: &Atom,
 ) -> Option<&'a structs::nsAttrValue> {
+    if (filter & name.single_bloom_filter_bit()) == 0 {
+        return None;
+    }
     attrs
         .iter()
         .find(|attr| attr.mName.mBits == name.as_ptr() as usize)
@@ -116,17 +120,18 @@ pub fn find_attr<'a>(
 
 /// Finds the id attribute from a list of attributes.
 #[inline(always)]
-pub fn get_id(attrs: &[structs::AttrArray_InternalAttr]) -> Option<&WeakAtom> {
-    Some(unsafe { get_id_from_attr(find_attr(attrs, &atom!("id"))?) })
+pub fn get_id(attrs: &[structs::AttrArray_InternalAttr], filter: u32) -> Option<&WeakAtom> {
+    Some(unsafe { get_id_from_attr(find_attr(attrs, filter, &atom!("id"))?) })
 }
 
 #[inline(always)]
 pub(super) fn each_exported_part(
     attrs: &[structs::AttrArray_InternalAttr],
+    filter: u32,
     name: &AtomIdent,
     mut callback: impl FnMut(&AtomIdent),
 ) {
-    let attr = match find_attr(attrs, &atom!("exportparts")) {
+    let attr = match find_attr(attrs, filter, &atom!("exportparts")) {
         Some(attr) => attr,
         None => return,
     };
@@ -146,9 +151,10 @@ pub(super) fn each_exported_part(
 #[inline(always)]
 pub(super) fn imported_part(
     attrs: &[structs::AttrArray_InternalAttr],
+    filter: u32,
     name: &AtomIdent,
 ) -> Option<AtomIdent> {
-    let attr = find_attr(attrs, &atom!("exportparts"))?;
+    let attr = find_attr(attrs, filter, &atom!("exportparts"))?;
     let atom = unsafe { bindings::Gecko_Element_ImportedPart(attr, name.as_ptr()) };
     if atom.is_null() {
         return None;
@@ -165,8 +171,7 @@ fn atom_array_atoms(atom_array: &AttrAtomArray) -> &[structs::RefPtr<nsAtom>] {
 
 #[inline(always)]
 fn atom_array_may_contain(atom_array: &AttrAtomArray, atom: &AtomIdent) -> bool {
-    // NOTE(emilio): Keep in sync with AttrAtomArray::MayContain().
-    let bit = 1 << ((atom.get_hash() >> 27) & 31);
+    let bit = atom.single_bloom_filter_bit();
     atom_array.mBloomFilter & bit != 0
 }
 
@@ -248,10 +253,14 @@ pub fn classes_changed<E: TElement>(element: &E, snapshots: &SnapshotMap) -> Sma
 #[inline(always)]
 pub(crate) fn attr_matches(
     attrs: &[structs::AttrArray_InternalAttr],
+    filter: u32,
     ns: &NamespaceConstraint<&Namespace>,
     local_name: &LocalName,
     operation: &AttrSelectorOperation<&AttrValue>,
 ) -> bool {
+    if (filter & local_name.single_bloom_filter_bit()) == 0 {
+        return false;
+    }
     let name_ptr = local_name.as_ptr();
     for attr in attrs {
         if attr.mName.name() != name_ptr {

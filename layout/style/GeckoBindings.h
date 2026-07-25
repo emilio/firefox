@@ -179,6 +179,7 @@ bool Gecko_AttrHasSuffix(const nsAttrValue*, const nsAtom*, bool aIgnoreCase);
 
 bool Gecko_AssertClassAttrValueIsSane(const nsAttrValue*);
 const nsAttrValue* Gecko_GetSVGAnimatedClass(const mozilla::dom::Element*);
+uint32_t Gecko_Element_GetAttrBloomFilter(const mozilla::dom::Element* aElement);
 
 SERVO_DECLARE_ELEMENT_ATTR_MATCHING_FUNCTIONS(Gecko_,
                                               const mozilla::dom::Element*)

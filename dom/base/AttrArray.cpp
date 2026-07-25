@@ -44,7 +44,10 @@ void AttrArray::SetMappedDeclarationBlock(
 
 const nsAttrValue* AttrArray::GetAttr(const nsAtom* aLocalName) const {
   NS_ASSERTION(aLocalName, "Must have attr name");
-  for (const InternalAttr& attr : Attrs()) {
+  if (!HasImpl() || !mImpl->MayContain(aLocalName)) {
+    return nullptr;
+  }
+  for (const InternalAttr& attr : mImpl->Attrs()) {
     if (attr.mName.Equals(aLocalName)) {
       return &attr.mValue;
     }
@@ -56,13 +59,21 @@ const nsAttrValue* AttrArray::GetAttr(const nsAtom* aLocalName,
                                       int32_t aNamespaceID) const {
   NS_ASSERTION(aLocalName, "Must have attr name");
   NS_ASSERTION(aNamespaceID != kNameSpaceID_Unknown, "Must have namespace");
-  if (aNamespaceID == kNameSpaceID_None) {
-    // This should be the common case so lets use the optimized loop
-    return GetAttr(aLocalName);
+  if (!HasImpl() || !mImpl->MayContain(aLocalName)) {
+    return nullptr;
   }
-  for (const InternalAttr& attr : Attrs()) {
-    if (attr.mName.Equals(aLocalName, aNamespaceID)) {
-      return &attr.mValue;
+  if (aNamespaceID == kNameSpaceID_None) [[likely]] {
+    // This should be the common case so lets use an optimized loop
+    for (const InternalAttr& attr : mImpl->Attrs()) {
+      if (attr.mName.Equals(aLocalName)) {
+        return &attr.mValue;
+      }
+    }
+  } else {
+    for (const InternalAttr& attr : mImpl->Attrs()) {
+      if (attr.mName.Equals(aLocalName, aNamespaceID)) {
+        return &attr.mValue;
+      }
     }
   }
   return nullptr;
@@ -117,17 +128,19 @@ inline nsresult AttrArray::AddNewAttribute(Name* aName, nsAttrValue& aValue) {
   new (&attr.mName) nsAttrName(aName);
   new (&attr.mValue) nsAttrValue();
   attr.mValue.SwapValueWith(aValue);
+  mImpl->mAttrBloomFilter |= attr.mName.LocalName()->SingleBloomFilterBit();
   return NS_OK;
 }
 
 const nsAttrValue* AttrArray::AddNewAttributeAssumeAvailableSlot(
     RefPtr<nsAtom>& aName, nsAttrValue& aValue) {
   MOZ_ASSERT(HasImpl());
-  MOZ_ASSERT(GetImpl()->mAttrCount < GetImpl()->mCapacity);
+  MOZ_ASSERT(mImpl->mAttrCount < mImpl->mCapacity);
   InternalAttr& attr = mImpl->mBuffer[mImpl->mAttrCount++];
   new (&attr.mName) nsAttrName(aName.forget());
   new (&attr.mValue) nsAttrValue();
   attr.mValue.SwapValueWith(aValue);
+  mImpl->mAttrBloomFilter |= attr.mName.Atom()->SingleBloomFilterBit();
   return &attr.mValue;
 }
 
@@ -326,6 +339,7 @@ nsresult AttrArray::EnsureCapacityToClone(const AttrArray& aOther) {
   impl->mCapacity = attrCount;
   impl->mAttrCount = 0;
   impl->mSubtreeBloomFilter = aOther.GetSubtreeBloomFilter();
+  impl->mAttrBloomFilter = 0;
   SetImpl(impl);
 
   return NS_OK;
@@ -407,6 +421,7 @@ bool AttrArray::GrowTo(uint32_t aCapacity) {
     newImpl->mMappedAttributeBits = 0;
     newImpl->mAttrCount = 0;
     newImpl->mSubtreeBloomFilter = oldBloom;
+    newImpl->mAttrBloomFilter = 0;
   }
 
   newImpl->mCapacity = aCapacity;

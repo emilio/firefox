@@ -161,6 +161,7 @@ class ServoElementSnapshot {
   nsTArray<RefPtr<nsAtom>> mCustomStates;
   nsAttrValue mClass;
   ServoStateType mState;
+  uint32_t mAttrsFilter = 0;
   Flags mContains;
   bool mIsInChromeDocument : 1;
   bool mSupportsLangAttr : 1;

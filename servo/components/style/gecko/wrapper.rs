@@ -669,14 +669,17 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline(always)]
-    fn attrs(&self) -> &[structs::AttrArray_InternalAttr] {
+    fn attrs(&self) -> (&[structs::AttrArray_InternalAttr], u32) {
         unsafe {
             if !self.has_attr_impl() {
-                return &[];
+                return (&[], 0);
             }
             match self.0.mAttrs.mImpl.mPtr.as_ref() {
-                Some(attrs) => attrs.mBuffer.as_slice(attrs.mAttrCount as usize),
-                None => &[],
+                Some(attrs) => (
+                    attrs.mBuffer.as_slice(attrs.mAttrCount as usize),
+                    attrs.mAttrBloomFilter,
+                ),
+                None => (&[], 0),
             }
         }
     }
@@ -686,7 +689,7 @@ impl<'le> GeckoElement<'le> {
         if !self.has_part_attr() {
             return None;
         }
-        snapshot_helpers::find_attr(self.attrs(), &atom!("part"))
+        self.get_attr_no_ns(&atom!("part"))
     }
 
     #[inline(always)]
@@ -702,7 +705,13 @@ impl<'le> GeckoElement<'le> {
             }
         }
 
-        snapshot_helpers::find_attr(self.attrs(), &atom!("class"))
+        self.get_attr_no_ns(&atom!("class"))
+    }
+
+    #[inline(always)]
+    fn get_attr_no_ns(&self, name: &Atom) -> Option<&structs::nsAttrValue> {
+        let (attrs, filter) = self.attrs();
+        snapshot_helpers::find_attr(attrs, filter, name)
     }
 
     #[inline]
@@ -1254,23 +1263,23 @@ impl<'le> TElement for GeckoElement<'le> {
 
     #[inline]
     fn exports_any_part(&self) -> bool {
-        snapshot_helpers::find_attr(self.attrs(), &atom!("exportparts")).is_some()
+        self.get_attr_no_ns(&atom!("exportparts")).is_some()
     }
 
-    // FIXME(emilio): we should probably just return a reference to the Atom.
     #[inline]
     fn id(&self) -> Option<&WeakAtom> {
         if !self.has_id() {
             return None;
         }
-        snapshot_helpers::get_id(self.attrs())
+        let (attrs, filter) = self.attrs();
+        snapshot_helpers::get_id(attrs, filter)
     }
 
     fn each_attr_name<F>(&self, mut callback: F)
     where
         F: FnMut(&AtomIdent),
     {
-        for attr in self.attrs() {
+        for attr in self.attrs().0 {
             unsafe { AtomIdent::with(attr.mName.name(), |a| callback(a)) }
         }
     }
@@ -1306,7 +1315,8 @@ impl<'le> TElement for GeckoElement<'le> {
     where
         F: FnMut(&AtomIdent),
     {
-        snapshot_helpers::each_exported_part(self.attrs(), name, callback)
+        let (attrs, filter) = self.attrs();
+        snapshot_helpers::each_exported_part(attrs, filter, name, callback)
     }
 
     fn each_part<F>(&self, callback: F)
@@ -1952,12 +1962,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn has_attr_in_no_namespace(&self, local_name: &LocalName) -> bool {
-        for attr in self.attrs() {
-            if attr.mName.mBits == local_name.as_ptr() as usize {
-                return true;
-            }
-        }
-        false
+        self.get_attr_no_ns(local_name).is_some()
     }
 
     fn attr_matches(
@@ -1966,7 +1971,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         local_name: &LocalName,
         operation: &AttrSelectorOperation<&AttrValue>,
     ) -> bool {
-        snapshot_helpers::attr_matches(self.attrs(), ns, local_name, operation)
+        let (attrs, filter) = self.attrs();
+        snapshot_helpers::attr_matches(attrs, filter, ns, local_name, operation)
     }
 
     #[inline]
@@ -2196,7 +2202,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             return false;
         }
 
-        let element_id = match snapshot_helpers::get_id(self.attrs()) {
+        let (attrs, filter) = self.attrs();
+        let element_id = match snapshot_helpers::get_id(attrs, filter) {
             Some(id) => id,
             None => return false,
         };
@@ -2216,7 +2223,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
-        snapshot_helpers::imported_part(self.attrs(), name)
+        let (attrs, filter) = self.attrs();
+        snapshot_helpers::imported_part(attrs, filter, name)
     }
 
     #[inline(always)]

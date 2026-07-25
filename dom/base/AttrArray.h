@@ -257,6 +257,10 @@ class AttrArray {
     Impl(Impl&&) = delete;
     ~Impl();
 
+    bool MayContain(const nsAtom* aLocalName) {
+      return mAttrBloomFilter & aLocalName->SingleBloomFilterBit();
+    }
+
     uint32_t mAttrCount;
     uint32_t mCapacity;  // In number of InternalAttrs
 
@@ -274,8 +278,11 @@ class AttrArray {
     //   Bits 1-63: Combined bloom filter (63 bits)
     uint64_t mSubtreeBloomFilter;
 
+    // Bloom filter of attribute names.
+    uint32_t mAttrBloomFilter;
+
    public:
-    Impl() : mSubtreeBloomFilter(0xFFFFFFFFFFFFFFFFULL) {}
+    Impl() : mSubtreeBloomFilter(0xFFFFFFFFFFFFFFFFULL), mAttrBloomFilter(0) {}
 
     // Allocated in the same buffer as `Impl`.
     InternalAttr mBuffer[0];
@@ -336,6 +343,10 @@ class AttrArray {
   }
 
  public:
+  uint32_t GetAttrBloomFilter() const {
+    return HasImpl() ? GetImpl()->mAttrBloomFilter : 0;
+  }
+
   // Set bloom filter directly from 64-bit value
   void SetSubtreeBloomFilter(uint64_t aBloom) {
     if (HasImpl()) {
@@ -367,7 +378,7 @@ class AttrArray {
   }
 
   // Check if bloom may contain the given hash
-  bool BloomMayHave(uint64_t aHash) const {
+  bool SubtreeBloomMayHave(uint64_t aHash) const {
     uint64_t bloom = GetSubtreeBloomFilter();
     return (bloom & aHash) == aHash;
   }
@@ -380,13 +391,13 @@ class AttrArray {
     }
     // On 32-bit platforms, we have 31 bits for bloom + 1 tag bit
     // On 64-bit platforms, we have 63 bits for bloom + 1 tag bit
-    constexpr int kAttrBloomBits = sizeof(uintptr_t) == 4 ? 31 : 63;
+    constexpr int kBloomBits = sizeof(uintptr_t) == 4 ? 31 : 63;
 
     uint32_t hash = aAtom->hash();
     uint64_t filter = 1ULL;
     // Set 2 bits in the available range (bits 1-31 on 32-bit, 1-63 on 64-bit)
-    uint32_t bit1 = hash % kAttrBloomBits;
-    uint32_t bit2 = (hash >> 6) % kAttrBloomBits;
+    uint32_t bit1 = hash % kBloomBits;
+    uint32_t bit2 = (hash >> 6) % kBloomBits;
     filter |= 1ULL << (1 + bit1);
     filter |= 1ULL << (1 + bit2);
     return filter;

@@ -49,13 +49,7 @@ struct AttrAtomArray {
   const AtomArray& Array() const { return mArray; }
 
   bool MayContain(const nsAtom* aAtom) const {
-    return mBloomFilter & GetBloomFilterBit(aAtom);
-  }
-
-  // NOTE(emilio): Must be in sync with atom_array_may_contain() in the rust
-  // side.
-  static uint32_t GetBloomFilterBit(const nsAtom* aAtom) {
-    return 1u << ((aAtom->hash() >> 27) & 31);
+    return mBloomFilter & aAtom->SingleBloomFilterBit();
   }
 
   UniquePtr<AttrAtomArray> CreateDeduplicatedCopyIfDifferent() const {
@@ -78,7 +72,7 @@ struct AttrAtomArray {
     if (!mArray.IsEmpty()) {
       mMayContainDuplicates = true;
     }
-    mBloomFilter |= GetBloomFilterBit(aAtom);
+    mBloomFilter |= aAtom->SingleBloomFilterBit();
     mArray.AppendElement(std::move(aAtom));
   }
 
