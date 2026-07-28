@@ -128,8 +128,7 @@ inline nsresult AttrArray::AddNewAttribute(Name* aName, nsAttrValue& aValue) {
   new (&attr.mName) nsAttrName(aName);
   new (&attr.mValue) nsAttrValue();
   attr.mValue.SwapValueWith(aValue);
-  mImpl->mAttrBloomFilter |=
-      attr.mName.LocalName()->SingleBloomFilterBit();
+  mImpl->mAttrBloomFilter |= attr.mName.LocalName()->BloomFilterBits();
   return NS_OK;
 }
 
@@ -141,8 +140,7 @@ const nsAttrValue* AttrArray::AddNewAttributeAssumeAvailableSlot(
   new (&attr.mName) nsAttrName(aName.forget());
   new (&attr.mValue) nsAttrValue();
   attr.mValue.SwapValueWith(aValue);
-  mImpl->mAttrBloomFilter |=
-      attr.mName.Atom()->SingleBloomFilterBit();
+  mImpl->mAttrBloomFilter |= attr.mName.Atom()->BloomFilterBits();
   return &attr.mValue;
 }
 

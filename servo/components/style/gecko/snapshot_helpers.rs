@@ -109,7 +109,8 @@ pub fn find_attr<'a>(
     filter: u64,
     name: &Atom,
 ) -> Option<&'a structs::nsAttrValue> {
-    if (filter & name.single_bloom_filter_bit()) == 0 {
+    let bits = name.bloom_filter_bits();
+    if (filter & bits) != bits {
         return None;
     }
     attrs
@@ -171,8 +172,8 @@ fn atom_array_atoms(atom_array: &AttrAtomArray) -> &[structs::RefPtr<nsAtom>] {
 
 #[inline(always)]
 fn atom_array_may_contain(atom_array: &AttrAtomArray, atom: &AtomIdent) -> bool {
-    let bit = atom.single_bloom_filter_bit();
-    atom_array.mBloomFilter & bit != 0
+    let bits = atom.bloom_filter_bits();
+    (atom_array.mBloomFilter & bits) == bits
 }
 
 /// Given a class or part name, a case sensitivity, and an array of attributes,
@@ -258,7 +259,8 @@ pub(crate) fn attr_matches(
     local_name: &LocalName,
     operation: &AttrSelectorOperation<&AttrValue>,
 ) -> bool {
-    if (filter & local_name.single_bloom_filter_bit()) == 0 {
+    let bits = local_name.bloom_filter_bits();
+    if (filter & bits) != bits {
         return false;
     }
     let name_ptr = local_name.as_ptr();

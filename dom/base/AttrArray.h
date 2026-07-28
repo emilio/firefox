@@ -258,7 +258,8 @@ class AttrArray {
     ~Impl();
 
     bool MayContain(const nsAtom* aLocalName) const {
-      return mAttrBloomFilter & aLocalName->SingleBloomFilterBit();
+      const uint64_t bits = aLocalName->BloomFilterBits();
+      return (mAttrBloomFilter & bits) == bits;
     }
 
     uint32_t mAttrCount;
