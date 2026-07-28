@@ -61,6 +61,9 @@ void ServoElementSnapshot::AddAttrs(const Element& aElement,
 
   uint32_t attrCount = aElement.GetAttrCount();
   mAttrs.SetCapacity(attrCount);
+  // NOTE: we could compute a more precise filter really, but let's copy for
+  // now.
+  mAttrsFilter = aElement.GetAttrs().GetAttrBloomFilter();
   for (uint32_t i = 0; i < attrCount; ++i) {
     const BorrowedAttrInfo info = aElement.GetAttrInfoAt(i);
     MOZ_ASSERT(info);

@@ -63,6 +63,10 @@ class nsAtom {
   bool IsStatic() const { return mIsStatic; }
   bool IsDynamic() const { return !IsStatic(); }
 
+  // Returns a one-bit pattern suitable for use as a simple 1-bit bloom filter.
+  // Uses the upper hash bits for better distribution.
+  uint32_t SingleBloomFilterBit() const { return 1u << ((mHash >> 27) & 31); }
+
   inline const nsStaticAtom* AsStatic() const;
   inline const nsDynamicAtom* AsDynamic() const;
   inline nsDynamicAtom* AsDynamic();

@@ -90,7 +90,7 @@ impl GeckoElementSnapshot {
         local_name: &LocalName,
         operation: &AttrSelectorOperation<&AttrValue>,
     ) -> bool {
-        snapshot_helpers::attr_matches(&self.mAttrs, ns, local_name, operation)
+        snapshot_helpers::attr_matches(&self.mAttrs, self.mAttrsFilter, ns, local_name, operation)
     }
 }
 
@@ -123,22 +123,23 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return None;
         }
 
-        snapshot_helpers::get_id(&*self.mAttrs)
+        snapshot_helpers::get_id(&*self.mAttrs, self.mAttrsFilter)
     }
 
     #[inline]
     fn is_part(&self, name: &AtomIdent) -> bool {
-        let attr = match snapshot_helpers::find_attr(&*self.mAttrs, &atom!("part")) {
-            Some(attr) => attr,
-            None => return false,
-        };
+        let attr =
+            match snapshot_helpers::find_attr(&*self.mAttrs, self.mAttrsFilter, &atom!("part")) {
+                Some(attr) => attr,
+                None => return false,
+            };
 
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
     }
 
     #[inline]
     fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
-        snapshot_helpers::imported_part(&*self.mAttrs, name)
+        snapshot_helpers::imported_part(&*self.mAttrs, self.mAttrsFilter, name)
     }
 
     #[inline]
