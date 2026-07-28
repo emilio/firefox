@@ -261,10 +261,11 @@ impl WeakAtom {
         self.0.mIsStatic() != 0
     }
 
-    /// See nsAtom::SingleBloomFilterBit().
+    /// See nsAtom::BloomFilterBits().
     #[inline]
-    pub fn single_bloom_filter_bit(&self) -> u64 {
-        1u64 << ((self.get_hash() >> 26) & 63)
+    pub fn bloom_filter_bits(&self) -> u64 {
+        let hash = self.get_hash();
+        (1u64 << ((hash >> 26) & 63)) | (1u64 << ((hash >> 20) & 63))
     }
 
     /// Returns whether this atom is ascii lowercase.

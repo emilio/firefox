@@ -63,12 +63,18 @@ class nsAtom {
   bool IsStatic() const { return mIsStatic; }
   bool IsDynamic() const { return !IsStatic(); }
 
-  // Returns a one-bit pattern suitable for use as a simple k=1 bloom filter.
-  // Uses the upper hash bits, which are better distributed than the lower ones.
+  // Returns a two-bit pattern suitable for use as a simple k=2 bloom filter of
+  // 64 bits. Uses two disjoint fields of the upper hash bits, which are better
+  // distributed than the lower ones.
   //
-  // NOTE(emilio): Must be kept in sync with single_bloom_filter_bit() on the
-  // rust side.
-  uint64_t SingleBloomFilterBit() const { return 1ULL << ((mHash >> 26) & 63); }
+  // Note that testing membership needs to check that _all_ the bits are
+  // present, that is, (filter & bits) == bits.
+  //
+  // NOTE(emilio): Must be kept in sync with bloom_filter_bits() on the rust
+  // side.
+  uint64_t BloomFilterBits() const {
+    return (1ULL << ((mHash >> 26) & 63)) | (1ULL << ((mHash >> 20) & 63));
+  }
 
   inline const nsStaticAtom* AsStatic() const;
   inline const nsDynamicAtom* AsDynamic() const;

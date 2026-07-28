@@ -128,10 +128,11 @@ impl ElementSnapshot for GeckoElementSnapshot {
 
     #[inline]
     fn is_part(&self, name: &AtomIdent) -> bool {
-        let attr = match snapshot_helpers::find_attr(&*self.mAttrs, self.mAttrsFilter, &atom!("part")) {
-            Some(attr) => attr,
-            None => return false,
-        };
+        let attr =
+            match snapshot_helpers::find_attr(&*self.mAttrs, self.mAttrsFilter, &atom!("part")) {
+                Some(attr) => attr,
+                None => return false,
+            };
 
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
     }
