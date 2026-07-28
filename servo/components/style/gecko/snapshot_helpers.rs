@@ -106,7 +106,7 @@ impl structs::nsAttrName {
 #[inline(always)]
 pub fn find_attr<'a>(
     attrs: &'a [structs::AttrArray_InternalAttr],
-    filter: u32,
+    filter: u64,
     name: &Atom,
 ) -> Option<&'a structs::nsAttrValue> {
     if (filter & name.single_bloom_filter_bit()) == 0 {
@@ -120,14 +120,14 @@ pub fn find_attr<'a>(
 
 /// Finds the id attribute from a list of attributes.
 #[inline(always)]
-pub fn get_id(attrs: &[structs::AttrArray_InternalAttr], filter: u32) -> Option<&WeakAtom> {
+pub fn get_id(attrs: &[structs::AttrArray_InternalAttr], filter: u64) -> Option<&WeakAtom> {
     Some(unsafe { get_id_from_attr(find_attr(attrs, filter, &atom!("id"))?) })
 }
 
 #[inline(always)]
 pub(super) fn each_exported_part(
     attrs: &[structs::AttrArray_InternalAttr],
-    filter: u32,
+    filter: u64,
     name: &AtomIdent,
     mut callback: impl FnMut(&AtomIdent),
 ) {
@@ -151,7 +151,7 @@ pub(super) fn each_exported_part(
 #[inline(always)]
 pub(super) fn imported_part(
     attrs: &[structs::AttrArray_InternalAttr],
-    filter: u32,
+    filter: u64,
     name: &AtomIdent,
 ) -> Option<AtomIdent> {
     let attr = find_attr(attrs, filter, &atom!("exportparts"))?;
@@ -253,7 +253,7 @@ pub fn classes_changed<E: TElement>(element: &E, snapshots: &SnapshotMap) -> Sma
 #[inline(always)]
 pub(crate) fn attr_matches(
     attrs: &[structs::AttrArray_InternalAttr],
-    filter: u32,
+    filter: u64,
     ns: &NamespaceConstraint<&Namespace>,
     local_name: &LocalName,
     operation: &AttrSelectorOperation<&AttrValue>,
