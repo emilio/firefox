@@ -81,7 +81,7 @@ struct AttrAtomArray {
 
   AtomArray mArray;
   // Minimal bloom filter for fast rejection of CSS class selectors.
-  uint32_t mBloomFilter = 0;
+  uint64_t mBloomFilter = 0;
   mutable bool mMayContainDuplicates = false;
 };
 

@@ -669,7 +669,7 @@ impl<'le> GeckoElement<'le> {
     }
 
     #[inline(always)]
-    fn attrs(&self) -> (&[structs::AttrArray_InternalAttr], u32) {
+    fn attrs(&self) -> (&[structs::AttrArray_InternalAttr], u64) {
         unsafe {
             if !self.has_attr_impl() {
                 return (&[], 0);

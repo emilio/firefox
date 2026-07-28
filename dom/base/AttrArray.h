@@ -257,7 +257,7 @@ class AttrArray {
     Impl(Impl&&) = delete;
     ~Impl();
 
-    bool MayContain(const nsAtom* aLocalName) {
+    bool MayContain(const nsAtom* aLocalName) const {
       return mAttrBloomFilter & aLocalName->SingleBloomFilterBit();
     }
 
@@ -276,13 +276,13 @@ class AttrArray {
     // Combined bloom filter (63 bits) for both classes and attributes
     //   Bit 0: Always 1 to match tagged pointer implementation.
     //   Bits 1-63: Combined bloom filter (63 bits)
-    uint64_t mSubtreeBloomFilter;
+    uint64_t mSubtreeBloomFilter = 0xFFFFFFFFFFFFFFFFULL;
 
-    // Bloom filter of attribute names.
-    uint32_t mAttrBloomFilter;
+    // Bloom filter of attribute local names.
+    uint64_t mAttrBloomFilter = 0;
 
    public:
-    Impl() : mSubtreeBloomFilter(0xFFFFFFFFFFFFFFFFULL), mAttrBloomFilter(0) {}
+    Impl() {}
 
     // Allocated in the same buffer as `Impl`.
     InternalAttr mBuffer[0];
@@ -343,7 +343,7 @@ class AttrArray {
   }
 
  public:
-  uint32_t GetAttrBloomFilter() const {
+  uint64_t GetAttrBloomFilter() const {
     return HasImpl() ? GetImpl()->mAttrBloomFilter : 0;
   }
 
