@@ -1362,8 +1362,10 @@ static inline void MapLangAttributeInto(MappedDeclarationsBuilder& aBuilder) {
   // so that code checking for particular codes can assume canonical casing.
   // Note that in some cases this will also map 3-character ISO 639-3 tags to
   // their corresponding 2-char ISO 639-1 tags.
+  //
+  // FIXME(emilio): We don't bother doing this for xml:lang... Should we?
   RefPtr<nsAtom> lang = langValue->GetAtomValue();
-  nsAtomCString langStr(lang);
+  nsAutoAtomCString langStr(lang);
   intl::Locale loc;
   if (intl::LocaleParser::TryParse(langStr, loc).isOk() &&
       loc.Canonicalize().isOk()) {
@@ -1374,7 +1376,7 @@ static inline void MapLangAttributeInto(MappedDeclarationsBuilder& aBuilder) {
     }
   }
 
-  aBuilder.SetIdentAtomValueIfUnset(eCSSProperty__x_lang, lang);
+  aBuilder.SetIdentAtomValue(eCSSProperty__x_lang, lang);
   if (!aBuilder.PropertyIsSet(eCSSProperty_text_emphasis_position)) {
     if (nsStyleUtil::MatchesLanguagePrefix(lang, u"zh")) {
       aBuilder.SetKeywordValue(eCSSProperty_text_emphasis_position,
@@ -1395,6 +1397,8 @@ static inline void MapLangAttributeInto(MappedDeclarationsBuilder& aBuilder) {
 void nsGenericHTMLElement::MapCommonAttributesIntoExceptHidden(
     MappedDeclarationsBuilder& aBuilder) {
   MapLangAttributeInto(aBuilder);
+  // Intentionally after `lang`, so it overrides if needed.
+  MapXmlLangAttrInto(aBuilder);
 }
 
 void nsGenericHTMLElement::MapCommonAttributesInto(

@@ -434,6 +434,7 @@ static constexpr uint8_t cmemmemi(const char (&needle)[N],
 
 void MathMLElement::MapGlobalMathMLAttributesInto(
     MappedDeclarationsBuilder& aBuilder) {
+  MapXmlLangAttrInto(aBuilder);
   // scriptlevel
   // https://w3c.github.io/mathml-core/#dfn-scriptlevel
   const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::scriptlevel);

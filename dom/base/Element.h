@@ -523,6 +523,13 @@ class Element : public FragmentOrElement {
    * Is the attribute named aAttribute in the null namespace a mapped attribute?
    */
   virtual bool IsNoNamespaceAttrMapped(const nsAtom* aAttribute) const;
+  bool IsAttrMapped(int32_t aNamespaceID, const nsAtom* aAttribute) const {
+    if (aNamespaceID == kNameSpaceID_None) {
+      return IsNoNamespaceAttrMapped(aAttribute);
+    }
+    // xml:lang is always mapped.
+    return aNamespaceID == kNameSpaceID_XML && aAttribute == nsGkAtoms::lang;
+  }
 
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
   void UnbindFromTree(UnbindContext&) override;
@@ -541,7 +548,7 @@ class Element : public FragmentOrElement {
   void RecomputeContainerTimingRootForSubtree();
 
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
-  static void MapNoAttributesInto(mozilla::MappedDeclarationsBuilder&);
+  static void MapXmlLangAttrInto(mozilla::MappedDeclarationsBuilder&);
 
   /**
    * Get a hint that tells the style system what to do when

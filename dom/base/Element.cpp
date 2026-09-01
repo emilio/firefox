@@ -3431,10 +3431,19 @@ bool Element::IsNoNamespaceAttrMapped(const nsAtom* aAttribute) const {
 }
 
 nsMapRuleToAttributesFunc Element::GetAttributeMappingFunction() const {
-  return &MapNoAttributesInto;
+  return &MapXmlLangAttrInto;
 }
 
-void Element::MapNoAttributesInto(mozilla::MappedDeclarationsBuilder&) {}
+void Element::MapXmlLangAttrInto(mozilla::MappedDeclarationsBuilder& aBuilder) {
+  const auto* value = aBuilder.GetAttr(kNameSpaceID_XML, nsGkAtoms::lang);
+  if (!value) {
+    return;
+  }
+  MOZ_ASSERT(value->Type() == nsAttrValue::eAtom);
+  // We set it unconditionally, if xml:lang and lang are both specified, this
+  // one wins, and is the caller's responsibility to call this last.
+  aBuilder.SetIdentAtomValue(eCSSProperty__x_lang, value->GetAtomValue());
+}
 
 nsChangeHint Element::GetAttributeChangeHint(const nsAtom* aAttribute,
                                              AttrModType) const {
@@ -4100,19 +4109,19 @@ nsresult Element::SetAttrAndNotify(
       hadValidDir = HasValidDir() || IsHTMLElement(nsGkAtoms::bdi);
       hadDirAuto = HasDirAuto();  // already takes bdi into account
     }
-
     MOZ_TRY(SetAndSwapAttr(aName, aParsedValue, &oldValueSet, aIsKnownNew));
-    if (IsNoNamespaceAttrMapped(aName) &&
-        !IsPendingMappedAttributeEvaluation()) {
-      mAttrs.InfallibleMarkAsPendingPresAttributeEvaluation();
-      if (Document* doc = GetComposedDoc()) {
-        doc->ScheduleForPresAttrEvaluation(this);
-      }
-    }
   } else {
     RefPtr<mozilla::dom::NodeInfo> ni = NodeInfoManager()->GetNodeInfo(
         aName, aPrefix, aNamespaceID, ATTRIBUTE_NODE);
     MOZ_TRY(SetAndSwapAttr(ni, aParsedValue, &oldValueSet, aIsKnownNew));
+  }
+
+  if (IsAttrMapped(aNamespaceID, aName) &&
+      !IsPendingMappedAttributeEvaluation()) {
+    mAttrs.InfallibleMarkAsPendingPresAttributeEvaluation();
+    if (Document* doc = GetComposedDoc()) {
+      doc->ScheduleForPresAttrEvaluation(this);
+    }
   }
 
   // If the old value owns its own data, we know it is OK to keep using it.
@@ -4485,17 +4494,16 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
   bool hadValidDir = false;
   bool hadDirAuto = false;
 
-  if (aNameSpaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::dir) {
-      hadValidDir = HasValidDir() || IsHTMLElement(nsGkAtoms::bdi);
-      hadDirAuto = HasDirAuto();  // already takes bdi into account
-    }
-    if (IsNoNamespaceAttrMapped(aName) &&
-        !IsPendingMappedAttributeEvaluation()) {
-      mAttrs.InfallibleMarkAsPendingPresAttributeEvaluation();
-      if (Document* doc = GetComposedDoc()) {
-        doc->ScheduleForPresAttrEvaluation(this);
-      }
+  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
+    hadValidDir = HasValidDir() || IsHTMLElement(nsGkAtoms::bdi);
+    hadDirAuto = HasDirAuto();  // already takes bdi into account
+  }
+
+  if (IsAttrMapped(aNameSpaceID, aName) &&
+      !IsPendingMappedAttributeEvaluation()) {
+    mAttrs.InfallibleMarkAsPendingPresAttributeEvaluation();
+    if (Document* doc = GetComposedDoc()) {
+      doc->ScheduleForPresAttrEvaluation(this);
     }
   }
 

@@ -201,6 +201,11 @@ class MOZ_STACK_CLASS MappedDeclarationsBuilder final {
     return mElement.GetParsedAttr(aName);
   }
 
+  const nsAttrValue* GetAttr(int32_t aNamespaceID, nsAtom* aName) {
+    MOZ_ASSERT(mElement.IsAttrMapped(aNamespaceID, aName));
+    return mElement.GetParsedAttr(aName, aNamespaceID);
+  }
+
  private:
   StyleLockedDeclarationBlock& EnsureDecls() {
     if (!mDecls) {
