@@ -1513,16 +1513,13 @@ struct nsGridContainerFrame::TrackSizingFunctions {
       ExpandNonRepeatAutoTracks();
     }
     if (mHasRepeatAuto) {
-      if (mRepeatAutoStart > kMaxTrack) {
-        // The `repeat(auto-fill/fit)` track is outside the clamped grid.
+      if (NumRepeatTracks() == 0) [[unlikely]] {
+        // We ran out of room before expanding the `repeat(auto-fill/fit)`
+        // track, so it's outside the clamped grid.
         mHasRepeatAuto = false;
+      } else {
+        MOZ_ASSERT(mRepeatAutoStart < mExpandedTracks.Length());
       }
-      MOZ_ASSERT(mExpandedTracks.Length() >= 1);
-      // If the expanded tracks are out of range of the maximum track, we
-      // can't compare the repeat-auto start. It will be removed later during
-      // grid item placement in that situation.
-      MOZ_ASSERT_IF(mExpandedTracks.Length() < kMaxTrack,
-                    mRepeatAutoStart < mExpandedTracks.Length());
     }
   }
 
