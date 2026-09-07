@@ -182,11 +182,11 @@ class CommonBackend(BuildBackend):
 
         elif isinstance(obj, GeneratedFile):
             for f in obj.outputs:
-                if f == "cbindgen-metadata.json":
+                if f in ("cbindgen-metadata.json", "cargo-metadata.json"):
                     # FIXME (bug 1865785)
                     #
-                    # The content of cbindgen-metadata.json is not sorted and
-                    # the order is not consistent across multiple runs.
+                    # The content of these files is not sorted and the order
+                    # is not consistent across multiple runs.
                     #
                     # Exclude this file in order to avoid breaking the
                     # taskcluster/kinds/diffoscope/reproducible.yml jobs.

@@ -40,10 +40,25 @@ def _run_process(args):
 
 
 def generate_metadata(output, cargo_config):
+    """Metadata for cbindgen, with every feature enabled so that it can find
+    any crate it's pointed at."""
+    return _generate_metadata(output, ["--all-features"])
+
+
+def generate_cargo_metadata(output, cargo_config):
+    """Metadata reflecting the crates that are actually part of the dependency
+    graph when building for the target, for tools that select them with
+    `cargo -p`."""
+    return _generate_metadata(
+        output, ["--filter-platform", buildconfig.substs["RUST_TARGET"]]
+    )
+
+
+def _generate_metadata(output, extra_args):
     args = [
         buildconfig.substs["CARGO"],
         "metadata",
-        "--all-features",
+        *extra_args,
         "--format-version",
         "1",
         "--manifest-path",

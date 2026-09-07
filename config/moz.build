@@ -114,3 +114,15 @@ if CONFIG["COMPILE_ENVIRONMENT"] and CONFIG["CBINDGEN"]:
         entry_point="generate_metadata",
         inputs=["!/.cargo/config.toml"],
     )
+
+if CONFIG["COMPILE_ENVIRONMENT"] and CONFIG["RUSTC"]:
+    # Same as above, but restricted to the crates that are actually part of the
+    # dependency graph when building for the target, for tools like `mach cargo
+    # --all-crates` and the clippy linter that need to know which crates they
+    # can select.
+    GeneratedFile(
+        "cargo-metadata.json",
+        script="/build/RunCbindgen.py",
+        entry_point="generate_cargo_metadata",
+        inputs=["!/.cargo/config.toml"],
+    )
