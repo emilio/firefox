@@ -177,10 +177,15 @@ def _cargo_config_yaml_schema():
 @CommandArgument(
     "--all-crates",
     action="store_true",
-    help="Check all of the crates in the tree.",
+    help="Check all of the first-party crates in the tree. Requires an existing build.",
 )
 @CommandArgument(
-    "-p", "--package", default=None, help="The specific crate name to check."
+    "-p",
+    "--package",
+    action="append",
+    default=None,
+    help="The specific crate name to check. May be passed several times; crates "
+    "that are not top-level ones are checked in a single cargo invocation.",
 )
 @CommandArgument(
     "--jobs",
@@ -281,97 +286,79 @@ def cargo(
 
     if command_context.substs.get("commtopsrcdir"):
         # Thunderbird uses its own gkrust, located in its own workspace.
-        gkrust_path = "comm/rust/gkrust"
-        gtest_path = "comm/rust/gtest"
+        directory = "comm/rust/gkrust"
     else:
-        gkrust_path = "toolkit/library/rust"
-        gtest_path = "toolkit/library/gtest/rust"
+        directory = "toolkit/library/rust"
 
-    # XXX duplication with `mach vendor rust`
-    crates_and_roots = {
-        "gkrust": {"directory": gkrust_path, "library": True},
-        "gkrust-gtest": {"directory": gtest_path, "library": True},
-        "geckodriver": {"directory": "testing/geckodriver", "library": False},
-    }
-
+    # Without an explicit package selection, the makefiles build gkrust the same
+    # way the regular build does (`--lib`, its features, and so on). Those
+    # arguments don't apply to other crates, so when selecting packages via `-p`
+    # pass the target explicitly instead and let the makefiles skip the
+    # automatically-computed arguments via CARGO_NO_AUTO_ARG below.
+    package_arg = ""
     if all_crates:
-        crates = crates_and_roots.keys()
+        # The top-level crates; everything else that gets built is a dependency
+        # of one of them. Since gkrust is selected, its features can be enabled
+        # too, matching the regular build. (Selecting every workspace member
+        # instead doesn't work, some of them only build on a single platform.)
+        package_arg = (
+            "-p gkrust -p gkrust-gtest -p geckodriver --target={arch} "
+            "--features {features},gkrust/mozilla-central-workspace-hack "
+        )
     elif package:
-        crates = [package]
-    else:
-        crates = ["gkrust"]
+        package_arg = "".join(f"-p {crate} " for crate in package) + "--target={arch} "
 
     if subcommand_args:
         subcommand_args = " ".join(subcommand_args)
 
-    for crate in crates:
-        crate_info = crates_and_roots.get(crate, None)
-        package_arg = ""
-        if not crate_info:
-            # Not one of the top-level crates we know how to build directly, assume it's
-            # other crate in the gkrust workspace and target it explicitly via `-p`.
-            #
-            # gkrust's features and lib/bin targets don't apply to an individual crate,
-            # so pass the target explicitly instead, and let the makefiles skip the
-            # automatically-computed arguments via CARGO_NO_AUTO_ARG below.
-            crate_info = crates_and_roots["gkrust"]
-            package_arg = f"-p {crate} --target={{arch}} "
+    targets = [
+        "force-cargo-library-%s" % cargo_command,
+        "force-cargo-host-library-%s" % cargo_command,
+        "force-cargo-program-%s" % cargo_command,
+        "force-cargo-host-program-%s" % cargo_command,
+    ]
 
-        targets = [
-            "force-cargo-library-%s" % cargo_command,
-            "force-cargo-host-library-%s" % cargo_command,
-            "force-cargo-program-%s" % cargo_command,
-            "force-cargo-host-program-%s" % cargo_command,
+    # you can use these variables in 'cargo_build_flags'
+    subst = {
+        "arch": '"$(RUST_TARGET)"',
+        "crate": "gkrust",
+        "directory": directory,
+        "features": '"$(RUST_LIBRARY_FEATURES)"',
+        "manifest": str(Path(topsrcdir / directory / "Cargo.toml")),
+        "target": "--lib",
+        "topsrcdir": str(topsrcdir),
+    }
+
+    extra_cli_flags = package_arg + subcommand_args if subcommand_args else package_arg
+    if extra_cli_flags:
+        targets = targets + [
+            "cargo_extra_cli_flags=%s" % (extra_cli_flags.format(**subst))
+        ]
+    if cargo_build_flags:
+        targets = targets + [
+            "cargo_build_flags=%s" % (cargo_build_flags.format(**subst))
         ]
 
-        directory = crate_info["directory"]
-        # you can use these variables in 'cargo_build_flags'
-        subst = {
-            "arch": '"$(RUST_TARGET)"',
-            "crate": crate,
-            "directory": directory,
-            "features": '"$(RUST_LIBRARY_FEATURES)"',
-            "manifest": str(Path(topsrcdir / directory / "Cargo.toml")),
-            "target": "--lib" if crate_info["library"] else "--bin " + crate,
-            "topsrcdir": str(topsrcdir),
-        }
+    append_env = {}
+    if cargo_extra_flags:
+        append_env["CARGO_EXTRA_FLAGS"] = cargo_extra_flags.format(**subst)
+    if message_format_json:
+        append_env["USE_CARGO_JSON_MESSAGE_FORMAT"] = "1"
+    if continue_on_error:
+        append_env["CARGO_CONTINUE_ON_ERROR"] = "1"
+    if cargo_build_flags or package_arg:
+        append_env["CARGO_NO_AUTO_ARG"] = "1"
 
-        extra_cli_flags = (
-            package_arg + subcommand_args if subcommand_args else package_arg
-        )
-        if extra_cli_flags:
-            targets = targets + [
-                "cargo_extra_cli_flags=%s" % (extra_cli_flags.format(**subst))
-            ]
-        if cargo_build_flags:
-            targets = targets + [
-                "cargo_build_flags=%s" % (cargo_build_flags.format(**subst))
-            ]
-
-        append_env = {}
-        if cargo_extra_flags:
-            append_env["CARGO_EXTRA_FLAGS"] = cargo_extra_flags.format(**subst)
-        if message_format_json:
-            append_env["USE_CARGO_JSON_MESSAGE_FORMAT"] = "1"
-        if continue_on_error:
-            append_env["CARGO_CONTINUE_ON_ERROR"] = "1"
-        if cargo_build_flags or package_arg:
-            append_env["CARGO_NO_AUTO_ARG"] = "1"
-
-        ret = command_context._run_make(
-            srcdir=False,
-            directory=directory,
-            ensure_exit_code=0,
-            silent=not verbose,
-            print_directory=False,
-            target=targets,
-            num_jobs=jobs,
-            append_env=append_env,
-        )
-        if ret != 0:
-            return ret
-
-    return 0
+    return command_context._run_make(
+        srcdir=False,
+        directory=directory,
+        ensure_exit_code=0,
+        silent=not verbose,
+        print_directory=False,
+        target=targets,
+        num_jobs=jobs,
+        append_env=append_env,
+    )
 
 
 @SubCommand(
