@@ -65,9 +65,11 @@ def handle_clippy_msg(config, line, log, base_path, files, lint_results):
                     return
 
                 l = detail["spans"][0]
+                p = os.path.join(base_path, l["file_name"])
+                # Dependencies of the requested crates get linted too, and
+                # some warnings point into generated code in the objdir.
                 if files and not in_sorted_list(files, p):
                     return
-                p = os.path.join(base_path, l["file_name"])
                 line = l["line_start"]
                 res = {
                     "path": p,
@@ -176,6 +178,16 @@ def lint(paths, config, log, root, substs=None, fix=None, **_lintargs):
     if errors:
         raise RuntimeError("\n".join(errors))
 
+    # Cargo may check a crate several times (e.g. host and target builds, or
+    # different feature sets), which would repeat every warning in it.
+    seen = set()
+    unique = []
+    for res in lint_results["results"]:
+        key = (res.path, res.lineno, res.column, res.rule, res.message)
+        if key not in seen:
+            seen.add(key)
+            unique.append(res)
+    lint_results["results"] = unique
     return lint_results
 
 
