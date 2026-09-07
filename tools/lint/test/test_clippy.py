@@ -1,13 +1,16 @@
+import os
 from unittest import mock
 
 import mozunit
 
 LINTER = "clippy"
 fixed = 0
+# Fake objdir holding the cargo metadata the linter reads.
+OBJDIR = os.path.join(os.path.dirname(__file__), "files", "clippy", "objdir")
 
 
 def test_good(lint, config, paths):
-    results = lint(paths("test1/good.rs"))
+    results = lint(paths("test1/good.rs"), topobjdir=OBJDIR)
     print(results)
     assert len(results) == 0
 
@@ -16,7 +19,7 @@ def test_basic(lint, config, paths):
     # Test basic linting functionality
     # Note: These tests may not produce clippy results if cargo/clippy aren't available
     # in the test environment, but they verify the code path works without crashes
-    results = lint(paths("test1/bad.rs"))
+    results = lint(paths("test1/bad.rs"), topobjdir=OBJDIR)
     print(results)
     # Verify the linting process completes and returns expected structure
     assert isinstance(results, list)
@@ -29,7 +32,7 @@ def test_basic(lint, config, paths):
 
 def test_multiple_files(lint, config, paths):
     # Test linting multiple files in a directory
-    results = lint(paths("test1/"))
+    results = lint(paths("test1/"), topobjdir=OBJDIR)
     print(results)
     # Should lint both good.rs and bad.rs files
     assert isinstance(results, list)
@@ -41,7 +44,7 @@ def test_multiple_files(lint, config, paths):
 
 def test_non_gkrust_crate(lint, config, paths):
     # Test the non-gkrust crate path (test2 directory)
-    results = lint(paths("test2/"))
+    results = lint(paths("test2/"), topobjdir=OBJDIR)
     print(results)
     # Verify the linting process handles non-gkrust crates
     assert isinstance(results, list)
@@ -63,10 +66,10 @@ def test_fix_gkrust(lint, paths, create_temp_file):
     path = create_temp_file(contents, "fixable.rs")
 
     # Run clippy without fix first to see baseline
-    results_before = lint([path], fix=False)
+    results_before = lint([path], fix=False, topobjdir=OBJDIR)
 
     # Run clippy with fix=True
-    results_after = lint([path], fix=True)
+    results_after = lint([path], fix=True, topobjdir=OBJDIR)
 
     # Verify that the linting process completed
     assert isinstance(results_before, list)
@@ -94,7 +97,7 @@ def test_fix_non_gkrust(lint, paths, create_temp_file):
     fixed_before = fixed
 
     # Run clippy with fix=True
-    results = lint([path], fix=True)
+    results = lint([path], fix=True, topobjdir=OBJDIR)
 
     # Verify that the linting process completed
     assert isinstance(results, list)
@@ -118,23 +121,36 @@ def test_gkrust_invocation_keeps_going_and_demotes_dwarnings(tmpdir):
     def fake_run(args, **kwargs):
         captured["args"] = args
         captured["env"] = kwargs.get("env") or {}
-        return mock.Mock(returncode=0, stdout="", stderr="")
+        return mock.Mock(
+            returncode=0,
+            stdout='{"reason":"build-finished","success":true}\n',
+            stderr="",
+        )
 
     config = {"warn": ["needless_return", "items_after_statements"], "deny": []}
     pg = clippy.PathGroup("gkrust", str(tmpdir))
+    crate_dir = tmpdir.mkdir("some_crate")
+    crate_dir.join("Cargo.toml").write('[package]\nname = "some_crate"\n')
+    lib_rs = crate_dir.join("lib.rs")
+    lib_rs.write("")
 
     with mock.patch.object(
         clippy.subprocess, "run", side_effect=fake_run
-    ), mock.patch.object(clippy, "expand_exclusions", return_value=[]):
+    ), mock.patch.object(clippy, "expand_exclusions", return_value=[lib_rs.strpath]):
         clippy.lint_gkrust(
             pg,
             config,
             mock.MagicMock(),
             False,
             str(tmpdir),
+            OBJDIR,
             {"results": [], "fixed": 0},
         )
 
+    assert captured["args"][captured["args"].index("-p") + 1] == "some_crate", (
+        "expected cargo to be pointed at the crate owning the linted path via "
+        "-p; got args={!r}".format(captured["args"])
+    )
     assert "--keep-going" in captured["args"], (
         "expected cargo to run with --keep-going so one failing crate doesn't "
         "skip lint coverage of the rest of the workspace; got args={!r}".format(
@@ -194,6 +210,57 @@ def test_driver_flags_warn_allow_deny_ordering():
     last_warn = max(i for i, f in enumerate(flags) if f == "-W")
     first_allow = min(i for i, f in enumerate(flags) if f == "-A")
     assert first_allow > last_warn
+
+
+def test_crate_name_for_path(tmpdir):
+    """Paths resolve to the closest enclosing Cargo.toml that has a [package]
+    section; workspace-only manifests are skipped and paths outside of any
+    crate yield None."""
+    import clippy
+
+    root = str(tmpdir)
+    tmpdir.join("Cargo.toml").write("[workspace]\nmembers = []\n")
+    crate = tmpdir.mkdir("crate")
+    crate.join("Cargo.toml").write('[package]\nname = "my_crate"\n')
+    nested = crate.mkdir("src").mkdir("nested")
+    nested.join("foo.rs").write("")
+    tmpdir.mkdir("other").join("bar.rs").write("")
+
+    cache = {}
+    assert (
+        clippy.crate_name_for_path(nested.join("foo.rs").strpath, root, cache)
+        == "my_crate"
+    )
+    assert clippy.crate_name_for_path(crate.strpath, root, cache) == "my_crate"
+    assert (
+        clippy.crate_name_for_path(tmpdir.join("other", "bar.rs").strpath, root, cache)
+        is None
+    )
+    # Every visited directory is cached, so the nested lookup is now O(1).
+    assert cache[nested.strpath] == "my_crate"
+    assert cache[tmpdir.join("other").strpath] is None
+
+    assert clippy.crates_for_paths(
+        [
+            nested.join("foo.rs").strpath,
+            crate.join("Cargo.toml").strpath,
+            tmpdir.join("other", "bar.rs").strpath,
+        ],
+        root,
+        mock.MagicMock(),
+    ) == ["my_crate"]
+
+
+def test_count_fixes():
+    import clippy
+
+    output = """{"reason":"build-finished","success":true}
+       Fixed servo/components/selectors/tree.rs (4 fixes)
+       Fixed servo/components/selectors/relative_selector/cache.rs (1 fix)
+    Checking selectors v0.24.0
+"""
+    assert clippy.count_fixes(output) == 5
+    assert clippy.count_fixes("") == 0
 
 
 def test_driver_flags_default_when_lists_absent():

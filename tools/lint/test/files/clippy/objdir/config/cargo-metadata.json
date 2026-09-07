@@ -1,0 +1,33 @@
+{
+  "packages": [
+    {
+      "name": "hello_world",
+      "id": "path+file:///fake/hello_world#0.1.0"
+    },
+    {
+      "name": "hello_world_2",
+      "id": "path+file:///fake/hello_world_2#0.1.0"
+    },
+    {
+      "name": "some_crate",
+      "id": "path+file:///fake/some_crate#0.1.0"
+    },
+    {
+      "name": "unused_patch",
+      "id": "path+file:///fake/unused_patch#0.1.0"
+    }
+  ],
+  "resolve": {
+    "nodes": [
+      {
+        "id": "path+file:///fake/hello_world#0.1.0"
+      },
+      {
+        "id": "path+file:///fake/hello_world_2#0.1.0"
+      },
+      {
+        "id": "path+file:///fake/some_crate#0.1.0"
+      }
+    ]
+  }
+}
