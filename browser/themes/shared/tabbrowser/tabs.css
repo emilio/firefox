@@ -972,8 +972,8 @@ tab-split-view-wrapper[dragtarget] {
   box-sizing: border-box;
   padding: var(--tab-content-button-padding);
   list-style-image: url(resource://content-accessible/close-12.svg);
-  background-color: var(--tab-close-button-background-color);
-  color: var(--tab-close-button-text-color);
+  background-color: var(--button-background-color-ghost);
+  color: var(--button-text-color-ghost);
   outline-color: var(--tab-close-button-border-color);
 
   /* Adjust border radius by the distance to the tab. This is a hardcoded approximation
@@ -981,14 +981,12 @@ tab-split-view-wrapper[dragtarget] {
   border-radius: calc(var(--tab-border-radius) - 3px);
 
   &:hover {
-    background-color: var(--tab-close-button-background-color-hover);
-    color: var(--tab-close-button-text-color-hover);
+    background-color: var(--button-background-color-ghost-hover);
     outline-color: var(--tab-close-button-border-color-hover);
   }
 
   &:hover:active {
-    background-color: var(--tab-close-button-background-color-active);
-    color: var(--tab-close-button-text-color-active);
+    background-color: var(--button-background-color-ghost-active);
     outline-color: var(--tab-close-button-border-color-active);
   }
 
@@ -2899,7 +2897,7 @@ tab-group {
        * We also apply one extra color on top (--close-button-extra-background)
        * for hover / active feedback.
        */
-      --close-button-extra-background: var(--tab-close-button-background-color);
+      --close-button-extra-background: var(--button-background-color-ghost);
       background-color: var(--lwt-accent-color);
       background-image: image(var(--close-button-extra-background)), image(var(--tab-background-color-selected)), image(var(--toolbox-background-color));
       color-scheme: var(--tab-selected-color-scheme);
@@ -2926,12 +2924,12 @@ tab-group {
       }
 
       &:hover {
-        --close-button-extra-background: var(--tab-close-button-background-color-hover);
+        --close-button-extra-background: var(--button-background-color-ghost-hover);
         outline-color: var(--tab-close-button-border-color-hover);
       }
 
       &:hover:active {
-        --close-button-extra-background: var(--tab-close-button-background-color-active);
+        --close-button-extra-background: var(--button-background-color-ghost-active);
         outline-color: var(--tab-close-button-border-color-active);
       }
 
