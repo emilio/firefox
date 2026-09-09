@@ -245,9 +245,6 @@ pub enum CascadeMode<'a, 'b> {
     Visited {
         /// The cascade for our unvisited style.
         unvisited_context: &'a computed::Context<'b>,
-        /// The properties set on the unvisited style. These are useful if we can prove that the
-        /// visited rules are the same as the unvisited declarations.
-        unvisited_properties: &'a LonghandIdSet,
     },
 }
 
@@ -351,10 +348,7 @@ where
     let mut attribute_tracker = AttributeTracker::new(element_context);
 
     let properties_to_apply = match cascade_mode {
-        CascadeMode::Visited {
-            unvisited_context,
-            unvisited_properties,
-        } => {
+        CascadeMode::Visited { unvisited_context } => {
             context.builder.substitution_functions =
                 unvisited_context.builder.substitution_functions.clone();
             context.builder.writing_mode = unvisited_context.builder.writing_mode;
@@ -363,16 +357,18 @@ where
             // It also wouldn't be super-profitable, only a handful :visited properties are
             // non-inherited.
             using_cached_reset_properties = false;
-            let visited_dependent_props = LonghandIdSet::visited_dependent();
             // If we match the same rules when visited and unvisited, and we know there isn't any
             // visited-dependent properties, we can avoid gathering the declarations, we know none
             // would be relevant.
             if unvisited_context.builder.rules.as_ref() != Some(rules)
-                || unvisited_properties.contains_any(visited_dependent_props)
+                || unvisited_context
+                    .builder
+                    .flags()
+                    .intersects(ComputedValueFlags::USES_VISITED_DEPENDENT_PROPERTIES)
             {
                 iter_declarations(iter, &mut declarations, None, &mut attribute_tracker);
             }
-            visited_dependent_props
+            LonghandIdSet::visited_dependent()
         },
         CascadeMode::Unvisited { .. } => {
             cascade.init_custom_properties(&mut context);
@@ -419,6 +415,7 @@ where
     context.builder.clear_modified_reset();
 
     if let CascadeMode::Unvisited { visited_rules } = cascade_mode {
+        // NOTE: This relies on finished_applying_properties() having already happened.
         if let Some(visited_rules) = visited_rules {
             cascade.compute_visited_style_if_needed(
                 &mut context,
@@ -1226,7 +1223,6 @@ impl<'a> Cascade<'a> {
             try_tactic,
             CascadeMode::Visited {
                 unvisited_context: &*context,
-                unvisited_properties: &self.seen.longhands,
             },
             // Cascade input flags don't matter for the visited style, they are
             // in the main (unvisited) style.
@@ -1256,6 +1252,16 @@ impl<'a> Cascade<'a> {
             }
         }
 
+        // NOTE: This uses self.seen.longhands, not author_specified, because some UA styles do
+        // specify visited-dependent properties.
+        if self
+            .seen
+            .longhands
+            .contains_any(LonghandIdSet::visited_dependent())
+        {
+            builder.add_flags(ComputedValueFlags::USES_VISITED_DEPENDENT_PROPERTIES);
+        }
+
         if self
             .author_specified
             .contains_any(LonghandIdSet::border_background_properties())
@@ -1274,6 +1280,7 @@ impl<'a> Cascade<'a> {
         if self.author_specified.contains(LonghandId::GridAutoFlow) {
             builder.add_flags(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_GRID_AUTO_FLOW);
         }
+
         #[cfg(feature = "servo")]
         {
             if let Some(font) = builder.get_font_if_mutated() {
@@ -1322,7 +1329,8 @@ impl<'a> Cascade<'a> {
             | ComputedValueFlags::USES_FONT_OR_WM_RELATIVE_UNITS
             | ComputedValueFlags::DEPENDS_ON_CONTAINER_STYLE_QUERY
             | ComputedValueFlags::USES_SIBLING_COUNT
-            | ComputedValueFlags::USES_SIBLING_INDEX;
+            | ComputedValueFlags::USES_SIBLING_INDEX
+            | ComputedValueFlags::USES_VISITED_DEPENDENT_PROPERTIES;
         context.builder.add_flags(style.flags & bits_to_copy);
 
         true
