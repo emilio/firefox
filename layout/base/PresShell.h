@@ -132,8 +132,12 @@ class ScrollAnchorContainer;
 }  // namespace layout
 
 // 039d8ffc-fa55-42d7-a53a-388cb129b052
-#define NS_PRESSHELL_IID \
-  {0x039d8ffc, 0xfa55, 0x42d7, {0xa5, 0x3a, 0x38, 0x8c, 0xb1, 0x29, 0xb0, 0x52}}
+#define NS_PRESSHELL_IID                             \
+  {                                                  \
+    0x039d8ffc, 0xfa55, 0x42d7, {                    \
+      0xa5, 0x3a, 0x38, 0x8c, 0xb1, 0x29, 0xb0, 0x52 \
+    }                                                \
+  }
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
 
@@ -381,7 +385,10 @@ class PresShell final : public nsStubDocumentObserver,
   enum class ResizeEventKind : uint8_t { Regular, Visual };
   void ScheduleResizeEventIfNeeded(ResizeEventKind = ResizeEventKind::Regular);
 
-  void PostScrollEvent(mozilla::Runnable*);
+  // Returns the current scroll event generation, which must be kept around by
+  // the caller to prevent duplicate scroll event entries.
+  [[nodiscard]] uint32_t PostScrollEvent(mozilla::Runnable*);
+  uint32_t GetScrollEventGeneration() const { return mScrollEventGeneration; }
 
   /**
    * Returns true if the document hosted by this presShell is in a devtools
@@ -3375,6 +3382,10 @@ class PresShell final : public nsStubDocumentObserver,
   nsTHashSet<ScrollContainerFrame*> mPendingScrollResnap;
   // Pending list of scroll/scrollend/etc events.
   nsTArray<RefPtr<Runnable>> mPendingScrollEvents;
+
+  // An always-non-zero generation number for scroll events. This lets callers
+  // know whether they've dispatched a scroll event this frame already.
+  uint32_t mScrollEventGeneration = 1;
 
   nsTHashSet<nsIContent*> mHiddenContentInForcedLayout;
 
