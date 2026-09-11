@@ -143,6 +143,13 @@ void nsFrameManager::CaptureFrameStateFor(nsIFrame* aFrame,
     return;
   }
 
+  if (aState->IsCapturingForSessionHistory()) {
+    // Scroll event generations are per-PresShell, so they're meaningless when
+    // restoring from session history.
+    frameState->scrollEventGeneration() = 0;
+    frameState->scrollEndEventGeneration() = 0;
+  }
+
   // Generate the hash key to store the state under
   // Exit early if we get empty key
   nsAutoCString stateKey;

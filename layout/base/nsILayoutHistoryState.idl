@@ -99,6 +99,13 @@ interface nsILayoutHistoryState : nsISupports
   [noscript, notxpcom, nostdcall] void SetScrollPositionOnly(in constBool aFlag);
 
   /**
+   * Whether we're capturing frame state for session history, rather than for
+   * frame reconstruction within the same PresShell.
+   */
+  [noscript, notxpcom, nostdcall] void SetCapturingForSessionHistory(in constBool aFlag);
+  [noscript, notxpcom, nostdcall] boolean IsCapturingForSessionHistory();
+
+  /**
    * Resets PresState::GetScrollState of all PresState objects to 0,0.
    */
   [noscript, notxpcom, nostdcall] void ResetScrollState();

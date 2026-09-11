@@ -18,14 +18,15 @@ using namespace mozilla;
 class nsLayoutHistoryState final : public nsILayoutHistoryState,
                                    public nsSupportsWeakReference {
  public:
-  nsLayoutHistoryState() : mScrollPositionOnly(false) {}
+  nsLayoutHistoryState() = default;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSILAYOUTHISTORYSTATE
 
  private:
   ~nsLayoutHistoryState() = default;
-  bool mScrollPositionOnly;
+  bool mScrollPositionOnly = false;
+  bool mCapturingForSessionHistory = false;
 
   nsTHashMap<nsCString, UniquePtr<PresState>> mStates;
 };
@@ -134,6 +135,14 @@ void nsLayoutHistoryState::SetScrollPositionOnly(const bool aFlag) {
   mScrollPositionOnly = aFlag;
 }
 
+void nsLayoutHistoryState::SetCapturingForSessionHistory(const bool aFlag) {
+  mCapturingForSessionHistory = aFlag;
+}
+
+bool nsLayoutHistoryState::IsCapturingForSessionHistory() {
+  return mCapturingForSessionHistory;
+}
+
 void nsLayoutHistoryState::ResetScrollState() {
   for (const auto& state : mStates.Values()) {
     if (state) {
@@ -168,6 +177,8 @@ UniquePtr<PresState> NewPresState() {
       /* resolution */ 1.0,
       /* disabledSet */ false,
       /* disabled */ false,
-      /* droppedDown */ false);
+      /* droppedDown */ false,
+      /* scrollEventGeneration */ 0,
+      /* scrollEndEventGeneration */ 0);
 }
 }  // namespace mozilla
