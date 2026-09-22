@@ -79,6 +79,14 @@ notes = "This is upstream plus a build fix from rust-windowing/gl-rs#566. Can be
 audit-as-crates-io = true
 notes = "This is upstream plus servo/gleam#235. Can be removed once PR is merged upstream."
 
+[policy.glean]
+audit-as-crates-io = true
+notes = "Local patch"
+
+[policy.glean-core]
+audit-as-crates-io = true
+notes = "Local patch"
+
 [policy.gluesmith]
 criteria = "safe-to-run"
 notes = "Used for fuzzing."

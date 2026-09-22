@@ -443,3 +443,5 @@ gl_generator = { git = "https://github.com/jamienicol/gl-rs", rev = "71c792dbfe0
 
 # Implement mach2 0.4 in terms of 0.6
 mach2 = { path = "build/rust/mach2" }
+glean-core = { path = "../glean/glean-core" }
+glean = { path = "../glean/glean-core/rlb" }
