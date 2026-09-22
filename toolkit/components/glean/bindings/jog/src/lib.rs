@@ -4,7 +4,9 @@
 
 use firefox_on_glean::factory;
 use firefox_on_glean::private::traits::HistogramType;
-use firefox_on_glean::private::{CommonMetricData, Lifetime, MemoryUnit, TimeUnit};
+use firefox_on_glean::private::{
+    intern, intern_list, CommonMetricData, Lifetime, MemoryUnit, TimeUnit,
+};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
 use nsstring::{nsACString, nsAString, nsCString};
 use serde::Deserialize;
@@ -23,11 +25,40 @@ struct ExtraMetricArgs {
     range_max: Option<i64>,
     bucket_count: Option<i64>,
     histogram_type: Option<HistogramType>,
-    numerators: Option<Vec<CommonMetricData>>,
+    numerators: Option<Vec<NumeratorArgs>>,
     ordered_labels: Option<Vec<Cow<'static, str>>>,
     permit_non_commutative_operations_over_ipc: Option<bool>,
     ordered_keys: Option<Vec<Cow<'static, str>>>,
     ordered_categories: Option<Vec<Cow<'static, str>>>,
+}
+
+/// The `CommonMetricData` of an external denominator's numerator, as found in
+/// the jogfile (as a list, in this field order) or in test-only JSON (as a map).
+#[derive(Deserialize)]
+struct NumeratorArgs {
+    name: String,
+    category: String,
+    send_in_pings: Vec<String>,
+    lifetime: Lifetime,
+    disabled: bool,
+    #[serde(default)]
+    in_session: bool,
+    #[serde(default, rename = "label")]
+    _label: Option<serde::de::IgnoredAny>,
+}
+
+impl From<NumeratorArgs> for CommonMetricData {
+    fn from(args: NumeratorArgs) -> Self {
+        CommonMetricData {
+            name: intern(&args.name),
+            category: intern(&args.category),
+            send_in_pings: intern_list(&args.send_in_pings),
+            lifetime: args.lifetime,
+            disabled: args.disabled,
+            in_session: args.in_session,
+            ..Default::default()
+        }
+    }
 }
 
 /// Test-only method.
@@ -195,7 +226,9 @@ fn create_and_register_metric(
         extra_args.range_max,
         extra_args.bucket_count,
         extra_args.histogram_type,
-        extra_args.numerators,
+        extra_args
+            .numerators
+            .map(|numerators| numerators.into_iter().map(Into::into).collect()),
         extra_args.ordered_labels,
         extra_args.permit_non_commutative_operations_over_ipc,
         extra_args.ordered_keys,

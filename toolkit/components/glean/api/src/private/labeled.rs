@@ -263,12 +263,9 @@ mod private {
                 .expect("write lock of TIMING_DISTRIBUTION_MAP was poisoned");
             let submetric = map.entry(submetric_id).or_insert_with(|| {
                 let submetric = if need_ipc() {
-                    use glean::MetricIdentifier;
-                    let m = metric.get(label);
-                    let (name, category, _) = m.get_identifiers();
                     LabeledTimingDistributionMetric {
                         inner: Arc::new(TimingDistributionMetric::new_child(
-                            ChildMetricMeta::from_name_category_pair(id, name, category),
+                            ChildMetricMeta::from_metric_identifier(id, &*metric.get(label)),
                             TimeUnit::Millisecond,
                         )),
                         parent_id: id,
@@ -354,9 +351,9 @@ impl<T> AllowLabeled for T where T: private::Sealed {}
 ///
 /// mod error {
 ///     pub static seen_one: Lazy<LabeledMetric<BooleanMetric, DynamicLabel>> = Lazy::new(|| LabeledMetric::new(LabeledMetricData::Common{ cmd: CommonMetricData {
-///         name: "seen_one".into(),
-///         category: "error".into(),
-///         send_in_pings: vec!["ping".into()],
+///         name: "seen_one",
+///         category: "error",
+///         send_in_pings: &["ping"],
 ///         disabled: false,
 ///         lifetime: Lifetime::Ping,
 ///         ..Default::default()
@@ -511,9 +508,9 @@ mod test {
                 0.into(),
                 LabeledMetricData::Common {
                     cmd: CommonMetricData {
-                        name: "global".into(),
-                        category: "metric".into(),
-                        send_in_pings: vec!["test-ping".into()],
+                        name: "global",
+                        category: "metric",
+                        send_in_pings: &["test-ping"],
                         disabled: false,
                         ..Default::default()
                     },
@@ -539,14 +536,14 @@ mod test {
     #[test]
     fn sets_labeled_bool_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: &'static [&'static str] = &["test-ping"];
 
         let metric: LabeledMetric<LabeledBooleanMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
             LabeledMetricData::Common {
                 cmd: CommonMetricData {
-                    name: "bool".into(),
-                    category: "labeled".into(),
+                    name: "bool",
+                    category: "labeled",
                     send_in_pings: store_names,
                     disabled: false,
                     ..Default::default()
@@ -572,14 +569,14 @@ mod test {
     #[test]
     fn sets_labeled_string_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: &'static [&'static str] = &["test-ping"];
 
         let metric: LabeledMetric<LabeledStringMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
             LabeledMetricData::Common {
                 cmd: CommonMetricData {
-                    name: "string".into(),
-                    category: "labeled".into(),
+                    name: "string",
+                    category: "labeled",
                     send_in_pings: store_names,
                     disabled: false,
                     ..Default::default()
@@ -608,14 +605,14 @@ mod test {
     #[test]
     fn sets_labeled_counter_metrics() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: &'static [&'static str] = &["test-ping"];
 
         let metric: LabeledMetric<LabeledCounterMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
             LabeledMetricData::Common {
                 cmd: CommonMetricData {
-                    name: "counter".into(),
-                    category: "labeled".into(),
+                    name: "counter",
+                    category: "labeled",
                     send_in_pings: store_names,
                     disabled: false,
                     ..Default::default()
@@ -644,14 +641,14 @@ mod test {
     #[test]
     fn records_errors() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: &'static [&'static str] = &["test-ping"];
 
         let metric: LabeledMetric<LabeledBooleanMetric, DynamicLabel> = LabeledMetric::new(
             0.into(),
             LabeledMetricData::Common {
                 cmd: CommonMetricData {
-                    name: "bool".into(),
-                    category: "labeled".into(),
+                    name: "bool",
+                    category: "labeled",
                     send_in_pings: store_names,
                     disabled: false,
                     ..Default::default()
@@ -671,7 +668,7 @@ mod test {
     #[test]
     fn predefined_labels() {
         let _lock = lock_test();
-        let store_names: Vec<String> = vec!["test-ping".into()];
+        let store_names: &'static [&'static str] = &["test-ping"];
 
         #[allow(dead_code)]
         enum MetricLabels {
@@ -682,8 +679,8 @@ mod test {
             0.into(),
             LabeledMetricData::Common {
                 cmd: CommonMetricData {
-                    name: "bool".into(),
-                    category: "labeled".into(),
+                    name: "bool",
+                    category: "labeled",
                     send_in_pings: store_names,
                     disabled: false,
                     ..Default::default()

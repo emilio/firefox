@@ -22,8 +22,8 @@ use std::sync::Arc;
 ///
 /// mod browser {
 ///     pub static bread_recipe: Lazy<TextMetric> = Lazy::new(|| TextMetric::new(CommonMetricData {
-///         name: "bread_recipe".into(),
-///         category: "browser".into(),
+///         name: "bread_recipe",
+///         category: "browser",
 ///         lifetime: Lifetime::Ping,
 ///         disabled: false,
 ///         label: None

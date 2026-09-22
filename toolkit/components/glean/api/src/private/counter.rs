@@ -41,59 +41,6 @@ impl CounterMetric {
         }
     }
 
-    /// Special-purpose ctor for use by codegen.
-    /// Only useful if the metric is:
-    ///   * not disabled
-    ///   * lifetime: ping
-    ///   * and is sent in precisely one ping.
-    pub fn codegen_new(id: u32, category: &str, name: &str, ping: &str) -> Self {
-        if need_ipc() {
-            CounterMetric::Child(ChildMetricMeta::from_name_category_pair(
-                BaseMetricId(id),
-                name,
-                category,
-            ))
-        } else {
-            let inner = Arc::new(glean::private::CounterMetric::new(CommonMetricData {
-                category: category.into(),
-                name: name.into(),
-                send_in_pings: vec![ping.into()],
-                ..Default::default()
-            }));
-            CounterMetric::Parent {
-                id: BaseMetricId(id).into(),
-                inner,
-            }
-        }
-    }
-
-    /// Special-purpose ctor for use by codegen.
-    /// Only useful if the metric is:
-    ///   * disabled
-    ///   * lifetime: ping
-    ///   * and is sent in precisely one ping.
-    pub fn codegen_disabled_new(id: u32, category: &str, name: &str, ping: &str) -> Self {
-        if need_ipc() {
-            CounterMetric::Child(ChildMetricMeta::from_name_category_pair(
-                BaseMetricId(id),
-                name,
-                category,
-            ))
-        } else {
-            let inner = Arc::new(glean::private::CounterMetric::new(CommonMetricData {
-                category: category.into(),
-                name: name.into(),
-                send_in_pings: vec![ping.into()],
-                disabled: true,
-                ..Default::default()
-            }));
-            CounterMetric::Parent {
-                id: BaseMetricId(id).into(),
-                inner,
-            }
-        }
-    }
-
     #[cfg(test)]
     pub(crate) fn metric_id(&self) -> MetricId {
         match self {

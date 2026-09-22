@@ -266,9 +266,9 @@ mod test {
         let metric = MemoryDistributionMetric::new(
             BaseMetricId(0),
             CommonMetricData {
-                name: "memory_distribution_metric".into(),
-                category: "telemetry".into(),
-                send_in_pings: vec!["test-ping".into()],
+                name: "memory_distribution_metric",
+                category: "telemetry",
+                send_in_pings: &["test-ping"],
                 disabled: false,
                 ..Default::default()
             },

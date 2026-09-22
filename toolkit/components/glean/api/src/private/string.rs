@@ -23,8 +23,8 @@ use crate::ipc::need_ipc;
 ///
 /// mod browser {
 ///     pub static search_engine: Lazy<StringMetric> = Lazy::new(|| StringMetric::new(CommonMetricData {
-///         name: "search_engine".into(),
-///         category: "browser".into(),
+///         name: "search_engine",
+///         category: "browser",
 ///         lifetime: Lifetime::Ping,
 ///         disabled: false,
 ///         label: None

@@ -234,9 +234,9 @@ mod test {
         let metric = EventMetric::<NoExtraKeys>::new(
             BaseMetricId(0),
             CommonMetricData {
-                name: "event_metric".into(),
-                category: "telemetry".into(),
-                send_in_pings: vec!["test-ping".into()],
+                name: "event_metric",
+                category: "telemetry",
+                send_in_pings: &["test-ping"],
                 disabled: false,
                 ..Default::default()
             },

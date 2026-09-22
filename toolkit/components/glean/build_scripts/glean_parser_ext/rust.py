@@ -119,6 +119,10 @@ def api_type(obj):
 
 
 def str_slice(values):
+    # Sets (labels, keys, categories) have no meaningful order, so sort them for
+    # reproducible output. Lists (send_in_pings, extra keys) keep their order.
+    if isinstance(values, set):
+        values = sorted(values)
     return "&[" + ", ".join(json.dumps(v) for v in values) + "]"
 
 

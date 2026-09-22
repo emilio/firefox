@@ -76,9 +76,9 @@ impl MetricDef {
 
     fn cmd(&self) -> CommonMetricData {
         CommonMetricData {
-            name: self.name.into(),
-            category: self.category.into(),
-            send_in_pings: self.send_in_pings.iter().map(|p| (*p).into()).collect(),
+            name: self.name,
+            category: self.category,
+            send_in_pings: self.send_in_pings,
             lifetime: self.lifetime,
             disabled: self.disabled,
             in_session: self.in_session,
@@ -251,6 +251,7 @@ macro_rules! from_cmd {
 }
 
 from_cmd!(
+    CounterMetric,
     NumeratorMetric,
     RateMetric,
     StringMetric,
@@ -301,23 +302,6 @@ from_cmd_and_unit!(
     TimingDistributionMetric => time_unit,
     MemoryDistributionMetric => memory_unit,
 );
-
-impl FromDef for CounterMetric {
-    fn from_def(def: &MetricDef) -> Self {
-        // Same fast path codegen used for the (very common) ping-lifetime,
-        // single-ping counters such as use counters.
-        if def.lifetime == Lifetime::Ping && def.send_in_pings.len() == 1 {
-            let ping = def.send_in_pings[0];
-            if def.disabled {
-                CounterMetric::codegen_disabled_new(def.id, def.category, def.name, ping)
-            } else {
-                CounterMetric::codegen_new(def.id, def.category, def.name, ping)
-            }
-        } else {
-            CounterMetric::new(def.base_id(), def.cmd())
-        }
-    }
-}
 
 impl FromDef for CustomDistributionMetric {
     fn from_def(def: &MetricDef) -> Self {

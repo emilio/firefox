@@ -219,6 +219,12 @@ pub fn create_and_register_metric(
     categories: Option<Vec<Cow<'static, str>>>,
 ) -> Result<(u32, u32), Box<dyn std::error::Error>> {
     let metric_id = NEXT_METRIC_ID.fetch_add(1, Ordering::SeqCst);
+    // `CommonMetricData` only holds `'static` strings, and runtime metrics
+    // live for the rest of the process. Interning leaks each distinct string
+    // only once, so re-registering a metric doesn't grow memory.
+    let category = glean::intern(&category);
+    let name = glean::intern(&name);
+    let send_in_pings = glean::intern_list(&send_in_pings);
     let metric32 = match metric_type {
         "boolean" => {
             let meta = CommonMetricData {

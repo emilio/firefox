@@ -4,12 +4,14 @@
 
 //! The different metric types supported by the Glean SDK to handle data.
 
+use std::borrow::Cow;
+
 // Re-export of `glean` types we can re-use.
 // That way a user only needs to depend on this crate, not on glean (and there can't be a
 // version mismatch).
 pub use glean::{
-    traits, CommonMetricData, DistributionData, ErrorType, LabeledMetricData, Lifetime, MemoryUnit,
-    RecordedEvent, TimeUnit, TimerId,
+    intern, intern_list, traits, CommonMetricData, DistributionData, ErrorType, LabeledMetricData,
+    Lifetime, MemoryUnit, RecordedEvent, TimeUnit, TimerId,
 };
 
 #[macro_use]
@@ -86,16 +88,16 @@ pub use self::uuid::UuidMetric;
 #[derive(Debug, Clone)]
 pub struct ChildMetricMeta {
     pub id: BaseMetricId,
-    pub name: String,
-    pub category: String,
+    pub name: Cow<'static, str>,
+    pub category: Cow<'static, str>,
 }
 
 impl ChildMetricMeta {
     pub fn from_common_metric_data(id: BaseMetricId, meta: CommonMetricData) -> ChildMetricMeta {
         ChildMetricMeta {
             id,
-            name: meta.name,
-            category: meta.category,
+            name: Cow::Borrowed(meta.name),
+            category: Cow::Borrowed(meta.category),
         }
     }
 
@@ -106,20 +108,8 @@ impl ChildMetricMeta {
         let (name, category, _) = inner.get_identifiers();
         ChildMetricMeta {
             id,
-            name: name.into(),
-            category: category.into(),
-        }
-    }
-
-    pub fn from_name_category_pair<T, U>(id: BaseMetricId, name: T, category: U) -> ChildMetricMeta
-    where
-        T: Into<String>,
-        U: Into<String>,
-    {
-        ChildMetricMeta {
-            id,
-            name: name.into(),
-            category: category.into(),
+            name: name.to_string().into(),
+            category: category.to_string().into(),
         }
     }
 

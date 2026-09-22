@@ -312,9 +312,9 @@ mod test {
         let metric = TimespanMetric::new(
             BaseMetricId(0),
             CommonMetricData {
-                name: "timespan_metric".into(),
-                category: "telemetry".into(),
-                send_in_pings: vec!["test-ping".into()],
+                name: "timespan_metric",
+                category: "telemetry",
+                send_in_pings: &["test-ping"],
                 disabled: false,
                 ..Default::default()
             },

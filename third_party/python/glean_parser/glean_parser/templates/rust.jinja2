@@ -97,9 +97,9 @@ impl ExtraKeys for {{ obj.name|Camelize }}{{ suffix }} {
 {% endmacro %}
 {% macro common_metric_data(obj) %}
 CommonMetricData {
-    category: {{ obj.category|rust }},
-    name: {{ obj.name|rust }},
-    send_in_pings: {{ obj.send_in_pings|rust }},
+    category: {{ obj.category|tojson }},
+    name: {{ obj.name|tojson }},
+    send_in_pings: &[{% for ping in obj.send_in_pings %}{{ ping|tojson }}, {% endfor %}],
     lifetime: {{ obj.lifetime|rust }},
     disabled: {{ obj.is_disabled()|rust }},
     in_session: {{ obj.in_session|rust }},
