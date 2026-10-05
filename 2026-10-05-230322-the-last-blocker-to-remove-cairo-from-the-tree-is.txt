@@ -1,0 +1,608 @@
+ ▐▛███▛█   Claude Code v2.1.289
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   ~/src/moz/firefox-6
+
+
+❯ The last blocker to remove cairo from the tree is printing on windows,        
+  @gfx/cairo/cairo/src/win32/cairo-win32-gdi-compositor.c and co. It seems like 
+  a reasonable way to remove it without having to rasterize while printing      
+  would be to add a SkPdf-like back-end to Skia but that outputs GDI commands.  
+  Can you prototype such a thing? You have a windows cross build set up.        
+  ⎿  Read gfx/cairo/cairo/src/win32/cairo-win32-gdi-compositor.c (653 lines)
+
+● I'll start by looking at how Windows printing works today and at the build
+  setup.
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● A build is already in progress in the win-cross objdir. Meanwhile, let me map
+  out the Windows print path.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Now the Skia side: version, device API, and whether the old XPS device is
+  still vendored.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● Let me check what cairo's printing surface does natively (especially text and
+  transparency), since that's the bar to match.
+
+  Ran 7 shell commands (ctrl+o to expand)
+
+● Still surveying: I've mapped cairo's printing surface and the Skia device API,
+  and now I'm checking how the DC's coordinate scale gets set up before I
+  design the device.
+
+  Ran 4 shell commands (ctrl+o to expand)
+
+● On Windows, the print DrawTarget operates in printer device pixels and
+  content-process printing replays a Moz2D recording onto the parent's
+  PrintTarget::MakeDrawTarget, so an SkCanvas-backed target fits in the same way
+  as PrintTargetSkPDF. I'll now examine how SkPDF handles glyphs to reuse that
+  approach.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● I've got the full picture of the current path. Design is settled; now checking
+  the Skia internals I'll build on (clip-stack device, SkDocument, layer
+  creation).
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● I have what I need on the Skia side. One quick lookup for the clip-to-path
+  helper, then I'll write the device.
+
+  Ran 3 shell commands (ctrl+o to expand)
+
+● I'll create a Skia SkDocument backend for GDI printing in a new gfx/skia/gdi/
+  directory to keep it isolated from the vendored upstream tree, then wire
+  PrintTargetWindows to use it. First, I'm checking how gfx/skia's moz.build is
+  generated to add the file correctly.
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Checking a few Skia APIs that changed recently (path iteration, glyph-path
+  access, path builder) before I write the code:
+
+  Ran 5 shell commands (ctrl+o to expand)
+
+● Before writing the device, one check on how Moz2D's DrawTargetSkia implements
+  masked/opacity layers, since that determines what my createDevice() sees:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I've confirmed masked layers on non-pixel canvases use an opacity-1 saveLayer
+  with a kDstIn draw, and my analysis already correctly flags non-SrcOver draws
+  within pass-through layers for raster fallback. Now checking two more
+  signatures.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Let me check cairo's ExtTextOut emission so I match its (well-tested) sign
+  conventions for ETO_PDY:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Confirmed: ETO_PDY y-deltas are inverted. Now how to safely identify a
+  DWrite-backed SkTypeface:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I have everything needed. Writing the backend now. Quick check of a few
+  remaining signatures (SkPath::isRect, SkPathVerb names, SkFontDescriptor,
+  recorder):
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Writing the header and implementation:
+
+● Write(gfx/skia/gdi/SkGDIDocument.h)
+  ⎿  Wrote 34 lines to gfx/skia/gdi/SkGDIDocument.h
+       1 /* This Source Code Form is subject to the terms of the Mozilla 
+         Public
+       2  * License, v. 2.0. If a copy of the MPL was not distributed wit
+       3  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+       4 
+       5 #ifndef SkGDIDocument_DEFINED
+       6 #define SkGDIDocument_DEFINED
+       8 #include "include/core/SkDocument.h"
+       9 #include "include/core/SkRefCnt.h"
+      10 #include "include/core/SkScalar.h"
+     … +33 lines (ctrl+o to expand)
+
+● Write(gfx/skia/gdi/SkGDIDocument.cpp)
+  ⎿  Wrote 1129 lines to gfx/skia/gdi/SkGDIDocument.cpp
+       1 /* This Source Code Form is subject to the terms of the Mozilla 
+       2  * License, v. 2.0. If a copy of the MPL was not distributed wit
+         h this
+       4 
+       5 // A document-style SkDevice which turns Skia drawing into GDI c
+       6 //
+       7 // GDI can only express a subset of the Skia drawing model: alia
+       8 // opaque bitmaps, and text. Every page is therefore recorded in
+         to an SkPicture, and then played
+      10 //
+     … +1310 lines (ctrl+o to expand)
+
+● Let me verify a few semantics I relied on (hairline output of
+  FillPathWithPaint, typeface accessor, SkCanvas(sk_sp<SkDevice>)):
+  Ran 2 shell commands (ctrl+o to expand)
+
+● Bash(cd /home/emilio/src/moz/firefox-6/gfx/skia/gdi; sed -i
+      's/font.getTypefaceOrDefault()/font.getTypeface()/' SkGDIDocument.cpp; sed
+      -i 's|#include "include/pathop…)
+  ⎿  41:#include "include/private/base/SkTPin.h"
+     945:        const LOGFONTW* baseLogFont = fPage->fCaches->logFontFor(*
+     font.getTypeface());
+  ⎿  Updated gfx/skia/gdi/SkGDIDocument.cpp (+3 -1)
+      37  #include "include/core/SkShader.h"
+      38  #include "include/core/SkVertices.h"
+      39  #include "include/pathops/SkPathOps.h"
+      40 +#include "include/private/base/SkFloatingPoint.h"              
+      41 +#include "include/private/base/SkTPin.h"                       
+      42  #include "src/core/SkClipStack.h"
+      43  #include "src/core/SkClipStackDevice.h"
+      44  #include "src/core/SkFontDescriptor.h"
+     ...
+      942          if (ctm.hasPerspective()) {
+      943              return false;
+      944          }
+      943 -        const LOGFONTW* baseLogFont = fPage->fCaches->logFontF
+          -or(*font.getTypefaceOrDefault());                             
+      945 +        const LOGFONTW* baseLogFont = fPage->fCaches->logFontF
+          +or(*font.getTypeface());                                      
+      946          if (!baseLogFont) {
+      947              return false;
+      948          }
+
+● The file grew to ~950 lines, so something reformatted it on disk. Let me look:
+
+  Ran 2 shell commands (ctrl+o to expand)
+
+● No duplication after all — the length was just as expected, and the "changed"
+  notice came from my own sed edit. Now I'll wire this into the build, updating
+  both the generated moz.build and its generator so it survives a future Skia
+  update.
+
+● Bash(cd /home/emilio/src/moz/firefox-6/gfx/skia; python3 - <<'EOF'
+      import re…)
+  ⎿   gfx/skia/generate_mozbuild.py | 3 +++
+      gfx/skia/moz.build            | 3 +++
+      2 files changed, 6 insertions(+)
+  ⎿  Updated gfx/skia/generate_mozbuild.py (+3 -0)
+      44  if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+      45      DEFINES['UNICODE'] = True
+      46      DEFINES['_UNICODE'] = True
+      47 +    SOURCES += [                                               
+      48 +        'gdi/SkGDIDocument.cpp',                               
+      49 +    ]                                                          
+      50  
+      51  # We should autogenerate these SSE related flags.
+      52  
+  ⎿  Updated gfx/skia/moz.build (+3 -0)
+      596  if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+      597      DEFINES['UNICODE'] = True
+      598      DEFINES['_UNICODE'] = True
+      599 +    SOURCES += [                                              
+      600 +        'gdi/SkGDIDocument.cpp',                              
+      601 +    ]                                                         
+      602  
+      603  # We should autogenerate these SSE related flags.
+      604  
+
+● Now PrintTargetWindows. I'll keep the cairo path behind a pref for A/B
+  comparison during prototyping. Checking existing print prefs:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Update(modules/libpref/init/StaticPrefList.yaml)
+  ⎿  Added 13 lines
+      17879    value: 101
+      17880    mirror: always
+      17881  
+      17882 +# Whether to print on Windows using Skia's GDI backend rathe
+            +r than cairo.                                               
+      17883 +- name: print.windows.skia-gdi.enabled                      
+      17884 +  type: RelaxedAtomicBool                                   
+      17885 +  value: true                                               
+      17886 +  mirror: always                                            
+      17887 +                                                            
+      17888 +# Resolution of the bitmaps used by the Skia GDI print backe
+            +nd for content that                                         
+      17889 +# GDI can't draw natively, in dots per inch.                
+      17890 +- name: print.windows.skia-gdi.raster-dpi                   
+      17891 +  type: RelaxedAtomicUint32                                 
+      17892 +  value: 300                                                
+      17893 +  mirror: always                                            
+      17894 +                                                            
+      17895  #-----------------------------------------------------------
+             ----------------
+      17896  # Prefs starting with "privacy."
+      17897  #-----------------------------------------------------------
+             ----------------
+
+● Write(gfx/thebes/PrintTargetWindows.h)
+  ⎿  Added 21 lines
+       6  #define MOZILLA_GFX_PRINTTARGETWINDOWS_H
+       7  
+       8  #include "PrintTarget.h"
+       9 +#include "skia/include/core/SkRefCnt.h"                        
+      10  
+      11  /* include windows.h for the HDC definitions that we need. */
+      12  #include <windows.h>
+      13  
+      14 +class SkCanvas;                                                
+      15 +class SkDocument;                                              
+      16 +                                                               
+      17  namespace mozilla {
+      18  namespace gfx {
+      19  
+      20  /**
+      21   * Windows printing target.
+      22 + *                                                             
+      23 + * Draws either through Skia's GDI document backend (SkGDIDocum
+         +ent) or, if                                                    
+      24 + * disabled, through cairo's win32 printing surface.           
+      25   */
+      26  class PrintTargetWindows final : public PrintTarget {
+      27   public:
+     ...
+      36    nsresult BeginPage(const IntSize& aSizeInPoints) override;
+      37    nsresult EndPage() override;
+      38  
+      39 +  already_AddRefed<DrawTarget> MakeDrawTarget(                 
+      40 +      const IntSize& aSize, DrawEventRecorder* aRecorder = null
+         +ptr) final;                                                    
+      41 +  already_AddRefed<DrawTarget> GetReferenceDrawTarget() final; 
+      42 +                                                               
+      43   private:
+      44    PrintTargetWindows(cairo_surface_t* aCairoSurface, const IntS
+          ize& aSize,
+      45                       HDC aDC);
+      46 +  PrintTargetWindows(sk_sp<SkDocument> aDocument, const IntSize
+         +& aSize,                                                       
+      47 +                     HDC aDC);                                 
+      48 +  ~PrintTargetWindows() override;                              
+      49 +                                                               
+      50    HDC mDC;
+      51 +                                                               
+      52 +  // Only used for Skia printing. The document draws into mDC, 
+         +and owns                                                       
+      53 +  // mPageCanvas, which is only valid between BeginPage() and E
+         +ndPage().                                                      
+      54 +  sk_sp<SkDocument> mDocument;                                 
+      55 +  SkCanvas* mPageCanvas = nullptr;                             
+      56 +  RefPtr<DrawTarget> mPageDT;                                  
+      57  };
+      58  
+      59  }  // namespace gfx
+
+● Now the implementation side of PrintTargetWindows:
+
+● Bash(cd /home/emilio/src/moz/firefox-6; python3 - <<'EOF'
+      f = "gfx/thebes/PrintTargetWindows.cpp"…)
+  ⎿  diff --git a/gfx/thebes/PrintTargetWindows.cpp b/gfx/thebes/PrintTarge
+     tWindows.cpp
+     index 55cda783721f..1a8a166d995f 100644
+     … +3 lines (ctrl+o to expand)
+  ⎿  Updated gfx/thebes/PrintTargetWindows.cpp (+79 -6)
+       5  #include "PrintTargetWindows.h"
+       6  
+       7  #include "cairo-win32.h"
+       8 +#include "gdi/SkGDIDocument.h"                                 
+       9  #include "mozilla/StaticPrefs_browser.h"
+      10 +#include "mozilla/StaticPrefs_print.h"                         
+      11  #include "mozilla/WidgetUtils.h"
+      12  #include "mozilla/gfx/HelpersCairo.h"
+      13  #include "nsCoord.h"
+     ...
+      28    // 4 * mSize.width * mSize.height + sizeof(PrintTargetWindows
+          ) ?
+      29  }
+      30  
+      31 +PrintTargetWindows::PrintTargetWindows(sk_sp<SkDocument> aDocum
+         +ent,                                                           
+      32 +                                       const IntSize& aSize, HD
+         +C aDC)                                                         
+      33 +    : PrintTarget(/* not using cairo_surface_t */ nullptr, aSiz
+         +e),                                                            
+      34 +      mDC(aDC),                                                
+      35 +      mDocument(std::move(aDocument)) {}                       
+      36 +                                                               
+      37 +PrintTargetWindows::~PrintTargetWindows() = default;           
+      38 +                                                               
+      39  /* static */
+      40  already_AddRefed<PrintTargetWindows> PrintTargetWindows::Create
+          OrNull(HDC aDC) {
+      41    // Figure out the paper size, the actual surface size will be
+           the printable
+     ...
+      55      return nullptr;
+      56    }
+      57  
+      48 -  // TODO(emilio): Use SkPDF rather than cairo if possible? See
+         - bug 1503537 and                                               
+      49 -  // bug 2001909 for some EMF code which was supposed to deal w
+         -ith some of this.                                              
+      58 +  if (StaticPrefs::print_windows_skia_gdi_enabled()) {         
+      59 +    SkGDI::Options options;                                    
+      60 +    options.fRasterScale =                                     
+      61 +        float(StaticPrefs::print_windows_skia_gdi_raster_dpi())
+         + /                                                             
+      62 +        ::GetDeviceCaps(aDC, LOGPIXELSX);                      
+      63 +    sk_sp<SkDocument> doc = SkGDI::MakeDocument(aDC, options); 
+      64 +    if (!doc) {                                                
+      65 +      return nullptr;                                          
+      66 +    }                                                          
+      67 +    return do_AddRef(new PrintTargetWindows(std::move(doc), siz
+         +e, aDC));                                                      
+      68 +  }                                                            
+      69 +                                                               
+     … 87 more lines (ctrl+o to expand)
+
+● Checking include paths and whether the other build in this objdir has
+  finished:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● The other build finished. Let me check it succeeded, then kick off mine:
+
+  Ran 2 shell commands (ctrl+o to expand)
+  ⎿  Interrupted · What should Claude do instead?
+
+● Background command "Build win-cross with SkGDI backend" completed (exit code
+0)
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● I've stopped, since you interrupted. Here's where things are: the prototype is
+  written but doesn't build yet. The cross build hit one compile error in the
+  new file: SkColorTypeIsAlphaOnly is undeclared at
+  gfx/skia/gdi/SkGDIDocument.cpp:791. I believe the fix is adding #include 
+  "src/core/SkImageInfoPriv.h", but I haven't applied it or rebuilt, so there
+  may be more errors behind it. Nothing has run on Windows yet.
+
+  What's in place:
+  - gfx/skia/gdi/SkGDIDocument.{h,cpp}: a new Skia document backend,
+    SkGDI::MakeDocument(HDC, Options), built like SkPDF. It lives outside the
+    vendored Skia tree, and I added it to both gfx/skia/moz.build and
+    generate_mozbuild.py so a Skia update won't drop it. Each page is recorded
+    into an SkPicture and replayed twice:
+    a. Analysis pass: sorts every draw into "GDI can do it", "GDI can do it if
+       nothing is underneath", or "GDI can't do it", and collects the page area
+       GDI can't draw. This follows cairo's paginated approach.
+    b. Emission pass: sends the supported draws to the DC as GDI calls:
+       - Shapes: solid fills go through PolyDraw + FillPath (conics are
+         converted to cubics), and strokes are turned into fills by Skia first.
+       - Clips: SelectClipPath / IntersectClipRect.
+       - Images: opaque images go through StretchDIBits with a world transform.
+       - Gradients and patterns (any opaque non-solid paint): rasterized just
+         for the shape's bounds, then clipped to the shape.
+       - Translucent draws with nothing underneath are blended against the white
+         page and emitted as vectors, like cairo does.
+       - Text: ExtTextOutW with glyph indices, using a GDI font from DWrite's
+         IDWriteGdiInterop. To be sure glyph ids match, it checks that GDI and
+         DWrite see the same font file (it compares the head, maxp and name
+         tables). Web fonts, variable fonts, emboldened text and stroked text
+         are drawn as filled outlines instead. Color glyphs are rasterized.
+    c. Raster fallback: the area GDI can't draw is rasterized from the picture
+       at 300 DPI by default, in strips to limit memory, and pasted on top. This
+       covers blend modes, opacity, masks and filter layers.
+
+    Layers that are composited normally become pass-through, so their contents
+    are still drawn as vectors; other layers are rasterized.
+  - PrintTargetWindows: uses the new document when the new pref
+    print.windows.skia-gdi.enabled is on (default true); otherwise it keeps the
+    existing cairo path, so you can compare the two. The page canvas is the
+    printable area in printer pixels, which is the space Gecko already draws in
+    on Windows. A second pref, print.windows.skia-gdi.raster-dpi, controls the
+    fallback resolution.
+
+  Known gaps:
+  - Raster fallback areas are pasted at lower resolution, so there may be small
+    seams where they meet the vector content around them.
+  - Translucent images and AlphaBlend always go through the fallback path.
+  - Backdrop filters aren't handled.
+
+  Next steps would be to fix the include, finish the build, and print some test
+  pages, comparing against the cairo path with the pref off.
+
+✻ Cogitated for 19s · done 10:47 PM
+
+※ recap: I'm building a prototype Skia backend that prints to GDI, so Windows printing no longer needs cairo. The cross build stopped on one undeclared identifier, so next I'll add the missing include and rebuild. (disable recaps in /config)
+
+❯ Continue, sorry, build with -j40 to not exhaust system resources              
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Build succeeded. Checking for warnings in the new code:
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Clean build, no warnings. Can I run anything here? Checking for Wine:
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+● The prototype now builds cleanly in the win-cross debug objdir (./mach build 
+  -j40, no warnings in the new code). It hasn't been run: there's no Wine here,
+  and Windows CI wouldn't exercise it either, because Firefox's print reftests
+  output through SkPDF rather than a GDI printer DC.
+
+  The only change since my last message is the missing include:
+  SkColorTypeIsAlphaOnly comes from src/core/SkImageInfoPriv.h.
+
+  Changes:
+  - gfx/skia/gdi/SkGDIDocument.{h,cpp}: the new backend, added to
+    gfx/skia/moz.build and to generate_mozbuild.py so a Skia update won't drop
+    it.
+  - gfx/thebes/PrintTargetWindows.{h,cpp}: uses the Skia document when
+    print.windows.skia-gdi.enabled is on (default true), otherwise the existing
+    cairo path. It provides its own MakeDrawTarget() and
+    GetReferenceDrawTarget().
+  - StaticPrefList.yaml: adds that pref and print.windows.skia-gdi.raster-dpi
+    (default 300), the resolution of the raster fallback.
+
+  Suggested manual test, on a Windows machine with "Microsoft Print to PDF" as
+  the printer:
+  1. Print a text-heavy page with system fonts. The output PDF should have
+     selectable text, since it goes through ExtTextOutW.
+  2. Print pages with web fonts, gradients, opacity, mix-blend-mode, masks and
+     emoji. These exercise the drawn-as-outlines text, the locally rasterized
+     gradients and the raster fallback.
+  3. Flip print.windows.skia-gdi.enabled to false and print the same pages
+     through cairo to compare.
+
+  Issues I spotted reviewing the code:
+  - If ExtTextOutW fails partway through a long run, the run is drawn again as
+    outlines, so part of it can be drawn twice. It's an easy fix if it ever
+    matters.
+  - Text is drawn with a GDI font, so its exact size is rounded to whole device
+    pixels. Glyph positions are still exact, because they're passed per glyph.
+  - The DWrite-to-GDI font check compares the head, maxp and name tables. Fonts
+    packed together in one .ttc file could in theory fool it. If that happens,
+    wrong glyphs would be printed.
+
+  If you can run it on Windows and share output or crashes, I'll iterate on it.
+  Otherwise I can keep going on known gaps, such as using AlphaBlend for
+  translucent images on printers that support it.
+
+✻ Cogitated for 1m 26s · done 10:57 PM
+
+❯ Are those issues present in cairo?                                            
+
+● Let me check the cairo code rather than answer from memory.
+
+  Ran 1 shell command (ctrl+o to expand)
+
+● Comparing against cairo's code, I found two of my deviations aren't present
+  there: my chunking/fallback introduced duplicate text drawing on ExtTextOutW
+  failure, and I'm rounding font size to whole pixels instead of using cairo's
+  32x scaling trick for sub-pixel precision (the font identity issue is actually
+  worse in cairo itself). I'll fix the duplicate drawing and adopt cairo's 32x
+  scaling approach now.
+
+  Read 1 file, ran 1 shell command (ctrl+o to expand)
+● Bash(cd /home/emilio/src/moz/firefox-6/gfx/skia/gdi; python3 - <<'EOF'
+      f = "SkGDIDocument.cpp"…)
+  ⎿              for (size_t start = 0; start < ids.size(); start += kMaxGl
+     yphsPerCall) {
+                     size_t count = std::min(kMaxGlyphsPerCall, ids.size()
+     … +16 lines (ctrl+o to expand)
+  ⎿  Updated gfx/skia/gdi/SkGDIDocument.cpp (+15 -7)
+      71  constexpr int64_t kMaxRasterPixels = 16 * 1024 * 1024;
+      72  // ExtTextOut can choke on very long glyph arrays on some drive
+          rs.
+      73  constexpr size_t kMaxGlyphsPerCall = 4096;
+      74 +// Text is emitted at this many GDI units per device pixel, for
+         + sub-pixel font sizes and glyph                                
+      75 +// positions. Same as cairo's WIN32_FONT_LOGICAL_SCALE.        
+      76 +constexpr SkScalar kTextLogicalScale = 32;                     
+      77  
+      78  LONG to_gdi(SkScalar v) { return (LONG)SkScalarRoundToInt(SkTPi
+          n(v, -kMaxCoord, kMaxCoord)); }
+      79  
+     ...
+      933          RestoreDC(dc, -1);
+      934      }
+      935  
+      933 -    // Emits the glyph run with ExtTextOut, if the font and pa
+          -int allow it.                                                 
+      936 +    // Emits the glyph run with ExtTextOut, if the font and pa
+          +int allow it. Returns false if                                
+      937 +    // nothing was emitted and the run needs to be drawn some 
+          +other way.                                                    
+      938      bool emitGlyphRunAsText(const sktext::GlyphRun& run, SkPoi
+           nt origin, const SkPaint& paint,
+      939                              bool flatten) {
+      940          const SkFont& font = run.font();
+     ...
+      954  
+      955          // Glyph space is local space without the font's horiz
+           ontal scale and skew. Emit the
+      956          // text in glyph space scaled up by |scale|, so that i
+           nteger GDI coordinates and font
+      953 -        // heights are roughly in device pixels, and let the w
+          -orld transform do the rest.                                   
+      957 +        // heights are roughly in units of 1/kTextLogicalScale
+          + device pixels, and let the world                             
+      958 +        // transform do the rest.                             
+      959          const SkMatrix fontMatrix =
+      960                  SkMatrix::MakeAll(font.getScaleX(), font.getSk
+           ewX(), 0, 0, 1, 0, 0, 0, 1);
+      961          const SkMatrix glyphToDevice = SkMatrix::Concat(ctm, f
+           ontMatrix);
+      962          const SkScalar scale = SkScalarSqrt(SkScalarAbs(
+      963                  glyphToDevice.getScaleX() * glyphToDevice.getS
+           caleY() -
+      959 -                glyphToDevice.getSkewX() * glyphToDevice.getSk
+          -ewY()));                                                      
+      964 +                glyphToDevice.getSkewX() * glyphToDevice.getSk
+          +ewY())) * kTextLogicalScale;                                  
+      965          SkMatrix localToGdi;
+      966          if (!SkIsFinite(scale) || scale <= 0 || !fontMatrix.in
+           vert(&localToGdi)) {
+      967              return false;
+     ...
+      984          fPage->applyClip(this->clipInfo());
+      985          SaveDC(dc);
+      986          XFORM xform = to_xform(gdiToDevice);
+      982 -        bool ok = SetWorldTransform(dc, &xform);              
+      983 -        if (ok) {                                             
+      987 +        if (!SetWorldTransform(dc, &xform)) {                 
+     … 23 more lines (ctrl+o to expand)
+
+● Fixing the argument indentation, then rebuilding:
+
+● Bash(cd /home/emilio/src/moz/firefox-6/gfx/skia/gdi; python3 - <<'EOF'
+      f = "SkGDIDocument.cpp"…)
+  ⎿  exit: 0
+  ⎿  Updated gfx/skia/gdi/SkGDIDocument.cpp (+3 -4)
+      1011                      dxy[i * 2 + 1] = gdiPos[start + i].y - gd
+            iPos[start + i + 1].y;
+      1012                  }
+      1013                  static_assert(sizeof(SkGlyphID) == sizeof(WOR
+            D));
+      1014 -                ExtTextOutW(dc, gdiPos[start].x, gdiPos[start
+           -].y,                                                         
+      1015 -                                    ETO_GLYPH_INDEX | ETO_PDY
+           -, nullptr,                                                   
+      1016 -                                    reinterpret_cast<LPCWSTR>
+           -(ids.data() + start), (UINT)count,                           
+      1017 -                                    dxy.data());             
+      1014 +                ExtTextOutW(dc, gdiPos[start].x, gdiPos[start
+           +].y, ETO_GLYPH_INDEX | ETO_PDY,                              
+      1015 +                            nullptr, reinterpret_cast<LPCWSTR
+           +>(ids.data() + start), (UINT)count,                          
+      1016 +                            dxy.data());                     
+      1017              }
+      1018          }
+      1019          RestoreDC(dc, -1);
+  ⎿  (timeout 10m)
+
+● Two of the three issues weren't in cairo; I introduced them, and I've now
+  fixed both. The third is worse in cairo.
+
+  1. A run drawn twice if ExtTextOutW fails: not in cairo, which makes one call
+     per run and on failure just returns an error, with no retry as outlines.
+     Now, once the font and transform are set up, a failed call no longer
+     triggers the outline retry, as in cairo.
+  2. Font size rounded to whole device pixels: not in cairo. Cairo creates the
+     GDI font at 32 times the size and scales it back down with the world
+     transform, which gives 1/32-pixel precision for both size and glyph
+     positions. I've copied that with a kTextLogicalScale = 32 constant. Even on
+     a large 600 DPI page, the coordinates stay far within the limit I clamp
+     to.
+  3. Font identity: worse in cairo.
+     _cairo_dwrite_scaled_font_create_win32_scaled_font uses the result of
+     ConvertFontFaceToLOGFONT with no check, so a wrong match prints wrong
+     glyphs. My comparison of the head, maxp and name tables at least catches
+     most mismatches and draws those runs as outlines instead. The remaining
+     risk is fonts packed together in one .ttc file with identical tables, which
+     would get past the check, but cairo already has that problem without any
+     check.
+
+  It still builds cleanly with ./mach build -j40, but it's untested until
+  someone prints with it on a real Windows machine.
+
+✻ Churned for 1m 17s · done 11:00 PM

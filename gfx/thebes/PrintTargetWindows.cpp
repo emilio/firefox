@@ -5,7 +5,9 @@
 #include "PrintTargetWindows.h"
 
 #include "cairo-win32.h"
+#include "gdi/SkGDIDocument.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_print.h"
 #include "mozilla/WidgetUtils.h"
 #include "mozilla/gfx/HelpersCairo.h"
 #include "nsCoord.h"
@@ -26,6 +28,14 @@ PrintTargetWindows::PrintTargetWindows(cairo_surface_t* aCairoSurface,
   // 4 * mSize.width * mSize.height + sizeof(PrintTargetWindows) ?
 }
 
+PrintTargetWindows::PrintTargetWindows(sk_sp<SkDocument> aDocument,
+                                       const IntSize& aSize, HDC aDC)
+    : PrintTarget(/* not using cairo_surface_t */ nullptr, aSize),
+      mDC(aDC),
+      mDocument(std::move(aDocument)) {}
+
+PrintTargetWindows::~PrintTargetWindows() = default;
+
 /* static */
 already_AddRefed<PrintTargetWindows> PrintTargetWindows::CreateOrNull(HDC aDC) {
   // Figure out the paper size, the actual surface size will be the printable
@@ -45,8 +55,18 @@ already_AddRefed<PrintTargetWindows> PrintTargetWindows::CreateOrNull(HDC aDC) {
     return nullptr;
   }
 
-  // TODO(emilio): Use SkPDF rather than cairo if possible? See bug 1503537 and
-  // bug 2001909 for some EMF code which was supposed to deal with some of this.
+  if (StaticPrefs::print_windows_skia_gdi_enabled()) {
+    SkGDI::Options options;
+    options.fRasterScale =
+        float(StaticPrefs::print_windows_skia_gdi_raster_dpi()) /
+        ::GetDeviceCaps(aDC, LOGPIXELSX);
+    sk_sp<SkDocument> doc = SkGDI::MakeDocument(aDC, options);
+    if (!doc) {
+      return nullptr;
+    }
+    return do_AddRef(new PrintTargetWindows(std::move(doc), size, aDC));
+  }
+
   cairo_surface_t* surface = cairo_win32_printing_surface_create(aDC);
 
   if (cairo_surface_status(surface)) {
@@ -135,12 +155,22 @@ nsresult PrintTargetWindows::BeginPrinting(const nsAString& aTitle,
 }
 
 nsresult PrintTargetWindows::EndPrinting() {
+  mPageCanvas = nullptr;
+  mPageDT = nullptr;
+  if (mDocument) {
+    mDocument->close();
+  }
   int result = ::EndDoc(mDC);
   return (result <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
 nsresult PrintTargetWindows::AbortPrinting() {
   PrintTarget::AbortPrinting();
+  mPageCanvas = nullptr;
+  mPageDT = nullptr;
+  if (mDocument) {
+    mDocument->abort();
+  }
   int result = ::AbortDoc(mDC);
   return (result <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
@@ -148,15 +178,58 @@ nsresult PrintTargetWindows::AbortPrinting() {
 nsresult PrintTargetWindows::BeginPage(const IntSize& aSizeInPoints) {
   MOZ_ALWAYS_SUCCEEDS(PrintTarget::BeginPage(aSizeInPoints));
   int result = ::StartPage(mDC);
-  return (result <= 0) ? NS_ERROR_FAILURE : NS_OK;
+  if (result <= 0) {
+    return NS_ERROR_FAILURE;
+  }
+  if (mDocument) {
+    // The page canvas is in device units of the printable area, which is what
+    // the content is drawn in (see nsIDeviceContextSpec::GetPrintingScale).
+    mPageCanvas = mDocument->beginPage(::GetDeviceCaps(mDC, HORZRES),
+                                       ::GetDeviceCaps(mDC, VERTRES));
+    if (!mPageCanvas) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+  return NS_OK;
 }
 
 nsresult PrintTargetWindows::EndPage() {
-  cairo_surface_show_page(mCairoSurface);
-  bool cairoFailure = cairo_surface_status(mCairoSurface);
+  bool failure = false;
+  if (mDocument) {
+    mPageDT = nullptr;
+    mPageCanvas = nullptr;
+    mDocument->endPage();
+  } else {
+    cairo_surface_show_page(mCairoSurface);
+    failure = cairo_surface_status(mCairoSurface);
+  }
   MOZ_ALWAYS_SUCCEEDS(PrintTarget::EndPage());
   int result = ::EndPage(mDC);
-  return (result <= 0 || cairoFailure) ? NS_ERROR_FAILURE : NS_OK;
+  return (result <= 0 || failure) ? NS_ERROR_FAILURE : NS_OK;
+}
+
+already_AddRefed<DrawTarget> PrintTargetWindows::MakeDrawTarget(
+    const IntSize& aSize, DrawEventRecorder* aRecorder) {
+  if (!mDocument || aRecorder) {
+    return PrintTarget::MakeDrawTarget(aSize, aRecorder);
+  }
+  MOZ_ASSERT(mHasActivePage, "We can't guarantee a valid DrawTarget");
+  if (!mPageCanvas) {
+    return nullptr;
+  }
+  mPageDT = Factory::CreateDrawTargetWithSkCanvas(mPageCanvas);
+  return do_AddRef(mPageDT);
+}
+
+already_AddRefed<DrawTarget> PrintTargetWindows::GetReferenceDrawTarget() {
+  if (!mDocument) {
+    return PrintTarget::GetReferenceDrawTarget();
+  }
+  if (!mRefDT) {
+    mRefDT = Factory::CreateDrawTarget(BackendType::SKIA, IntSize(1, 1),
+                                       SurfaceFormat::B8G8R8A8);
+  }
+  return do_AddRef(mRefDT);
 }
 
 }  // namespace gfx
