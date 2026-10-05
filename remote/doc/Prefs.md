@@ -50,6 +50,16 @@ The user preference file takes precedence over the recommended
 preferences, meaning any user-defined preference value will not be
 overridden.
 
+### `remote.print.printer_name`
+
+Testing aid for the platform printing code. When set to the name of a system
+printer, WebDriver and Marionette print commands, as well as print reftests,
+print through that printer instead of Firefox's built-in PDF output, and return
+the file it produces. The printer must produce PDF files, like "Microsoft Print
+to PDF" on Windows, and might not support custom page sizes.
+
+Defaults to an empty string, which uses the built-in PDF output.
+
 ### `remote.retry-on-abort`
 
 This preference defines whether certain IPC calls from the parent process to

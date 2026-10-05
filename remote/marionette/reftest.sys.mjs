@@ -820,15 +820,15 @@ reftest.Runner = class {
       shrinkToFit: false,
       background: true,
     });
-    const printSettings = lazy.print.getPrintSettings(settings);
+    const printSettings = await lazy.print.getPrintSettings(settings);
 
-    const binaryString = await lazy.print.printToBinaryString(
+    const bytes = await lazy.print.printToBytes(
       win.gBrowser.browsingContext,
       printSettings
     );
 
     try {
-      const pdf = await this.loadPdf(binaryString);
+      const pdf = await this.loadPdf(bytes);
       let pages = this.getPages(pageRanges, url, pdf.numPages);
       return [this.renderPages(pdf, pages), pages.size];
     } catch (e) {

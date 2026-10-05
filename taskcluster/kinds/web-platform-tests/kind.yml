@@ -932,8 +932,13 @@ tasks:
             - no-fission
             - webrender-sw
             - webrender-sw+no-fission
+            - native-printer
         run-on-projects:
             by-variant:
+                native-printer:
+                    by-test-platform:
+                        windows.*-64.*/debug: built-projects
+                        default: []
                 webrender-sw:
                     by-test-platform:
                         android.*: []

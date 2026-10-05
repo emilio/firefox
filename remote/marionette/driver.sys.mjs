@@ -3013,12 +3013,9 @@ export class GeckoDriver {
 
     const browsingContext = this.#curBrowser.tab.linkedBrowser.browsingContext;
     const printSettings = await lazy.print.getPrintSettings(settings);
-    const binaryString = await lazy.print.printToBinaryString(
-      browsingContext,
-      printSettings
-    );
+    const bytes = await lazy.print.printToBytes(browsingContext, printSettings);
 
-    return btoa(binaryString);
+    return bytes.toBase64();
   }
 
   /**
