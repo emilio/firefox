@@ -258,16 +258,21 @@ static bool VerifyRGBXCorners(uint8_t* aData, const IntSize& aSize,
 #endif
 
 static sk_sp<SkImage> GetSkImageForSurface(SourceSurface* aSurface,
-                                           Maybe<MutexAutoLock>* aLock,
+                                           const SkCanvas* aCanvas,
+                                           Maybe<MutexAutoLock>& aLock,
                                            const Rect* aBounds = nullptr,
                                            const Matrix* aMatrix = nullptr) {
+  // Force the SkImage to own its pixels if we're not a pixel device, since GDI
+  // back-end persists them after the lock's lifetime.
+  Maybe<MutexAutoLock>* lock =
+      aCanvas && IsBackedByPixels(aCanvas) ? &aLock : nullptr;
   if (!aSurface) {
     gfxDebug() << "Creating null Skia image from null SourceSurface";
     return nullptr;
   }
 
   if (aSurface->GetType() == SurfaceType::SKIA) {
-    return static_cast<SourceSurfaceSkia*>(aSurface)->GetImage(aLock);
+    return static_cast<SourceSurfaceSkia*>(aSurface)->GetImage(lock);
   }
 
   RefPtr<DataSourceSurface> dataSurface = aSurface->GetDataSurface();
@@ -284,8 +289,7 @@ static sk_sp<SkImage> GetSkImageForSurface(SourceSurface* aSurface,
       // SourceSurfaceSkia here; route it through GetImage so copy-on-write
       // snapshots are detached/locked rather than borrowing a raw pixel pointer
       // that can outlive the originating SkSurface.
-      return static_cast<SourceSurfaceSkia*>(dataSurface.get())
-          ->GetImage(aLock);
+      return static_cast<SourceSurfaceSkia*>(dataSurface.get())->GetImage(lock);
     case SurfaceType::DATA_SHARED_WRAPPER:
     case SurfaceType::DATA_SHARED:
     case SurfaceType::DATA_RECYCLING_SHARED:
@@ -406,7 +410,14 @@ already_AddRefed<SourceSurface> DrawTargetSkia::Snapshot(
     // pixels.
     SkPixmap pixmap;
     if (mSurface->peekPixels(&pixmap)) {
-      image = SkImages::RasterFromPixmap(pixmap, nullptr, nullptr);
+      // The image keeps the surface alive, since it may outlive both us and
+      // the snapshot when drawn into a canvas that defers drawing.
+      image = SkImages::RasterFromPixmap(
+          pixmap,
+          [](const void*, void* aSurface) {
+            static_cast<SkSurface*>(aSurface)->unref();
+          },
+          SkRef(mSurface.get()));
     } else {
       image = mSurface->makeImageSnapshot();
     }
@@ -513,6 +524,7 @@ static sk_sp<SkImage> ExtractAlphaImage(const sk_sp<SkImage>& aImage,
 }
 
 static void SetPaintPattern(SkPaint& aPaint, const Pattern& aPattern,
+                            const SkCanvas* aCanvas,
                             Maybe<MutexAutoLock>& aLock, Float aAlpha = 1.0,
                             const SkMatrix* aMatrix = nullptr,
                             const Rect* aBounds = nullptr) {
@@ -628,8 +640,8 @@ static void SetPaintPattern(SkPaint& aPaint, const Pattern& aPattern,
       if (pat.mSurface) {
         offsetMatrix.PreTranslate(pat.mSurface->GetRect().TopLeft());
       }
-      sk_sp<SkImage> image =
-          GetSkImageForSurface(pat.mSurface, &aLock, aBounds, &offsetMatrix);
+      sk_sp<SkImage> image = GetSkImageForSurface(pat.mSurface, aCanvas, aLock,
+                                                  aBounds, &offsetMatrix);
       if (!image) {
         aPaint.setColor(SK_ColorTRANSPARENT);
         break;
@@ -696,7 +708,8 @@ struct AutoPaintSetup {
                  const Rect* aSourceBounds = nullptr)
       : mNeedsRestore(false), mAlpha(1.0) {
     Init(aCanvas, aOptions, aMaskBounds, false);
-    SetPaintPattern(mPaint, aPattern, mLock, mAlpha, aMatrix, aSourceBounds);
+    SetPaintPattern(mPaint, aPattern, aCanvas, mLock, mAlpha, aMatrix,
+                    aSourceBounds);
   }
 
   AutoPaintSetup(SkCanvas* aCanvas, const DrawOptions& aOptions,
@@ -768,7 +781,7 @@ void DrawTargetSkia::DrawSurface(SourceSurface* aSurface, const Rect& aDest,
   MarkChanged();
 
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, &lock);
+  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, mCanvas, lock);
   if (!image) {
     return;
   }
@@ -815,7 +828,7 @@ void DrawTargetSkia::DrawSurfaceWithShadow(SourceSurface* aSurface,
   MarkChanged();
 
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, &lock);
+  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, mCanvas, lock);
   if (!image) {
     return;
   }
@@ -1510,15 +1523,14 @@ void DrawTargetSkia::Mask(const Pattern& aSource, const Pattern& aMask,
     MarkChanged();
     AutoPaintSetup paint(mCanvas, aOptions, aSource, nullptr, &maskMatrix);
 
-    SkPaint maskPaint;
-    SetPaintPattern(maskPaint, aMask, lock);
-
     SkImageInfo maskInfo = SkImageInfo::MakeA8(maskBounds.size());
     if (sk_sp<SkSurface> maskSurface = SkSurfaces::Raster(maskInfo)) {
       if (SkCanvas* maskCanvas = maskSurface->getCanvas()) {
+        SkPaint maskPaint;
+        SetPaintPattern(maskPaint, aMask, maskCanvas, lock);
         maskCanvas->setMatrix(maskMatrix);
         maskCanvas->drawPaint(maskPaint);
-        if (sk_sp<SkImage> maskImage = maskSurface->makeTemporaryImage()) {
+        if (sk_sp<SkImage> maskImage = maskSurface->makeImageSnapshot()) {
           mCanvas->save();
           mCanvas->resetMatrix();
           mCanvas->drawImage(maskImage, maskOrigin.fX, maskOrigin.fY,
@@ -1536,7 +1548,7 @@ void DrawTargetSkia::Mask(const Pattern& aSource, const Pattern& aMask,
   }
 
   SkPaint maskPaint;
-  SetPaintPattern(maskPaint, aMask, lock);
+  SetPaintPattern(maskPaint, aMask, mCanvas, lock);
 
   sk_sp<SkShader> maskShader(maskPaint.refShader());
   if (!maskShader && maskPaint.getAlpha() != 0xFF) {
@@ -1566,7 +1578,7 @@ void DrawTargetSkia::Mask(const Pattern& aSource, const Pattern& aMask,
 void DrawTargetSkia::MaskSurface(const Pattern& aSource, SourceSurface* aMask,
                                  Point aOffset, const DrawOptions& aOptions) {
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> maskImage = GetSkImageForSurface(aMask, &lock);
+  sk_sp<SkImage> maskImage = GetSkImageForSurface(aMask, mCanvas, lock);
   if (!maskImage) {
     gfxDebug() << "Failed get Skia mask image for MaskSurface";
     return;
@@ -1631,7 +1643,7 @@ bool DrawTarget::Draw3DTransformedSurface(SourceSurface* aSurface,
 
   // Read in the source data.
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> srcImage = GetSkImageForSurface(aSurface, &lock);
+  sk_sp<SkImage> srcImage = GetSkImageForSurface(aSurface, nullptr, lock);
   if (!srcImage) {
     return true;
   }
@@ -1696,7 +1708,7 @@ bool DrawTargetSkia::Draw3DTransformedSurface(SourceSurface* aSurface,
   MarkChanged();
 
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, &lock);
+  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, mCanvas, lock);
   if (!image) {
     return true;
   }
@@ -1854,7 +1866,7 @@ void DrawTargetSkia::CopySurface(SourceSurface* aSurface,
   MarkChanged();
 
   Maybe<MutexAutoLock> lock;
-  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, &lock);
+  sk_sp<SkImage> image = GetSkImageForSurface(aSurface, mCanvas, lock);
   if (!image) {
     return;
   }
@@ -2208,6 +2220,7 @@ void DrawTargetSkia::PushLayerWithBlend(bool aOpaque, Float aOpacity,
   }
 
   if (aMask) {
+    Maybe<MutexAutoLock> unusedLock;
     // OP_OVER can be handled by modulating the layer with the mask, which is
     // supported by both non-pixel-backed and pixel-backed canvases. Other
     // operators require more precise blending which must be routed through
@@ -2230,12 +2243,11 @@ void DrawTargetSkia::PushLayerWithBlend(bool aOpaque, Float aOpacity,
         aMask = nullptr;
       }
     } else if (sk_sp<SkImage> clipImage =
-                   GetSkImageForSurface(aMask, nullptr)) {
-      // We don't pass a lock object to GetSkImageForSurface here, to force a
-      // copy of the data if this is a copy-on-write snapshot. If we instead
-      // held the lock until the corresponding PopLayer, we'd risk deadlocking
-      // if someone tried to touch the originating DrawTarget while the layer
-      // was pushed.
+                   GetSkImageForSurface(aMask, nullptr, unusedLock)) {
+      // We don't pass a canvas to GetSkImageForSurface here, to force a copy of
+      // the data if this is a copy-on-write snapshot. If we instead held the
+      // lock until the corresponding PopLayer, we'd risk deadlocking if someone
+      // tried to touch the originating DrawTarget while the layer was pushed.
       Rect maskBounds(aMask->GetRect());
       sk_sp<SkShader> shader = clipImage->makeShader(
           SkTileMode::kClamp, SkTileMode::kClamp,
@@ -2292,7 +2304,8 @@ void DrawTargetSkia::PopLayer() {
   // is handled by modulating the layer with the mask.
   if (layer.mMask && !IsBackedByPixels(mCanvas)) {
     Maybe<MutexAutoLock> lock;
-    if (sk_sp<SkImage> maskImage = GetSkImageForSurface(layer.mMask, &lock)) {
+    if (sk_sp<SkImage> maskImage =
+            GetSkImageForSurface(layer.mMask, mCanvas, lock)) {
       // Multiply the layer's alpha by the mask's while it's still the canvas'
       // target, so that restoring it below composites the masked result. We
       // can't use a clip shader for this because SkPDF doesn't support those.
