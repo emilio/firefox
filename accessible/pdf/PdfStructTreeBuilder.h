@@ -105,6 +105,9 @@ class PdfStructTreeBuilder {
   nsTHashSet<uint64_t> mRequestedBrowserParentIds;
   RefPtr<ReadyPromise::Private> mReadyPromise;
   int mLastPdfId = 0;
+  // Whether BuildStructTree succeeded. This isn't the case if we're printing to
+  // something other than SkPDF, even though drawing still references ids.
+  bool mStructTreeBuilt = false;
   // Maps {innerWindowId, accessibleId} to SkPDF id.
   mozilla::HashMap<GlobalAccessibleId, int, PairHasher<uint64_t, uint64_t>>
       mAccToPdf;

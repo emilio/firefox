@@ -201,6 +201,7 @@ bool PdfStructTreeBuilder::BuildStructTree(SkPDF::StructureElementNode& aRoot) {
     return false;
   }
   BuildStructSubtree(rootAcc, aRoot);
+  mStructTreeBuilt = true;
   return true;
 }
 
@@ -362,6 +363,9 @@ void PdfStructTreeBuilder::BuildStructSubtree(
 
 int PdfStructTreeBuilder::GetPdfIdInternal(uint64_t aInnerWindowId,
                                            uint64_t aAccId) const {
+  if (!mStructTreeBuilt) {
+    return 0;
+  }
   if (auto entry = mAccToPdf.lookup({aInnerWindowId, aAccId})) {
     return entry->value();
   }
