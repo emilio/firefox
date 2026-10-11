@@ -75,15 +75,11 @@ EXPORTS.mozilla.gfx += [
     "ThebesRLBox.h",
 ]
 
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
     EXPORTS += [
         "gfxAndroidPlatform.h",
         "gfxFT2FontBase.h",
         "gfxFT2Fonts.h",
-    ]
-    EXPORTS.mozilla.gfx += [
-        "PrintTargetPDF.h",
     ]
     SOURCES += [
         "gfxAndroidPlatform.cpp",
@@ -91,7 +87,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "gfxFT2FontList.cpp",
         "gfxFT2Fonts.cpp",
         "gfxFT2Utils.cpp",
-        "PrintTargetPDF.cpp",
     ]
 
     SOURCE_HEADERS += [
@@ -139,15 +134,11 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
         "gfxFT2FontBase.h",
         "gfxPlatformGtk.h",
     ]
-    EXPORTS.mozilla.gfx += [
-        "PrintTargetPDF.h",
-    ]
     SOURCES += [
         "gfxFcPlatformFontList.cpp",
         "gfxFT2FontBase.cpp",
         "gfxFT2Utils.cpp",
         "gfxPlatformGtk.cpp",
-        "PrintTargetPDF.cpp",
     ]
 
     SOURCE_HEADERS += [
@@ -178,7 +169,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXPORTS.mozilla.gfx += [
         "DeviceManagerDx.h",
         "DisplayConfigWindows.h",
-        "PrintTargetPDF.h",
         "PrintTargetWindows.h",
     ]
     SOURCES += [
@@ -187,7 +177,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "gfxDWriteFonts.cpp",
         "gfxWindowsPlatform.cpp",
         "gfxWindowsSurface.cpp",
-        "PrintTargetPDF.cpp",
         "PrintTargetWindows.cpp",
     ]
     UNIFIED_SOURCES += [

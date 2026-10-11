@@ -17932,12 +17932,6 @@
   value: 2
   mirror: always
 
-# Whether we should try to use skpdf for pdf output.
-- name: print.experimental.skpdf
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 #ifdef XP_MACOSX
 # Whether we should use skpdf for all print destinations on macOS.
 - name: print.skpdf.all-destinations

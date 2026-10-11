@@ -104,35 +104,33 @@ NS_IMETHODIMP nsDeviceContextSpecX::Init(nsIPrintSettings* aPS,
   ::PMRetain(mPMPrintSettings);
   [printInfo release];
 
-  if (StaticPrefs::print_experimental_skpdf()) {
-    if (mOutputStream || StaticPrefs::print_skpdf_all_destinations()) {
-      mPrintViaSkPDF = true;
-    } else {
-      // Annoyingly, PMPrinterPrintWithFile does not pay attention to the
-      // kPMDestination* value set in the PMPrintSession; it always sends the
-      // PDF to the specified printer.  This means that if we create the PDF
-      // using SkPDF then we need to manually handle user actions like "Open PDF
-      // in Preview" and "Save as PDF...".
-      // TODO: Currently we do not support using SkPDF for kPMDestinationFax or
-      // kPMDestinationProcessPDF ("Add PDF to iBooks, etc.), and we only
-      // support it for kPMDestinationFile if the destination file is a PDF.
-      // XXX Could PMWorkflowSubmitPDFWithSettings/PMPrinterPrintWithProvider
-      // help?
-      OSStatus status = noErr;
-      PMDestinationType destination;
-      status = ::PMSessionGetDestinationType(mPrintSession, mPMPrintSettings,
-                                             &destination);
-      if (status == noErr) {
-        if (destination == kPMDestinationPrinter ||
-            destination == kPMDestinationPreview) {
+  if (mOutputStream || StaticPrefs::print_skpdf_all_destinations()) {
+    mPrintViaSkPDF = true;
+  } else {
+    // Annoyingly, PMPrinterPrintWithFile does not pay attention to the
+    // kPMDestination* value set in the PMPrintSession; it always sends the
+    // PDF to the specified printer.  This means that if we create the PDF
+    // using SkPDF then we need to manually handle user actions like "Open PDF
+    // in Preview" and "Save as PDF...".
+    // TODO: Currently we do not support using SkPDF for kPMDestinationFax or
+    // kPMDestinationProcessPDF ("Add PDF to iBooks, etc.), and we only
+    // support it for kPMDestinationFile if the destination file is a PDF.
+    // XXX Could PMWorkflowSubmitPDFWithSettings/PMPrinterPrintWithProvider
+    // help?
+    OSStatus status = noErr;
+    PMDestinationType destination;
+    status = ::PMSessionGetDestinationType(mPrintSession, mPMPrintSettings,
+                                           &destination);
+    if (status == noErr) {
+      if (destination == kPMDestinationPrinter ||
+          destination == kPMDestinationPreview) {
+        mPrintViaSkPDF = true;
+      } else if (destination == kPMDestinationFile) {
+        AutoCFTypeRef<CFURLRef> destURL(nullptr);
+        status = ::PMSessionCopyDestinationLocation(
+            mPrintSession, mPMPrintSettings, destURL.Receive());
+        if (status == noErr && IsPDFFileURL(destURL)) {
           mPrintViaSkPDF = true;
-        } else if (destination == kPMDestinationFile) {
-          AutoCFTypeRef<CFURLRef> destURL(nullptr);
-          status = ::PMSessionCopyDestinationLocation(
-              mPrintSession, mPMPrintSettings, destURL.Receive());
-          if (status == noErr && IsPDFFileURL(destURL)) {
-            mPrintViaSkPDF = true;
-          }
         }
       }
     }
