@@ -45,6 +45,7 @@ class nsDeviceContextSpecX : public nsIDeviceContextSpec {
 
  private:
   nsresult DoEndDocument();
+  nsresult PrintPDFViaPrintSession(CFURLRef aPDFURL);
 };
 
 #endif  // nsDeviceContextSpecX_h_
