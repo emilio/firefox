@@ -14,7 +14,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_print.h"
-#include "mozilla/gfx/PrintTargetCG.h"
 #include "mozilla/gfx/PrintTargetSkPDF.h"
 #include "mozilla/glean/PrintingMetrics.h"
 
@@ -40,7 +39,6 @@ using namespace mozilla;
 using mozilla::gfx::IntSize;
 using mozilla::gfx::PrintEndDocumentPromise;
 using mozilla::gfx::PrintTarget;
-using mozilla::gfx::PrintTargetCG;
 using mozilla::gfx::PrintTargetSkPDF;
 
 //----------------------------------------------------------------------
@@ -104,38 +102,6 @@ NS_IMETHODIMP nsDeviceContextSpecX::Init(nsIPrintSettings* aPS,
   ::PMRetain(mPMPrintSettings);
   [printInfo release];
 
-  if (mOutputStream || StaticPrefs::print_skpdf_all_destinations()) {
-    mPrintViaSkPDF = true;
-  } else {
-    // Annoyingly, PMPrinterPrintWithFile does not pay attention to the
-    // kPMDestination* value set in the PMPrintSession; it always sends the
-    // PDF to the specified printer.  This means that if we create the PDF
-    // using SkPDF then we need to manually handle user actions like "Open PDF
-    // in Preview" and "Save as PDF...".
-    // TODO: Currently we do not support using SkPDF for kPMDestinationFax or
-    // kPMDestinationProcessPDF ("Add PDF to iBooks, etc.), and we only
-    // support it for kPMDestinationFile if the destination file is a PDF.
-    // XXX Could PMWorkflowSubmitPDFWithSettings/PMPrinterPrintWithProvider
-    // help?
-    OSStatus status = noErr;
-    PMDestinationType destination;
-    status = ::PMSessionGetDestinationType(mPrintSession, mPMPrintSettings,
-                                           &destination);
-    if (status == noErr) {
-      if (destination == kPMDestinationPrinter ||
-          destination == kPMDestinationPreview) {
-        mPrintViaSkPDF = true;
-      } else if (destination == kPMDestinationFile) {
-        AutoCFTypeRef<CFURLRef> destURL(nullptr);
-        status = ::PMSessionCopyDestinationLocation(
-            mPrintSession, mPMPrintSettings, destURL.Receive());
-        if (status == noErr && IsPDFFileURL(destURL)) {
-          mPrintViaSkPDF = true;
-        }
-      }
-    }
-  }
-
   int16_t outputFormat = aPS->GetOutputFormat();
 
   if (outputFormat == nsIPrintSettings::kOutputFormatPDF) {
@@ -195,10 +161,6 @@ RefPtr<PrintEndDocumentPromise> nsDeviceContextSpecX::EndDocument() {
 nsresult nsDeviceContextSpecX::DoEndDocument() {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
-  if (!mPrintViaSkPDF) {
-    // PrintTargetCG deals with it.
-    return NS_OK;
-  }
   if (mOutputStream) {
     // Nothing to do. PrintTargetSkPDF will flush the stream.
     return NS_OK;
@@ -321,8 +283,6 @@ nsresult nsDeviceContextSpecX::PrintPDFViaPrintSession(CFURLRef aPDFURL) {
       return NS_ERROR_FAILURE;
     }
     const CGRect mediaBox = CGPDFPageGetBoxRect(page, kCGPDFMediaBox);
-    // Core Printing ignores per-page sheet sizes, so like PrintTargetCG we can
-    // only switch orientation.
     if (StaticPrefs::
             print_save_as_pdf_use_page_rule_size_as_paper_size_enabled()) {
       ::PMSetOrientation(mPageFormat,
@@ -371,10 +331,6 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecX::MakePrintTarget() {
   const double width = right - left;
   const double height = bottom - top;
   IntSize size = IntSize::Ceil(width, height);
-  if (!mPrintViaSkPDF) {
-    return PrintTargetCG::CreateOrNull(mOutputStream, mPrintSession, mPageFormat,
-                                       mPMPrintSettings, size);
-  }
   auto stream = [&]() -> nsCOMPtr<nsIOutputStream> {
     if (mOutputStream) {
       return mOutputStream;

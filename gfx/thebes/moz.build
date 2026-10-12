@@ -122,13 +122,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
         "gfxCoreTextShaper.h",
         "gfxMacFont.h",
     ]
-    if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
-        EXPORTS.mozilla.gfx += [
-            "PrintTargetCG.h",
-        ]
-        SOURCES += [
-            "PrintTargetCG.mm",
-        ]
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     EXPORTS += [
         "gfxFT2FontBase.h",
