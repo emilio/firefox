@@ -298,7 +298,6 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mDestroyingFrameLoader(nullptr),
       mChromeFlags(aChromeFlags),
       mContentCache(*this),
-      mRect(0, 0, 0, 0),
       mDimensions(0, 0),
       mDPI(0),
       mRounding(0),
@@ -1178,17 +1177,12 @@ nsresult BrowserParent::UpdatePosition() {
   if (!frameLoader) {
     return NS_OK;
   }
-  LayoutDeviceIntRect windowDims;
-  NS_ENSURE_SUCCESS(frameLoader->GetWindowDimensions(windowDims),
-                    NS_ERROR_FAILURE);
   // Avoid updating sizes here.
-  windowDims.SizeTo(mRect.Size());
-  UpdateDimensions(windowDims, mDimensions);
+  UpdateDimensions(mDimensions);
   return NS_OK;
 }
 
-void BrowserParent::UpdateDimensions(const LayoutDeviceIntRect& rect,
-                                     const LayoutDeviceIntSize& size) {
+void BrowserParent::UpdateDimensions(const LayoutDeviceIntSize& aSize) {
   if (mIsDestroyed) {
     return;
   }
@@ -1198,28 +1192,33 @@ void BrowserParent::UpdateDimensions(const LayoutDeviceIntRect& rect,
     return;
   }
 
-  LayoutDeviceIntPoint clientOffset = GetClientOffset();
-  LayoutDeviceIntPoint chromeOffset = !GetBrowserBridgeParent()
-                                          ? GetChildProcessOffset()
-                                          : LayoutDeviceIntPoint();
+  const LayoutDeviceIntPoint screenOffset = widget->WidgetToScreenOffset();
+  LayoutDeviceIntMargin topLevelChromeMargin;
+  if (!GetBrowserBridgeParent()) {
+    const LayoutDeviceIntRect frameRect(screenOffset + GetChildProcessOffset(),
+                                        aSize);
+    const LayoutDeviceIntRect outerRect = widget->GetScreenBounds();
+    topLevelChromeMargin = LayoutDeviceIntMargin(
+        frameRect.y - outerRect.y, outerRect.XMost() - frameRect.XMost(),
+        outerRect.YMost() - frameRect.YMost(), frameRect.x - outerRect.x);
+    topLevelChromeMargin.EnsureAtLeast(LayoutDeviceIntMargin());
+  }
 
-  if (!mUpdatedDimensions || mDimensions != size || !mRect.IsEqualEdges(rect) ||
-      clientOffset != mClientOffset || chromeOffset != mChromeOffset) {
+  if (!mUpdatedDimensions || mDimensions != aSize ||
+      screenOffset != mTopLevelWidgetScreenOffset ||
+      topLevelChromeMargin != mTopLevelChromeMargin) {
     mUpdatedDimensions = true;
-    mRect = rect;
-    mDimensions = size;
-    mClientOffset = clientOffset;
-    mChromeOffset = chromeOffset;
-
+    mDimensions = aSize;
+    mTopLevelWidgetScreenOffset = screenOffset;
+    mTopLevelChromeMargin = topLevelChromeMargin;
     (void)SendUpdateDimensions(GetDimensionInfo());
   }
 }
 
 DimensionInfo BrowserParent::GetDimensionInfo() {
-  CSSRect unscaledRect = mRect / mDefaultScale;
   CSSSize unscaledSize = mDimensions / mDefaultScale;
-  return DimensionInfo(unscaledRect, unscaledSize, mClientOffset,
-                       mChromeOffset);
+  return DimensionInfo(unscaledSize, mTopLevelWidgetScreenOffset,
+                       mTopLevelChromeMargin);
 }
 
 void BrowserParent::SizeModeChanged(const nsSizeMode& aSizeMode) {
@@ -2781,18 +2780,6 @@ LayoutDeviceIntPoint BrowserParent::GetChildProcessOffset() {
   nsPresContext* pc = targetFrame->PresContext();
   return LayoutDeviceIntPoint::FromAppUnitsRounded(*point,
                                                    pc->AppUnitsPerDevPixel());
-}
-
-LayoutDeviceIntPoint BrowserParent::GetClientOffset() {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  nsCOMPtr<nsIWidget> docWidget = GetDocWidget();
-
-  if (widget == docWidget) {
-    return widget->GetClientOffset();
-  }
-
-  return (docWidget->GetClientOffset() +
-          nsLayoutUtils::WidgetToWidgetOffset(widget, docWidget));
 }
 
 void BrowserParent::StopIMEStateManagement() {

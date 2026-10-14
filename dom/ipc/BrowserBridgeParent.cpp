@@ -192,8 +192,8 @@ IPCResult BrowserBridgeParent::RecvResumeLoad(uint64_t aPendingSwitchID) {
 }
 
 IPCResult BrowserBridgeParent::RecvUpdateDimensions(
-    const LayoutDeviceIntRect& aRect, const LayoutDeviceIntSize& aSize) {
-  mBrowserParent->UpdateDimensions(aRect, aSize);
+    const LayoutDeviceIntSize& aSize) {
+  mBrowserParent->UpdateDimensions(aSize);
   return IPC_OK();
 }
 

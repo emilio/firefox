@@ -77,7 +77,7 @@ class BrowserBridgeParent : public PBrowserBridgeParent,
   mozilla::ipc::IPCResult RecvLoadURL(nsDocShellLoadState* aLoadState);
   mozilla::ipc::IPCResult RecvResumeLoad(uint64_t aPendingSwitchID);
   mozilla::ipc::IPCResult RecvUpdateDimensions(
-      const LayoutDeviceIntRect& aRect, const LayoutDeviceIntSize& aSize);
+      const LayoutDeviceIntSize& aSize);
   mozilla::ipc::IPCResult RecvUpdateEffects(const EffectsInfo& aEffects);
   mozilla::ipc::IPCResult RecvUpdateRemotePrintSettings(
       const embedding::PrintData&);

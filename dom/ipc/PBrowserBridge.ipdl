@@ -95,7 +95,7 @@ parent:
   // Out of process rendering.
   async Show(OwnerShowInfo info);
   async ScrollbarPreferenceChanged(ScrollbarPreference pref);
-  [Compress=all] async UpdateDimensions(LayoutDeviceIntRect rect, LayoutDeviceIntSize size);
+  [Compress=all] async UpdateDimensions(LayoutDeviceIntSize size);
   async RenderLayers(bool aEnabled);
 
   async UpdateEffects(EffectsInfo aEffects);

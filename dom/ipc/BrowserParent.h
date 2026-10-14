@@ -463,8 +463,7 @@ class BrowserParent final : public PBrowserParent,
 
   bool Show(const OwnerShowInfo&);
 
-  void UpdateDimensions(const LayoutDeviceIntRect& aRect,
-                        const LayoutDeviceIntSize& aSize);
+  void UpdateDimensions(const LayoutDeviceIntSize& aSize);
 
   DimensionInfo GetDimensionInfo();
 
@@ -651,12 +650,6 @@ class BrowserParent final : public PBrowserParent,
   // GOING AWAY. PLEASE AVOID ADDING CALLERS. Use the above tranformation
   // methods instead.
   LayoutDeviceIntPoint GetChildProcessOffset();
-
-  // Returns the offset from the on-screen origin of our top-level window's
-  // widget (including window decorations) to the origin of our frameloader's
-  // nearest widget. This offset is used to translate coordinates from the
-  // PuppetWidget's origin to absolute screen coordinates in the child.
-  LayoutDeviceIntPoint GetClientOffset();
 
   void StopIMEStateManagement();
 
@@ -936,7 +929,6 @@ class BrowserParent final : public PBrowserParent,
   struct SentMouseEventData;
   nsTArray<SentMouseEventData> mWaitingReplyMouseEvents;
 
-  LayoutDeviceIntRect mRect;
   LayoutDeviceIntSize mDimensions;
   float mDPI;
   int32_t mRounding;
@@ -944,8 +936,8 @@ class BrowserParent final : public PBrowserParent,
   DesktopToLayoutDeviceScale mDesktopToDeviceScale;
   bool mUpdatedDimensions;
   nsSizeMode mSizeMode;
-  LayoutDeviceIntPoint mClientOffset;
-  LayoutDeviceIntPoint mChromeOffset;
+  LayoutDeviceIntPoint mTopLevelWidgetScreenOffset;
+  LayoutDeviceIntMargin mTopLevelChromeMargin;
 
   // When loading a new tab or window via window.open, the child is
   // responsible for loading the URL it wants into the new BrowserChild. When

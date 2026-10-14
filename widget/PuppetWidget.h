@@ -122,9 +122,7 @@ class PuppetWidget final : public nsIWidget,
 
   LayoutDeviceIntPoint WidgetToScreenOffset() override;
 
-  LayoutDeviceIntPoint TopLevelWidgetToScreenOffset() override {
-    return GetWindowPosition();
-  }
+  LayoutDeviceIntPoint TopLevelWidgetToScreenOffset() override;
 
   int32_t RoundsWidgetCoordinatesTo() override { return mRounding; }
 
@@ -222,16 +220,6 @@ class PuppetWidget final : public nsIWidget,
   // safe area insets support
   LayoutDeviceIntMargin GetSafeAreaInsets() const override;
   void UpdateSafeAreaInsets(const LayoutDeviceIntMargin& aSafeAreaInsets);
-
-  // Get the offset to the chrome of the window that this tab belongs to.
-  //
-  // NOTE: In OOP iframes this value is zero. You should use
-  // WidgetToTopLevelWidgetTransform instead which is already including the
-  // chrome offset.
-  LayoutDeviceIntPoint GetChromeOffset();
-
-  // Get the screen position of the application window.
-  LayoutDeviceIntPoint GetWindowPosition();
 
   LayoutDeviceIntRect GetBounds() override;
   LayoutDeviceIntRect GetScreenBounds() override;

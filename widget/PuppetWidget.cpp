@@ -915,29 +915,13 @@ bool PuppetWidget::NeedsPaint() {
   return mVisible;
 }
 
-LayoutDeviceIntPoint PuppetWidget::GetChromeOffset() {
-  if (!GetOwningBrowserChild()) {
-    NS_WARNING("PuppetWidget without Tab does not have chrome information.");
-    return LayoutDeviceIntPoint();
-  }
-  return GetOwningBrowserChild()->GetChromeOffset();
-}
-
 LayoutDeviceIntPoint PuppetWidget::WidgetToScreenOffset() {
-  return GetWindowPosition() + WidgetToTopLevelWidgetOffset();
+  return TopLevelWidgetToScreenOffset() + WidgetToTopLevelWidgetOffset();
 }
 
-LayoutDeviceIntPoint PuppetWidget::GetWindowPosition() {
-  if (!GetOwningBrowserChild()) {
-    return LayoutDeviceIntPoint();
-  }
-
-  int32_t winX, winY, winW, winH;
-  NS_ENSURE_SUCCESS(
-      GetOwningBrowserChild()->GetDimensions(&winX, &winY, &winW, &winH),
-      LayoutDeviceIntPoint());
-  return LayoutDeviceIntPoint(winX, winY) +
-         GetOwningBrowserChild()->GetClientOffset();
+LayoutDeviceIntPoint PuppetWidget::TopLevelWidgetToScreenOffset() {
+  auto* bc = GetOwningBrowserChild();
+  return bc ? bc->GetTopLevelWidgetScreenOffset() : LayoutDeviceIntPoint();
 }
 
 LayoutDeviceIntRect PuppetWidget::GetBounds() { return mBounds; }

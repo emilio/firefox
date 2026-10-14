@@ -82,9 +82,8 @@ bool BrowserHost::Show(const OwnerShowInfo& aShowInfo) {
   return mRoot->Show(aShowInfo);
 }
 
-void BrowserHost::UpdateDimensions(const LayoutDeviceIntRect& aRect,
-                                   const LayoutDeviceIntSize& aSize) {
-  mRoot->UpdateDimensions(aRect, aSize);
+void BrowserHost::UpdateDimensions(const LayoutDeviceIntSize& aSize) {
+  mRoot->UpdateDimensions(aSize);
 }
 
 void BrowserHost::UpdateEffects(EffectsInfo aEffects) {

@@ -650,10 +650,16 @@ BrowserChild::SetDimensions(DimensionRequest&& aRequest) {
   return NS_OK;
 }
 
+LayoutDeviceIntRect BrowserChild::GetFrameScreenRect() {
+  return LayoutDeviceIntRect(mPuppetWidget->WidgetToScreenOffset(),
+                             GetInnerSize());
+}
+
 NS_IMETHODIMP
 BrowserChild::GetDimensions(int32_t* aX, int32_t* aY, int32_t* aCx,
                             int32_t* aCy) {
-  LayoutDeviceIntRect rect = GetOuterRect();
+  LayoutDeviceIntRect rect = GetFrameScreenRect();
+  rect.Inflate(mTopLevelChromeMargin);
   if (aX) {
     *aX = rect.x;
   }
@@ -1138,10 +1144,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateDimensions(
     return IPC_OK();
   }
 
-  mUnscaledOuterRect = aDimensionInfo.rect();
-  mClientOffset = aDimensionInfo.clientOffset();
-  mChromeOffset = aDimensionInfo.chromeOffset();
-  MOZ_ASSERT_IF(!IsTopLevel(), mChromeOffset == LayoutDeviceIntPoint());
+  mTopLevelWidgetScreenOffset = aDimensionInfo.topLevelWidgetScreenOffset();
+  mTopLevelChromeMargin = aDimensionInfo.topLevelChromeMargin();
 
   SetUnscaledInnerSize(aDimensionInfo.size());
   if (!mHasValidInnerSize && aDimensionInfo.size().width != 0 &&
@@ -1158,10 +1162,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateDimensions(
   docShell->SetPositionAndSize(0, 0, innerSize.width, innerSize.height,
                                nsIBaseWindow::eRepaint);
 
-  const LayoutDeviceIntRect widgetRect(
-      GetOuterRect().TopLeft() + mClientOffset + mChromeOffset, innerSize);
-  mPuppetWidget->Resize(widgetRect / mPuppetWidget->GetDesktopToDeviceScale(),
-                        true);
+  mPuppetWidget->Resize(
+      GetFrameScreenRect() / mPuppetWidget->GetDesktopToDeviceScale(), true);
 
   RecvSafeAreaInsetsChanged(mPuppetWidget->GetSafeAreaInsets());
 
@@ -1546,8 +1548,7 @@ BrowserChild::GetChildToParentConversionMatrix() const {
   if (mChildToParentConversionMatrix) {
     return *mChildToParentConversionMatrix;
   }
-  LayoutDevicePoint offset(GetChromeOffset());
-  return LayoutDeviceToLayoutDeviceMatrix4x4::Translation(offset);
+  return LayoutDeviceToLayoutDeviceMatrix4x4();
 }
 
 Maybe<ScreenRect> BrowserChild::GetTopLevelViewportVisibleRectInBrowserCoords()
@@ -2725,9 +2726,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvPasteTransferable(
 }
 
 RefPtr<VsyncMainChild> BrowserChild::GetVsyncChild() {
-  // Initializing VsyncMainChild here turns on per-BrowserChild Vsync for a
-  // given platform. Note: this only makes sense if nsWindow returns a
-  // window-specific VsyncSource.
+// Initializing VsyncMainChild here turns on per-BrowserChild Vsync for a
+// given platform. Note: this only makes sense if nsWindow returns a
+// window-specific VsyncSource.
 #if defined(MOZ_WAYLAND)
   if (IsWaylandEnabled()) {
     if (auto* actor = static_cast<VsyncMainChild*>(
@@ -3639,10 +3640,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
     docShell->SetPositionAndSize(0, 0, innerSize.width, innerSize.height,
                                  nsIBaseWindow::eRepaint);
 
-    const LayoutDeviceIntRect widgetRect(
-        GetOuterRect().TopLeft() + mClientOffset + mChromeOffset, innerSize);
-    mPuppetWidget->Resize(widgetRect / mPuppetWidget->GetDesktopToDeviceScale(),
-                          true);
+    mPuppetWidget->Resize(
+        GetFrameScreenRect() / mPuppetWidget->GetDesktopToDeviceScale(), true);
   }
 
   nsCOMPtr<Document> document(GetTopLevelDocument());
@@ -3669,13 +3668,12 @@ mozilla::ipc::IPCResult BrowserChild::RecvSafeAreaInsetsChanged(
   LayoutDeviceIntMargin currentSafeAreaInsets;
   // aSafeAreaInsets is for current screen. But we have to calculate safe insets
   // for content window.
-  LayoutDeviceIntRect outerRect = GetOuterRect();
+  const LayoutDeviceIntRect frameRect = GetFrameScreenRect();
   RefPtr<Screen> screen = widget::ScreenManager::GetSingleton().ScreenForRect(
-      RoundedToInt(outerRect / mPuppetWidget->GetDesktopToDeviceScale()));
+      RoundedToInt(frameRect / mPuppetWidget->GetDesktopToDeviceScale()));
   if (screen) {
-    LayoutDeviceIntRect windowRect = outerRect + mClientOffset + mChromeOffset;
     currentSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
-        screen, aSafeAreaInsets, windowRect);
+        screen, aSafeAreaInsets, frameRect);
   }
 
   if (nsCOMPtr<Document> document = GetTopLevelDocument()) {
@@ -3769,10 +3767,6 @@ BrowserChild::GetTopLevelViewportVisibleRectInSelfCoords() const {
   }
 
   return rect;
-}
-
-LayoutDeviceIntRect BrowserChild::GetOuterRect() {
-  return RoundedToInt(mUnscaledOuterRect * mPuppetWidget->GetDefaultScale());
 }
 
 void BrowserChild::PaintWhileInterruptingJS() {

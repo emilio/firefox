@@ -59,9 +59,8 @@ bool BrowserBridgeHost::Show(const OwnerShowInfo& aShowInfo) {
   return true;
 }
 
-void BrowserBridgeHost::UpdateDimensions(const LayoutDeviceIntRect& aRect,
-                                         const LayoutDeviceIntSize& aSize) {
-  (void)mBridge->SendUpdateDimensions(aRect, aSize);
+void BrowserBridgeHost::UpdateDimensions(const LayoutDeviceIntSize& aSize) {
+  (void)mBridge->SendUpdateDimensions(aSize);
 }
 
 void BrowserBridgeHost::UpdateEffects(EffectsInfo aEffects) {

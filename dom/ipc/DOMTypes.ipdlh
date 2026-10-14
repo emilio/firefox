@@ -34,6 +34,7 @@ using mozilla::net::ClassOfService from "mozilla/net/ClassOfService.h";
 
 using mozilla::hal::ScreenOrientation from "mozilla/HalIPCUtils.h";
 using mozilla::LayoutDeviceIntRect from "Units.h";
+using mozilla::LayoutDeviceIntMargin from "Units.h";
 using mozilla::DesktopIntRect from "Units.h";
 using mozilla::DesktopToLayoutDeviceScale from "Units.h";
 using mozilla::CSSToLayoutDeviceScale from "Units.h";
@@ -111,10 +112,15 @@ struct ScreenDetails {
 
 struct DimensionInfo
 {
-  CSSRect rect;
+  // CSS size of the destination rect of the frame.
   CSSSize size;
-  LayoutDeviceIntPoint clientOffset;
-  LayoutDeviceIntPoint chromeOffset;
+  // Screen position of the parent process widget the APZ child-to-parent
+  // matrix maps into.
+  LayoutDeviceIntPoint topLevelWidgetScreenOffset;
+  // The margin from the screen rect of the frame to the screen bounds of the
+  // top-level widget (including window decorations). Zero for out-of-process
+  // iframes.
+  LayoutDeviceIntMargin topLevelChromeMargin;
 };
 
 struct FrameScriptInfo

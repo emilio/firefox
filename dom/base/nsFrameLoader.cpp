@@ -2393,41 +2393,6 @@ nsresult nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI) {
   return NS_OK;
 }
 
-nsresult nsFrameLoader::GetWindowDimensions(LayoutDeviceIntRect& aRect) {
-  if (!mOwnerContent) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Need to get outer window position here
-  Document* doc = mOwnerContent->GetComposedDoc();
-  if (!doc) {
-    return NS_ERROR_FAILURE;
-  }
-
-  MOZ_RELEASE_ASSERT(!doc->IsResourceDoc(), "We shouldn't even exist");
-
-  nsCOMPtr<nsPIDOMWindowOuter> win = doc->GetWindow();
-  if (!win) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIDocShellTreeItem> parentAsItem(win->GetDocShell());
-  if (!parentAsItem) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIDocShellTreeOwner> parentOwner;
-  if (NS_FAILED(parentAsItem->GetTreeOwner(getter_AddRefs(parentOwner))) ||
-      !parentOwner) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_GetInterface(parentOwner));
-  aRect.MoveTo(treeOwnerAsWin->GetPosition());
-  aRect.SizeTo(treeOwnerAsWin->GetSize());
-  return NS_OK;
-}
-
 nsresult nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame* aFrame) {
   const auto size = aFrame->GetSubdocumentSize();
   mLazySize = size;
@@ -2439,9 +2404,7 @@ nsresult nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame* aFrame) {
       if (!mRemoteBrowserShown) {
         ShowRemoteFrame(aFrame);
       }
-      LayoutDeviceIntRect dimensions;
-      MOZ_TRY(GetWindowDimensions(dimensions));
-      mRemoteBrowser->UpdateDimensions(dimensions, size);
+      mRemoteBrowser->UpdateDimensions(size);
       mRemoteBrowserSized = true;
     }
     return NS_OK;

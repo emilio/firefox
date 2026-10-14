@@ -561,8 +561,9 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   bool DeallocPPaymentRequestChild(PPaymentRequestChild* aActor);
 
-  LayoutDeviceIntPoint GetClientOffset() const { return mClientOffset; }
-  LayoutDeviceIntPoint GetChromeOffset() const { return mChromeOffset; };
+  LayoutDeviceIntPoint GetTopLevelWidgetScreenOffset() const {
+    return mTopLevelWidgetScreenOffset;
+  }
   ScreenIntCoord GetDynamicToolbarMaxHeight() const {
     return mDynamicToolbarMaxHeight;
   };
@@ -809,7 +810,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   bool HasValidInnerSize();
 
-  LayoutDeviceIntRect GetOuterRect();
+  // Returns the screen rect of the frame
+  LayoutDeviceIntRect GetFrameScreenRect();
 
   void SetUnscaledInnerSize(const CSSSize& aSize) {
     mUnscaledInnerSize = aSize;
@@ -886,18 +888,17 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   // The number of windows which may have ePointerRawUpdate event listener.
   uint32_t mPointerRawUpdateWindowCount = 0;
   layers::LayersId mLayersId;
-  CSSRect mUnscaledOuterRect;
   Maybe<bool> mLayersConnected;
   Maybe<bool> mLayersConnectRequested;
   EffectsInfo mEffectsInfo;
 
   RefPtr<APZEventState> mAPZEventState;
 
-  // Position of client area relative to the outer window
-  LayoutDeviceIntPoint mClientOffset;
-  // Position of tab, relative to parent widget (typically the window)
-  // NOTE: This value is valuable only for the top level browser.
-  LayoutDeviceIntPoint mChromeOffset;
+  // Screen position of the parent widget our child-to-parent matrix maps into.
+  LayoutDeviceIntPoint mTopLevelWidgetScreenOffset;
+  // The size of the chrome UI around us, i.e., the margin from
+  // GetFrameScreenRect() to the outer window rect. See DimensionInfo.
+  LayoutDeviceIntMargin mTopLevelChromeMargin;
   ScreenIntCoord mDynamicToolbarMaxHeight;
   // The software keyboard height.
   ScreenIntCoord mKeyboardHeight;
