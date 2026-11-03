@@ -108,7 +108,7 @@ export class AIChatTable extends MozLitElement {
               class="table-copy-button"
               type="ghost"
               size="small"
-              iconsrc="chrome://global/skin/icons/edit-copy.svg"
+              iconsrc="resource://content-accessible/icons/edit-copy.svg"
               @click=${this.#handleCopyTable}
             ></moz-button>`
           : nothing}

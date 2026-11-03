@@ -3434,7 +3434,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 .all-tabs-close-button {
-  list-style-image: url(chrome://global/skin/icons/close.svg);
+  list-style-image: url(resource://content-accessible/icons/close.svg);
 
   @media not -moz-pref("browser.nova.enabled") {
     list-style-image: url(resource://content-accessible/close-12.svg);

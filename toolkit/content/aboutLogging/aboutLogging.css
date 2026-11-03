@@ -26,7 +26,7 @@
 }
 
 #copy-as-url::part(button) {
-  background-image: url("chrome://global/skin/icons/edit-copy.svg");
+  background-image: url("resource://content-accessible/icons/edit-copy.svg");
 }
 
 #toast-copied {

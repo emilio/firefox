@@ -45,7 +45,7 @@ const VIEW_TEMPLATE = {
           tag: "img",
           classList: ["urlbarView-favicon"],
           attributes: {
-            src: "chrome://global/skin/icons/edit-copy.svg",
+            src: "resource://content-accessible/icons/edit-copy.svg",
           },
         },
         {

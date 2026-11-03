@@ -15,6 +15,8 @@ function rewriteChromeUri(uri) {
       if (!bundlePath.endsWith("/")) {
         bundlePath += "/";
       }
+      // e.g. resource://content-accessible/ maps to resource://gre/contentaccessible/.
+      bundlePath = bundlePath.replace(/^resource:\/\/gre\//, "dist/bin/");
       let relativePath = uri.slice(prefix.length);
       let objdirPath = bundlePath + relativePath;
       for (let [_objdirPath, [filePath]] of Object.entries(sourceMap)) {

@@ -2013,7 +2013,7 @@
     width: var(--urlbarview-result-button-size);
     height: var(--urlbarview-result-button-size);
     cursor: pointer;
-    background: url(chrome://global/skin/icons/close.svg) no-repeat center;
+    background: url(resource://content-accessible/icons/close.svg) no-repeat center;
     background-size: round(62.5%, 2px);
     -moz-context-properties: fill;
     fill: currentColor;

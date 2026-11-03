@@ -99,7 +99,7 @@ describe("<ActivationWindowMessage>", () => {
     expect(dismissButton).toBeInTheDocument();
     expect(dismissButton).toHaveAttribute(
       "iconSrc",
-      "chrome://global/skin/icons/close.svg"
+      "resource://content-accessible/icons/close.svg"
     );
     expect(dismissButton).toHaveAttribute(
       "data-l10n-id",

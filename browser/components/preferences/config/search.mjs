@@ -1043,7 +1043,7 @@ Preferences.addSetting(
             id: outlinkId,
             l10nId: "search-outlink-to-extensions-page",
             control: "moz-button",
-            iconSrc: "chrome://global/skin/icons/open-in-new.svg",
+            iconSrc: "resource://content-accessible/icons/open-in-new.svg",
             slot: "actions",
           });
         }

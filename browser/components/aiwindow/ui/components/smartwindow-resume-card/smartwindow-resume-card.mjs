@@ -138,7 +138,7 @@ export class SmartwindowResumeCard extends MozLitElement {
         >
           <img
             class="resume-card-dismiss-icon"
-            src="chrome://global/skin/icons/close.svg"
+            src="resource://content-accessible/icons/close.svg"
             alt=""
           />
         </button>

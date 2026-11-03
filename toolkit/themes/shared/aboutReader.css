@@ -936,7 +936,7 @@ div[name="customtheme"] {
 /* Toolbar icons */
 
 .close-button {
-  background-image: url("chrome://global/skin/icons/close.svg");
+  background-image: url("resource://content-accessible/icons/close.svg");
 }
 
 .text-layout-button {

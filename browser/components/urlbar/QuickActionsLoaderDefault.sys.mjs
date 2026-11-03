@@ -116,7 +116,7 @@ const DEFAULT_ACTIONS = {
   },
   downloads: {
     l10nCommands: ["quickactions-cmd-downloads"],
-    icon: "chrome://browser/skin/downloads/downloads.svg",
+    icon: "resource://content-accessible/icons/downloads.svg",
     label: "quickactions-downloads2",
     onPick: openUrlFun("about:downloads"),
   },

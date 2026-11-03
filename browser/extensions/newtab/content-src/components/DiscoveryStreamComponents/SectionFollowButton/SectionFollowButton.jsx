@@ -6,7 +6,7 @@ import React, { useState } from "react";
 
 const ADD_ICON = "chrome://global/skin/icons/plus.svg";
 const CHECK_ICON = "chrome://global/skin/icons/check.svg";
-const CLOSE_ICON = "chrome://global/skin/icons/close.svg";
+const CLOSE_ICON = "resource://content-accessible/icons/close.svg";
 
 export function SectionFollowButton({
   following,

@@ -29,7 +29,6 @@ toolkit.jar:
   skin/classic/global/media/playback-speed-button.svg     (../../shared/media/playback-speed-button.svg)
 
 # used in about:logging on Android
-  skin/classic/global/icons/open-in-new.svg                (../../shared/icons/open-in-new.svg)
   skin/classic/global/icons/more.svg                       (../../shared/icons/more.svg)
 
 # used in about:certificate on desktop/Android

@@ -6994,7 +6994,7 @@ function MultistageWithDismiss({
   }, isCardStack ? null : /*#__PURE__*/external_React_default().createElement("moz-button", {
     type: "icon ghost",
     size: "small",
-    iconsrc: "chrome://global/skin/icons/close.svg",
+    iconsrc: "resource://content-accessible/icons/close.svg",
     "data-l10n-id": "newtab-activation-window-message-dismiss-button",
     onClick: onDismiss
   }), /*#__PURE__*/external_React_default().createElement(MultiStageAboutWelcome, {

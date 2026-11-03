@@ -84,7 +84,7 @@ testRule({
       description: "A statement at-rule has no block to check.",
     },
     {
-      code: '@import url("chrome://global/skin/design-system/tokens-brand.css");\n.a { background-color: var(--panel-background-color); color: var(--panel-text-color); }',
+      code: '@import url("resource://content-accessible/design-system/tokens-brand.css");\n.a { background-color: var(--panel-background-color); color: var(--panel-text-color); }',
       description: "An @import is not a block either.",
     },
     {

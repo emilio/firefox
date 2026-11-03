@@ -59,7 +59,7 @@ const PromoCard = () => {
           type="icon ghost"
           size="small"
           data-l10n-id="newtab-promo-card-dismiss-button"
-          iconsrc="chrome://global/skin/icons/close.svg"
+          iconsrc="resource://content-accessible/icons/close.svg"
           onClick={onDismissClick}
           onKeyDown={onDismissClick}
         />

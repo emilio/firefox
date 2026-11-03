@@ -722,16 +722,16 @@ div#feature-callout.hidden {
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background,
 #feature-callout .screen[pos=callout] .section-main .more-button.with-background {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background);
+  background: url("resource://content-accessible/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background);
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover,
 #feature-callout .screen[pos=callout] .section-main .more-button.with-background:hover {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-hover);
+  background: url("resource://content-accessible/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-hover);
   color: var(--fc-button-color-hover);
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover:active,
 #feature-callout .screen[pos=callout] .section-main .more-button.with-background:hover:active {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-active);
+  background: url("resource://content-accessible/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-active);
 }
 @media (prefers-contrast) {
   #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background,
@@ -5000,7 +5000,7 @@ html {
   height: 1.3em;
   -moz-context-properties: fill;
   fill: currentColor;
-  background: url("chrome://global/skin/icons/open-in-new.svg") center center/100% no-repeat;
+  background: url("resource://content-accessible/icons/open-in-new.svg") center center/100% no-repeat;
 }
 .onboardingContainer #content-tiles-container button.tile-header[aria-expanded=true],
 .onboardingContainer button.content-tiles-header[aria-expanded=true] {
@@ -5306,7 +5306,7 @@ html {
   margin: var(--space-large);
   display: block;
   float: inline-end;
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px;
+  background: url("resource://content-accessible/icons/close.svg") no-repeat center/16px;
   border-color: transparent;
   height: var(--size-item-large);
   width: var(--size-item-large);

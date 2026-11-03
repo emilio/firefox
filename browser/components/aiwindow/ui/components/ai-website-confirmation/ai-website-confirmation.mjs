@@ -187,7 +187,7 @@ export class AIWebsiteConfirmation extends MozLitElement {
 
       <moz-button
         class="close-button"
-        iconSrc="chrome://global/skin/icons/close.svg"
+        iconSrc="resource://content-accessible/icons/close.svg"
         @click=${this.handleClose}
         type="ghost icon"
         data-l10n-id="smart-window-close-confirm"

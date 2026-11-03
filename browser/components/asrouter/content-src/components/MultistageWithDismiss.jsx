@@ -65,7 +65,7 @@ export function MultistageWithDismiss({ config, handleDismiss, handleBlock }) {
         <moz-button
           type="icon ghost"
           size="small"
-          iconsrc="chrome://global/skin/icons/close.svg"
+          iconsrc="resource://content-accessible/icons/close.svg"
           data-l10n-id="newtab-activation-window-message-dismiss-button"
           onClick={onDismiss}
         />

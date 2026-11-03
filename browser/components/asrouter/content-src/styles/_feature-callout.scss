@@ -574,14 +574,14 @@
           }
 
           &.with-background {
-            background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background);
+            background: url('resource://content-accessible/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background);
 
             &:hover {
-              background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-hover);
+              background: url('resource://content-accessible/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-hover);
               color: var(--fc-button-color-hover);
 
               &:active {
-                background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-active);
+                background: url('resource://content-accessible/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-active);
               }
             }
 

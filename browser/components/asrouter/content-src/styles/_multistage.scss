@@ -3863,7 +3863,7 @@ html {
       height: 1.3em;
       -moz-context-properties: fill;
       fill: currentColor;
-      background: url('chrome://global/skin/icons/open-in-new.svg') center center / 100% no-repeat;
+      background: url('resource://content-accessible/icons/open-in-new.svg') center center / 100% no-repeat;
     }
 
     &[aria-expanded='true'] {
@@ -4264,7 +4264,7 @@ html {
     margin: var(--space-large);
     display: block;
     float: inline-end;
-    background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px;
+    background: url('resource://content-accessible/icons/close.svg') no-repeat center / 16px;
     border-color: transparent;
     height: var(--size-item-large);
     width: var(--size-item-large);

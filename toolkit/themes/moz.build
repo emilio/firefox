@@ -49,6 +49,21 @@ CONTENT_ACCESSIBLE_FILES += [
     "shared/pictureinpicture/texttracks.css",
 ]
 
+CONTENT_ACCESSIBLE_FILES.icons += [
+    "shared/icons/edit-copy.svg",
+    "shared/icons/open-in-new.svg",
+]
+
+if app != "mobile/android":
+    CONTENT_ACCESSIBLE_FILES["design-system"] += [
+        "shared/design-system/dist/tokens-brand.css",
+        "shared/design-system/dist/tokens-platform.css",
+        "shared/design-system/dist/tokens-shared.css",
+    ]
+    CONTENT_ACCESSIBLE_FILES.icons += [
+        "shared/icons/close.svg",
+    ]
+
 if app == "mobile/android":
     CONTENT_ACCESSIBLE_FILES.media += [
         "shared/media/picture-in-picture-open-android.svg",

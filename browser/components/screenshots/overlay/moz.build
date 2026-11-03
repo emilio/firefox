@@ -1,0 +1,16 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# The overlay is inserted in web content, so it needs to be accessible from
+# resource://content-accessible/.
+FINAL_TARGET = "dist/bin"
+
+CONTENT_ACCESSIBLE_FILES.icons += [
+    "/browser/components/miniwindow/assets/mini-window.svg",
+    "/browser/themes/shared/downloads/downloads.svg",
+]
+
+CONTENT_ACCESSIBLE_FILES.screenshots += [
+    "overlay.css",
+]

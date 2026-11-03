@@ -176,7 +176,7 @@ IconGhost.args = {
 export const IconText = Template.bind({});
 IconText.args = {
   ...Default.args,
-  iconSrc: "chrome://global/skin/icons/edit-copy.svg",
+  iconSrc: "resource://content-accessible/icons/edit-copy.svg",
   l10nId: "moz-button-labelled",
 };
 export const IconPositionEnd = Template.bind({});

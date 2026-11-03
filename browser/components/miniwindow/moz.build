@@ -5,8 +5,6 @@
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Mini Window")
 
-JAR_MANIFESTS += ["jar.mn"]
-
 SPHINX_TREES["docs"] = "docs"
 
 MOZ_SRC_FILES += [

@@ -113,10 +113,13 @@ module.exports = {
     };
 
     config.plugins.push(
-      // Rewrite chrome:// URI imports to file system paths.
-      new webpack.NormalModuleReplacementPlugin(/^chrome:\/\//, resource => {
-        resource.request = rewriteChromeUri(resource.request);
-      })
+      // Rewrite chrome:// and resource:// URI imports to file system paths.
+      new webpack.NormalModuleReplacementPlugin(
+        /^(chrome|resource):\/\//,
+        resource => {
+          resource.request = rewriteChromeUri(resource.request);
+        }
+      )
     );
 
     config.plugins.push(

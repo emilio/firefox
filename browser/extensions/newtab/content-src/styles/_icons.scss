@@ -53,7 +53,7 @@
   }
 
   &.icon-dismiss {
-    background-image: url('chrome://global/skin/icons/close.svg');
+    background-image: url('resource://content-accessible/icons/close.svg');
   }
 
   &.icon-info {
@@ -151,11 +151,11 @@
   }
 
   &.icon-download {
-    background-image: url('chrome://browser/skin/downloads/downloads.svg');
+    background-image: url('resource://content-accessible/icons/downloads.svg');
   }
 
   &.icon-copy {
-    background-image: url('chrome://global/skin/icons/edit-copy.svg');
+    background-image: url('resource://content-accessible/icons/edit-copy.svg');
   }
 
   &.icon-open-file {

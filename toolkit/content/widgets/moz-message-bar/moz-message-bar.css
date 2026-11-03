@@ -5,7 +5,7 @@
 @import url("chrome://global/content/elements/moz-message-bar.tokens.css");
 
 :host {
-  --message-bar-icon-close-url: url("chrome://global/skin/icons/close.svg");
+  --message-bar-icon-close-url: url("resource://content-accessible/icons/close.svg");
 
   background-color: var(--message-bar-background-color);
   border: var(--message-bar-border-width) solid var(--message-bar-border-color);

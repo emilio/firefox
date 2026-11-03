@@ -111,7 +111,7 @@ html {
   background-image: url("chrome://global/skin/icons/warning.svg");
 }
 .asrouter-admin .icon.icon-dismiss {
-  background-image: url("chrome://global/skin/icons/close.svg");
+  background-image: url("resource://content-accessible/icons/close.svg");
 }
 .asrouter-admin .icon.icon-undo {
   background-image: url("chrome://global/skin/icons/undo.svg");

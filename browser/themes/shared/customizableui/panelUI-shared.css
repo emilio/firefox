@@ -1597,7 +1597,7 @@ panelview .toolbarbutton-1,
   }
 
   &[type="open-to-new"]::after {
-    content: url(chrome://global/skin/icons/open-in-new.svg);
+    content: url(resource://content-accessible/icons/open-in-new.svg);
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
     fill-opacity: 0.6;

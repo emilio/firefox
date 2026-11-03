@@ -671,7 +671,10 @@ export const GenAI = {
     // action is still hidden.
     for (const [id, src] of [
       ["#search-action-button", "chrome://global/skin/icons/search-glass.svg"],
-      ["#copy-action-button", "chrome://global/skin/icons/edit-copy.svg"],
+      [
+        "#copy-action-button",
+        "resource://content-accessible/icons/edit-copy.svg",
+      ],
       ["#more-actions-button", "chrome://global/skin/icons/more.svg"],
     ]) {
       panel.querySelector(id).iconSrc = src;
@@ -1101,7 +1104,7 @@ export const GenAI = {
 
     aiToggle.iconSrc = "chrome://global/skin/icons/highlights.svg";
     searchToggle.iconSrc = "chrome://global/skin/icons/search-glass.svg";
-    copyToggle.iconSrc = "chrome://global/skin/icons/edit-copy.svg";
+    copyToggle.iconSrc = "resource://content-accessible/icons/edit-copy.svg";
 
     const allOffNotice = document.getElementById("more-actions-all-off-notice");
     let turnOffWhenClosed = false;

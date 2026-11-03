@@ -787,7 +787,7 @@ function Widgets({ widgetIds, placement }) {
           type="icon ghost"
           size="small"
           data-l10n-id="newtab-widget-section-hide-all-button"
-          iconsrc="chrome://global/skin/icons/close.svg"
+          iconsrc="resource://content-accessible/icons/close.svg"
           onClick={handleHideAllWidgetsClick}
           onKeyDown={handleHideAllWidgetsKeyDown}
         />

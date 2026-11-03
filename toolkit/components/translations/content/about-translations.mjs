@@ -1567,7 +1567,7 @@ class AboutTranslations {
     }
 
     copyButton.classList.remove("copied");
-    copyButton.iconSrc = "chrome://global/skin/icons/edit-copy.svg";
+    copyButton.iconSrc = "resource://content-accessible/icons/edit-copy.svg";
 
     document.l10n.setAttributes(
       copyButton,

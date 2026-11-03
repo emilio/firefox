@@ -118,7 +118,7 @@ async function buildTable() {
       buttonClear.className = "clear";
       buttonClear.setAttribute("data-l10n-id", "customkeys-key-clear");
       buttonClear.type = "icon ghost";
-      buttonClear.iconSrc = "chrome://global/skin/icons/close.svg";
+      buttonClear.iconSrc = "resource://content-accessible/icons/close.svg";
       keyActions.append(buttonClear);
 
       // Reset/Restore button:

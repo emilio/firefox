@@ -638,7 +638,7 @@
     margin: 0;
     width: var(--icon-size-xsmall);
     height: var(--icon-size-xsmall);
-    list-style-image: url(chrome://global/skin/icons/close.svg);
+    list-style-image: url(resource://content-accessible/icons/close.svg);
     -moz-context-properties: fill;
     fill: currentColor;
   }

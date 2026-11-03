@@ -278,7 +278,7 @@ SettingGroupManager.registerGroups({
                 slot: "actions",
                 controlAttrs: {
                   type: "icon",
-                  iconsrc: "chrome://browser/skin/downloads/downloads.svg",
+                  iconsrc: "resource://content-accessible/icons/downloads.svg",
                 },
               },
             ],

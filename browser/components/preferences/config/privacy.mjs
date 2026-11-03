@@ -1748,7 +1748,7 @@ if (SECURITY_PRIVACY_STATUS_CARD_ENABLED) {
               controlAttrs: {
                 slot: "actions",
                 size: "small",
-                iconsrc: "chrome://global/skin/icons/close.svg",
+                iconsrc: "resource://content-accessible/icons/close.svg",
                 id: "dismiss",
               },
             },

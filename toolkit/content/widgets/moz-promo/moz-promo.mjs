@@ -89,7 +89,7 @@ export class MozPromo extends MozLitElement {
         <moz-button
           class="close"
           type="icon ghost"
-          iconsrc="chrome://global/skin/icons/close.svg"
+          iconsrc="resource://content-accessible/icons/close.svg"
           data-l10n-id="moz-promo-close-button"
           @click=${this.dismiss}
         ></moz-button>

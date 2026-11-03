@@ -122,21 +122,21 @@ moz-button::part(button) {
 You can also use `iconsrc` together with `label` to get a button with both icon and text.
 
 ```html
-<moz-button iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconsrc="resource://content-accessible/icons/edit-copy.svg" label="Button"></moz-button>
 ```
 
 ```html story
-<moz-button iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconsrc="resource://content-accessible/icons/edit-copy.svg" label="Button"></moz-button>
 ```
 
 To adjust the icon's position, use the `.iconPosition` property / `iconposition` attribute. It accepts two values: `start` (the default) or `end`.
 
 ```html
-<moz-button iconposition="end" iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconposition="end" iconsrc="resource://content-accessible/icons/edit-copy.svg" label="Button"></moz-button>
 ```
 
 ```html story
-<moz-button iconposition="end" iconsrc="chrome://global/skin/icons/edit-copy.svg" label="Button"></moz-button>
+<moz-button iconposition="end" iconsrc="resource://content-accessible/icons/edit-copy.svg" label="Button"></moz-button>
 ```
 
 To add a badge to the icon button, set `.attention` boolean property to `true` or add `attention` attribute to the markup.
