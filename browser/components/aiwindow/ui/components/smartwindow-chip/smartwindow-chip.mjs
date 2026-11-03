@@ -186,7 +186,7 @@ export class SmartwindowChip extends MozLitElement {
     >
       <img
         class="chip-remove-icon"
-        src="chrome://global/skin/icons/close.svg"
+        src="resource://content-accessible/icons/close.svg"
         alt=""
       />
     </button>`;

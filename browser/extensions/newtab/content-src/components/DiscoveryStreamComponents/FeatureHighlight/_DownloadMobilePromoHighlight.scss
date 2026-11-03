@@ -2,7 +2,7 @@
 .download-firefox-feature-highlight {
   .icon.icon-dismiss {
     // change background property to use transparent background
-    background: transparent url('chrome://global/skin/icons/close.svg');
+    background: transparent url('resource://content-accessible/icons/close.svg');
     background-size: var(--size-item-small);
     height: var(--size-item-small);
     width: var(--size-item-small);

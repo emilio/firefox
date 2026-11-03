@@ -15,8 +15,8 @@ const BUTTON_TYPES = {
 
 const BUTTON_ICONS = {
   Edit: "chrome://global/skin/icons/edit.svg",
-  "Copy Username": "chrome://global/skin/icons/edit-copy.svg",
-  "Copy Password": "chrome://global/skin/icons/edit-copy.svg",
+  "Copy Username": "resource://content-accessible/icons/edit-copy.svg",
+  "Copy Password": "resource://content-accessible/icons/edit-copy.svg",
   Remove: "chrome://global/skin/icons/delete.svg",
 };
 

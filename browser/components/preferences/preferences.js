@@ -297,7 +297,7 @@ const CONFIG_PANES = Object.freeze({
   },
   downloads: {
     l10nId: "pane-downloads3",
-    iconSrc: "chrome://browser/skin/downloads/downloads.svg",
+    iconSrc: "resource://content-accessible/icons/downloads.svg",
     groupIds: ["downloads", "applications"],
     module: "chrome://browser/content/preferences/config/downloads.mjs",
     visible: () =>

@@ -24,7 +24,7 @@ export const customFileHeader = ({ surface, platform, file }) => {
  * and run \`mach buildtokens\` to see your changes. */`;
 
   const cssImport = surface
-    ? `@import url("chrome://global/skin/design-system/tokens-shared.css");\n\n`
+    ? `@import url("resource://content-accessible/design-system/tokens-shared.css");\n\n`
     : "";
 
   const layerString = !surface && !platform ? getLayerString() : "";

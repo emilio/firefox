@@ -5,7 +5,7 @@
 .close-icon {
   appearance: none;
   -moz-context-properties: fill, fill-opacity;
-  list-style-image: url(chrome://global/skin/icons/close.svg);
+  list-style-image: url(resource://content-accessible/icons/close.svg);
   border-radius: var(--border-radius-small);
   color: inherit;
   fill: currentColor;

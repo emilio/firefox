@@ -137,7 +137,7 @@ export class AssistantMessageFooter extends MozLitElement {
           class="footer-icon-button copy-button"
           type="ghost"
           size="small"
-          iconsrc="chrome://global/skin/icons/edit-copy.svg"
+          iconsrc="resource://content-accessible/icons/edit-copy.svg"
           @click=${() => {
             this.#emitCopy();
           }}

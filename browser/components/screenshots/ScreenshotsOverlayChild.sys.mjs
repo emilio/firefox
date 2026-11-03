@@ -164,13 +164,13 @@ export class ScreenshotsOverlay {
 
     return `
       <template>
-        <link rel="stylesheet" href="chrome://browser/content/screenshots/overlay/overlay.css" />
+        <link rel="stylesheet" href="resource://content-accessible/screenshots/overlay.css" />
         <div id="screenshots-component">
           <div id="preview-container" hidden>
             <div id="face-container" tabindex="0" role="button" aria-label="${previewFaceAriaLabel.attributes[0].value}">
               ${
                 this.mode === SELECTION_MODES.MINI_WINDOW
-                  ? `<img id="mini-window-preview-logo" src="chrome://browser/content/miniwindow/assets/mini-window.svg" alt=""/>`
+                  ? `<img id="mini-window-preview-logo" src="resource://content-accessible/icons/mini-window.svg" alt=""/>`
                   : `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
                 <g>
                   <path d="M11.4.9v2.9h-6c-.9 0-1.5.8-1.5 1.5v6H.8V3.8C.8 2.1 2.2.7 3.9.7h7.6v.2z" class="face-line-color"/>

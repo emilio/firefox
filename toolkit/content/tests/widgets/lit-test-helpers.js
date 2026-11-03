@@ -405,7 +405,7 @@ class InputTestHelpers extends LitTestHelpers {
    * @param {string} selector - HTML tag of the element under test.
    */
   async verifyIcon(selector) {
-    const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
+    const ICON_SRC = "resource://content-accessible/icons/edit-copy.svg";
 
     let iconTemplate = this.templateFn({
       value: "icon",
@@ -419,7 +419,7 @@ class InputTestHelpers extends LitTestHelpers {
     ok(firstInput.icon, "Input displays an icon.");
     is(
       firstInput.icon.getAttribute("src"),
-      "chrome://global/skin/icons/edit-copy.svg",
+      "resource://content-accessible/icons/edit-copy.svg",
       "Input icon uses the expected source."
     );
 
@@ -783,7 +783,7 @@ class InputTestHelpers extends LitTestHelpers {
     let whitespaceTemplate = this.templateFn({
       label: "label",
       "support-page": "test",
-      "icon-src": "chrome://global/skin/icons/edit-copy.svg",
+      "icon-src": "resource://content-accessible/icons/edit-copy.svg",
     });
     let renderTarget = await this.renderTemplate(whitespaceTemplate);
     let firstInput = renderTarget.querySelector(selector);

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import url("chrome://global/skin/in-content/common.css");
+@import url("resource://content-accessible/design-system/tokens-brand.css");
 
 :host {
   display: contents;
@@ -88,6 +88,61 @@
   justify-content: center;
 }
 
+button {
+  appearance: none;
+  min-height: var(--button-min-height);
+  color: var(--button-text-color);
+  border: var(--button-border);
+  border-radius: var(--button-border-radius);
+  background-color: var(--button-background-color);
+  font: inherit;
+  font-size: 1em;
+  font-weight: var(--button-font-weight);
+  padding: var(--button-padding);
+  margin-block: var(--space-xsmall);
+
+  &:focus-visible {
+    outline: var(--focus-outline-width) solid var(--focus-outline-color);
+    outline-offset: var(--focus-outline-offset);
+  }
+
+  &:enabled:hover {
+    background-color: var(--button-background-color-hover);
+    color: var(--button-text-color-hover);
+    border-color: var(--button-border-color-hover);
+  }
+
+  &:enabled:hover:active {
+    background-color: var(--button-background-color-active);
+    color: var(--button-text-color-active);
+    border-color: var(--button-border-color-active);
+  }
+
+  &.primary {
+    background-color: var(--button-background-color-primary);
+    color: var(--button-text-color-primary);
+    border-color: var(--button-border-color-primary);
+
+    &:enabled:hover {
+      background-color: var(--button-background-color-primary-hover);
+      color: var(--button-text-color-primary-hover);
+      border-color: var(--button-border-color-primary-hover);
+    }
+
+    &:enabled:hover:active {
+      background-color: var(--button-background-color-primary-active);
+      color: var(--button-text-color-primary-active);
+      border-color: var(--button-border-color-primary-active);
+    }
+  }
+
+  &.ghost-button {
+    @media not (forced-colors) {
+      background-color: transparent;
+    }
+  }
+}
+
 .screenshots-button {
   display: inline-flex;
   align-items: center;
@@ -145,20 +200,20 @@
 }
 
 #cancel > img {
-  content: url("chrome://global/skin/icons/close.svg");
+  content: url("resource://content-accessible/icons/close.svg");
 }
 
 #copy > img {
-  content: url("chrome://global/skin/icons/edit-copy.svg");
+  content: url("resource://content-accessible/icons/edit-copy.svg");
 }
 
 #download > img {
-  content: url("chrome://browser/skin/downloads/downloads.svg");
+  content: url("resource://content-accessible/icons/downloads.svg");
 }
 
 #pop > img {
   /* TODO: update this image to a more appropriate one further down the stack */
-  content: url("chrome://global/skin/icons/open-in-new.svg");
+  content: url("resource://content-accessible/icons/open-in-new.svg");
 }
 
 #face-container {

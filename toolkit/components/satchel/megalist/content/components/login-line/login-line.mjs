@@ -135,7 +135,7 @@ class LoginLine extends MozLitElement {
                 data-l10n-id="contextual-manager-copy-icon"
                 aria-labelledby="contextual-manager-copy-icon"
                 class="copy-icon"
-                src="chrome://global/skin/icons/edit-copy.svg"
+                src="resource://content-accessible/icons/edit-copy.svg"
               />
               <img
                 data-l10n-id=${ifDefined(

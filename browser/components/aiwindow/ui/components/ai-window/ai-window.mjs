@@ -3952,7 +3952,7 @@ export class AIWindow extends MozLitElement {
               data-l10n-attrs="tooltiptext,aria-label"
               class="close-sidebar-button"
               type="ghost icon"
-              iconsrc="chrome://global/skin/icons/close.svg"
+              iconsrc="resource://content-accessible/icons/close.svg"
               @click=${this.#onCloseSidebarClick}
             ></moz-button>
           </div>`

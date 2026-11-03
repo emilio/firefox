@@ -222,7 +222,7 @@ export class _CustomizeMenu extends React.PureComponent {
                   id="close-button"
                   type="icon ghost"
                   data-l10n-id="newtab-custom-close-menu-button"
-                  iconsrc="chrome://global/skin/icons/close.svg"
+                  iconsrc="resource://content-accessible/icons/close.svg"
                   ref={this.closeButtonRef}
                 ></moz-button>
               </div>

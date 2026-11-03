@@ -102,7 +102,6 @@
   skin/classic/browser/downloads/download-blockedStates.css    (../shared/downloads/download-blockedStates.css)
   skin/classic/browser/downloads/download-summary.svg          (../shared/downloads/download-summary.svg)
   skin/classic/browser/downloads/downloads.inc.css             (../shared/downloads/downloads.inc.css)
-  skin/classic/browser/downloads/downloads.svg                 (../shared/downloads/downloads.svg)
   skin/classic/browser/downloads/indicator.css                 (../shared/downloads/indicator.css)
   skin/classic/browser/downloads/notification-finish-animation.svg       (../shared/downloads/notification-finish-animation.svg)
   skin/classic/browser/downloads/notification-start-animation.svg        (../shared/downloads/notification-start-animation.svg)

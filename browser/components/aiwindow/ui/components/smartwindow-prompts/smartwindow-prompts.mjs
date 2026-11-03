@@ -285,7 +285,7 @@ export class SmartWindowPrompts extends MozLitElement {
         >
           <img
             class="sw-prompt-dismiss-icon"
-            src="chrome://global/skin/icons/close.svg"
+            src="resource://content-accessible/icons/close.svg"
             alt=""
           />
         </button>

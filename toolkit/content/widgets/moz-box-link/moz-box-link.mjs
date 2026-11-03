@@ -47,7 +47,7 @@ export class MozBoxLink extends MozBoxBase {
   navIconTemplate() {
     return html`<img
       class="icon nav-icon"
-      src="chrome://global/skin/icons/open-in-new.svg"
+      src="resource://content-accessible/icons/open-in-new.svg"
       role="presentation"
     />`;
   }

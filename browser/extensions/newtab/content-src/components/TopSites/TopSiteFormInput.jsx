@@ -54,7 +54,7 @@ export function TopSiteFormInput({
           className="icon-clear-input"
           type="icon ghost"
           size="small"
-          iconSrc="chrome://global/skin/icons/close.svg"
+          iconSrc="resource://content-accessible/icons/close.svg"
           onClick={onClear}
           data-l10n-id="newtab-topsites-clear-input"
         />

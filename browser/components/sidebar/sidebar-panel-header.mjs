@@ -84,7 +84,7 @@ export class SidebarPanelHeader extends MozLitElement {
           this.view,
           () =>
             html`<moz-button
-              iconsrc="chrome://global/skin/icons/close.svg"
+              iconsrc="resource://content-accessible/icons/close.svg"
               data-l10n-id="sidebar-panel-header-close-button"
               @click=${this.closeSidebarPanel}
               .view=${this.view}

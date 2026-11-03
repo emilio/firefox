@@ -58,7 +58,7 @@ export function ActivationWindowMessage({
       <div className="activation-window-message-dismiss">
         <moz-button
           type="icon ghost"
-          iconSrc="chrome://global/skin/icons/close.svg"
+          iconSrc="resource://content-accessible/icons/close.svg"
           onClick={onDismiss}
           data-l10n-id="newtab-activation-window-message-dismiss-button"
         ></moz-button>

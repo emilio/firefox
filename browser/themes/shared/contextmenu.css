@@ -38,7 +38,7 @@
 }
 
 #context-stop {
-  --menuitem-icon: url("chrome://global/skin/icons/close.svg");
+  --menuitem-icon: url("resource://content-accessible/icons/close.svg");
 }
 
 #context-bookmarkpage {

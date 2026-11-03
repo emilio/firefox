@@ -436,7 +436,7 @@ export default class ASRouterNewTabMessage extends MozLitElement {
               <moz-button
                 type="icon ghost"
                 size="small"
-                iconSrc="chrome://global/skin/icons/close.svg"
+                iconSrc="resource://content-accessible/icons/close.svg"
                 data-l10n-id="newtab-activation-window-message-dismiss-button"
                 @click=${this.#handleXButton.bind(this)}
               ></moz-button>

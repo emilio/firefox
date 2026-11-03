@@ -61,11 +61,11 @@ In order to disable the `moz-checkbox`, add `disabled=""` or `disabled` to the m
 In order to have an icon appear next to the checkbox element, use the `.iconSrc` property or `iconsrc` attribute.
 
 ```html
-<moz-checkbox label="a descriptive label" iconsrc="chrome://global/skin/icons/edit-copy.svg"></moz-checkbox>
+<moz-checkbox label="a descriptive label" iconsrc="resource://content-accessible/icons/edit-copy.svg"></moz-checkbox>
 ```
 
 ```html story
-<moz-checkbox label="a descriptive label" iconsrc="chrome://global/skin/icons/edit-copy.svg"></moz-checkbox>
+<moz-checkbox label="a descriptive label" iconsrc="resource://content-accessible/icons/edit-copy.svg"></moz-checkbox>
 ```
 
 ### Setting a description

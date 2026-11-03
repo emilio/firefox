@@ -42,7 +42,7 @@ const Template = ({
       background-image: url("chrome://global/skin/icons/more.svg");
     }
     fxview-tab-list.dismiss::part(secondary-button) {
-      background-image: url("chrome://global/skin/icons/close.svg");
+      background-image: url("resource://content-accessible/icons/close.svg");
     }
     :host panel-item::part(button) {
       padding-inline-start: 12px;

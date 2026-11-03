@@ -76,7 +76,7 @@ function templateHTML(options) {
     <link rel="localization" href="toolkit/global/mozMessageBar.ftl" />
     <link
       rel="stylesheet"
-      href="chrome://global/skin/design-system/tokens-brand.css"
+      href="resource://content-accessible/design-system/tokens-brand.css"
     />
     <link
       rel="stylesheet"

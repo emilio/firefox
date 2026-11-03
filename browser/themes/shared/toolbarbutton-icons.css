@@ -61,7 +61,7 @@ toolbar .toolbarbutton-1 {
 }
 
 #stop-button {
-  list-style-image: url("chrome://global/skin/icons/close.svg");
+  list-style-image: url("resource://content-accessible/icons/close.svg");
 }
 
 #home-button {
@@ -82,7 +82,7 @@ toolbar .toolbarbutton-1 {
 }
 
 #downloads-button {
-  list-style-image: url("chrome://browser/skin/downloads/downloads.svg");
+  list-style-image: url("resource://content-accessible/icons/downloads.svg");
 }
 
 #open-file-button {
@@ -187,7 +187,7 @@ toolbar .toolbarbutton-1 {
 }
 
 #copy-button {
-  list-style-image: url("chrome://global/skin/icons/edit-copy.svg");
+  list-style-image: url("resource://content-accessible/icons/edit-copy.svg");
 }
 
 #paste-button {
@@ -645,11 +645,11 @@ toolbar .toolbarbutton-1 {
 }
 
 #mini-window-restore-button {
-  list-style-image: url("chrome://global/skin/icons/open-in-new.svg");
+  list-style-image: url("resource://content-accessible/icons/open-in-new.svg");
 }
 
 #mini-window-close-button {
-  list-style-image: url("chrome://global/skin/icons/close.svg");
+  list-style-image: url("resource://content-accessible/icons/close.svg");
 }
 
 #mini-window-audio-button {
@@ -663,14 +663,14 @@ toolbar .toolbarbutton-1 {
 }
 
 #mini-window-button {
-  list-style-image: url("chrome://browser/content/miniwindow/assets/mini-window.svg");
+  list-style-image: url("resource://content-accessible/icons/mini-window.svg");
 }
 
 #smartwindow-ask-button-inner {
   list-style-image: url("chrome://browser/content/aiwindow/assets/ask-icon.svg");
 
   &[aria-expanded="true"] {
-    list-style-image: url("chrome://global/skin/icons/close.svg");
+    list-style-image: url("resource://content-accessible/icons/close.svg");
   }
 }
 

@@ -171,7 +171,7 @@
   min-height: var(--size-item-large);
   margin: 0;
   justify-content: flex-start;
-  list-style-image: url(chrome://global/skin/icons/edit-copy.svg);
+  list-style-image: url(resource://content-accessible/icons/edit-copy.svg);
   background-color: transparent;
   -moz-context-properties: fill;
   fill: currentColor;

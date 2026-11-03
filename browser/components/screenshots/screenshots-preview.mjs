@@ -238,14 +238,14 @@ class ScreenshotsPreview extends MozLitElement {
           <moz-button
             id="cancel"
             data-l10n-id="screenshots-component-cancel-button"
-            iconSrc="chrome://global/skin/icons/close.svg"
+            iconSrc="resource://content-accessible/icons/close.svg"
             @click=${this.handleClick}
           ></moz-button>
           <moz-button
             id="copy"
             data-l10n-id="screenshots-component-copy-button-2"
             data-l10n-args='{ "shortcut": "" }'
-            iconSrc="chrome://global/skin/icons/edit-copy.svg"
+            iconSrc="resource://content-accessible/icons/edit-copy.svg"
             @click=${this.handleClick}
           ></moz-button>
           <moz-button
@@ -253,7 +253,7 @@ class ScreenshotsPreview extends MozLitElement {
             type="primary"
             data-l10n-id="screenshots-component-download-button-2"
             data-l10n-args='{ "shortcut": "" }'
-            iconSrc="chrome://browser/skin/downloads/downloads.svg"
+            iconSrc="resource://content-accessible/icons/downloads.svg"
             @click=${this.handleClick}
           ></moz-button>
         </div>

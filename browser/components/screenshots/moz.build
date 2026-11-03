@@ -11,6 +11,8 @@ MOZ_SRC_FILES += [
 
 JAR_MANIFESTS += ["jar.mn"]
 
+DIRS += ["overlay"]
+
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Screenshots")
 

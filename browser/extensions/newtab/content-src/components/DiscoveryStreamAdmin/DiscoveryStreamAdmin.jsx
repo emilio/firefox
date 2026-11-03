@@ -1544,7 +1544,7 @@ export class DiscoveryStreamAdminInner extends React.PureComponent {
           type="icon ghost"
           title="Close devtools"
           aria-label="Close devtools"
-          iconsrc="chrome://global/skin/icons/close.svg"
+          iconsrc="resource://content-accessible/icons/close.svg"
           onClick={this.dismiss}
         />
         <main className="main-panel">

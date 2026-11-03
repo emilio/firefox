@@ -1289,7 +1289,7 @@ function EditableText({
           className="edit-list-clear"
           type="icon ghost"
           size="small"
-          iconSrc="chrome://global/skin/icons/close.svg"
+          iconSrc="resource://content-accessible/icons/close.svg"
           data-l10n-id="newtab-widget-lists-edit-clear"
           onClick={handleClear}
         />

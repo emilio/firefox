@@ -30,7 +30,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-const DEFAULT_COPY_ICON = "chrome://global/skin/icons/edit-copy.svg";
+const DEFAULT_COPY_ICON = "resource://content-accessible/icons/edit-copy.svg";
 const DEFAULT_COPY_L10N_ID = "content-sharing-modal-copy-link";
 
 const COPIED_COPY_ICON = "chrome://global/skin/icons/check.svg";
@@ -351,7 +351,7 @@ export class ContentSharingModal extends MozLitElement {
             @click=${this.close}
             type="ghost"
             id="close-button"
-            iconsrc="chrome://global/skin/icons/close.svg"
+            iconsrc="resource://content-accessible/icons/close.svg"
           ></moz-button>
 
           <div class="description-content">

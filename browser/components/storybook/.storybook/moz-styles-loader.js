@@ -107,7 +107,11 @@ const { rewriteChromeUri, rewriteMozSrcUri } = require("./moz-uri-utils.js");
  * @returns {string[]} Unique list of chrome:// and moz-src:/// CSS URIs
  */
 function getReferencedCssUris(source) {
-  const cssRegexes = [/chrome:\/\/.*?\.css/g, /moz-src:\/\/\/.*?\.css/g];
+  const cssRegexes = [
+    /chrome:\/\/.*?\.css/g,
+    /resource:\/\/content-accessible\/.*?\.css/g,
+    /moz-src:\/\/\/.*?\.css/g,
+  ];
   const matches = new Set();
   for (let regex of cssRegexes) {
     for (let match of source.matchAll(regex)) {
@@ -129,7 +133,10 @@ function resolveCssUri(cssUri, resourcePath) {
   let localPath = "";
   let dependencyPath = "";
 
-  if (cssUri.startsWith("chrome://")) {
+  if (
+    cssUri.startsWith("chrome://") ||
+    cssUri.startsWith("resource://content-accessible/")
+  ) {
     localPath = rewriteChromeUri(cssUri);
     if (localPath) {
       dependencyPath = path.join(projectRoot, localPath);
@@ -155,7 +162,7 @@ function resolveCssUri(cssUri, resourcePath) {
  *   import styles from "chrome://global/content/elements/moz-toggle.css" with { type: "css" };
  */
 const CSS_MODULE_SCRIPT_IMPORT_REGEX =
-  /import\s+\S+\s+from\s+["'](chrome:\/\/[^"']+?\.css|moz-src:\/\/\/[^"']+?\.css)["']\s+with\s*{\s*type:\s*["']css["']\s*,?\s*}\s*;?/g;
+  /import\s+\S+\s+from\s+["'](chrome:\/\/[^"']+?\.css|resource:\/\/content-accessible\/[^"']+?\.css|moz-src:\/\/\/[^"']+?\.css)["']\s+with\s*{\s*type:\s*["']css["']\s*,?\s*}\s*;?/g;
 
 /**
  * Rewrite CSS module script imports (`import styles from "chrome://..." with

@@ -78,7 +78,7 @@
 /*** Button icons ***/
 
 .downloadIconCancel > .button-box > .button-icon {
-  list-style-image: url("chrome://global/skin/icons/close.svg");
+  list-style-image: url("resource://content-accessible/icons/close.svg");
 }
 
 .downloadIconShow > .button-box > .button-icon {

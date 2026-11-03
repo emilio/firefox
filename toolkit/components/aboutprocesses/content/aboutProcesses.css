@@ -573,7 +573,7 @@ tr.departed > td {
 
 /* icons */
 .close-icon {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center;
+  background: url("resource://content-accessible/icons/close.svg") no-repeat center;
   display: inline-block;
   height: 100%;
   width: 10px;

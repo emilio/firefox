@@ -290,7 +290,7 @@ content-search-handoff-ui {
   min-width: 28px;
   min-height: 28px;
   display: inline flow-root;
-  background: url("chrome://global/skin/icons/close.svg") center no-repeat;
+  background: url("resource://content-accessible/icons/close.svg") center no-repeat;
   cursor: pointer;
   -moz-context-properties: fill;
   fill: currentColor;

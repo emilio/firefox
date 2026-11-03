@@ -878,7 +878,7 @@ export class _WallpaperCategories extends React.PureComponent {
                 type="ghost"
                 size="small"
                 className="your-images-remove"
-                iconSrc="chrome://global/skin/icons/close.svg"
+                iconSrc="resource://content-accessible/icons/close.svg"
                 data-l10n-id={removeId}
                 data-l10n-args={removeArgs}
                 tabIndex={index === this.state.savedFocusIndex ? 0 : -1}

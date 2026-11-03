@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import url("chrome://global/skin/design-system/tokens-platform.css");
+@import url("resource://content-accessible/design-system/tokens-platform.css");
 
 :root {
   --player-bg-color: #000;
@@ -326,7 +326,7 @@ body:not(:fullscreen) #controls:hover #timestamp {
 }
 
 #close {
-  background-image: url("chrome://global/skin/icons/close.svg");
+  background-image: url("resource://content-accessible/icons/close.svg");
   right: 10px;
   top: 10px;
 }
