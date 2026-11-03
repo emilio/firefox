@@ -10,6 +10,10 @@ The main ones are:
 - [`resource` URLs](#resource-urls)
 - [`chrome` URLs](#chrome-urls)
 
+See also [content-accessible files](#content-accessible-files) for how to
+expose files to web content, and [which pages are trusted](#trusted-ui-pages)
+to load `chrome` and `resource` URLs.
+
 There are other special protocols like `moz-icon` and various places URLs,
 but at the moment they are not covered here.
 
@@ -81,14 +85,13 @@ the mapped directory inside `omni.ja` .
 ### Security considerations
 
 By default `resource` URLs cannot be accessed by web content and are restricted
-to privileged (system principal / "chrome" privileged) code. However, you can
-register a `resource` mapping with `contentaccessible=yes` in order to
-"holepunch" this restriction. Note that this means _everything_ packaged under
-that path becomes linkable and loadable by all web content. With few exceptions
-(like user agent stylesheets), that is not what you want.
+to privileged (system principal / "chrome" privileged) code, and to the
+[trusted UI pages](#trusted-ui-pages).
 
-Unfortunately more fine-grained restrictions are not available for `resource`
-URLs.
+It is possible to register a `resource` mapping with `contentaccessible=yes`
+in order to "holepunch" this restriction, but this means _everything_ packaged
+under that path becomes linkable and loadable by all web content. Please do not
+do this; use [content-accessible files](#content-accessible-files) instead.
 
 ## `chrome` URLs
 
@@ -127,15 +130,66 @@ though it is possible to use `chrome` URLs inside builtin extensions as well.
 ### Security considerations
 
 By default `chrome` URLs cannot be accessed by web content and are restricted
-to privileged (system principal / "chrome" privileged) code. However, you can
-register a chrome `content` mapping with `contentaccessible=yes` in order to
-"holepunch" this restriction. Note that this means _everything_ packaged under
-**the content, skin and locale packages for that identifier** becomes linkable
-and loadable by all web content. Please do not use this functionality going
-forward.
+to privileged (system principal / "chrome" privileged) code, and to the
+[trusted UI pages](#trusted-ui-pages).
 
-Unfortunately more fine-grained restrictions are not available for `chrome`
-URLs.
+It is possible to register a chrome `content` mapping with
+`contentaccessible=yes` in order to "holepunch" this restriction, but this means
+_everything_ packaged under **the content, skin and locale packages for that
+identifier** becomes linkable and loadable by all web content. Please do not use
+this functionality; use [content-accessible files](#content-accessible-files)
+instead.
+
+## Trusted UI pages
+
+Some pages that don't run with the system principal can still load any `chrome`
+and `resource` URL (as subresources, not as documents):
+
+- Our own about: pages (except `about:blank` and `about:srcdoc`), including the
+  ones that run with a content principal like `about:neterror` or
+  `about:newtab`.
+- pdf.js (`resource://pdf.js`).
+- Privileged extensions, like the built-in ones.
+
+This means that if your file is only used by these pages or by privileged code,
+it doesn't need to be content-accessible.
+
+## Content-accessible files
+
+Files that web content needs to load must be listed in
+`CONTENT_ACCESSIBLE_FILES` in a [`moz.build` file][mozbuild-files]. They are
+packaged in a single directory, and are available at
+`resource://content-accessible/`. For example:
+
+```python
+CONTENT_ACCESSIBLE_FILES.media += [
+    "shared/media/videocontrols.css",
+]
+```
+
+makes `videocontrols.css` available at
+`resource://content-accessible/media/videocontrols.css`.
+
+Files only end up there if they're installed in the toolkit (`gre`) directory,
+so `moz.build` files under `browser/` need to set `FINAL_TARGET = "dist/bin"`
+(see the screenshots overlay for an example).
+
+### When is this needed?
+
+Loads of `chrome` and `resource` URLs are checked against the principal of the
+page or stylesheet that triggers them. This matters in a few non-obvious cases:
+
+- Stylesheets and images used by UA widgets (like the video controls or the
+  date/time input fields), and by `AnonymousContent` (like the screenshots
+  overlay), load with the principal of the web page they're in.
+- Anything referenced by a stylesheet or document that is itself
+  content-accessible (e.g. `@import` rules or images in
+  `TopLevelImageDocument.css`) needs to be content-accessible too.
+- Stuff injected into documents with a content or null principal, like video
+  documents, XML pretty-printing, or the Picture-in-Picture player.
+
+On the other hand, user agent stylesheets (like `forms.css`) load with the
+system principal, so images they reference don't need to be content-accessible.
 
 [chrome-registration]: /build/buildsystem/chrome-registration.md
 [resource-map]: /build/buildsystem/chrome-registration.md#resource
