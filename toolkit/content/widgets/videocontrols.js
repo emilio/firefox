@@ -2768,8 +2768,8 @@ this.VideoControlsImplWidget = class {
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
-        <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/videocontrols.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/pipToggle.css" />
 
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div id="statusOverlay" class="statusOverlay stackItem" hidden="true">
@@ -3050,7 +3050,7 @@ this.NoControlsMobileImplWidget = class {
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none" hidden="true">
           <div class="controlsOverlay stackItem">
             <div class="controlsSpacerStack">
@@ -3096,7 +3096,7 @@ this.NoControlsPictureInPictureImplWidget = class {
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div class="pictureInPictureOverlay stackItem" status="pictureInPicture">
             <div id="statusIcon" class="statusIcon" type="pictureInPicture"></div>
@@ -3283,8 +3283,8 @@ this.NoControlsDesktopImplWidget = class {
     const parser = new this.window.DOMParser();
     let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
-        <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
-        <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/videocontrols.css" />
+        <link rel="stylesheet" href="resource://content-accessible/media/pipToggle.css" />
 
         <div id="controlsContainer" class="controlsContainer" role="none">
           <div class="controlsOverlay stackItem">

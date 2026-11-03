@@ -1054,7 +1054,12 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
           return NS_OK;
         }
       } else if (targetScheme.EqualsLiteral("chrome")) {
-        // Allow the load only if the chrome package is allowlisted.
+        // Our own unprivileged about: pages can load chrome:// subresources.
+        if (aSourceURI->SchemeIs("about") &&
+            !NS_IsContentAccessibleAboutURI(aSourceURI)) {
+          return NS_OK;
+        }
+        // Otherwise allow the load only if the chrome package is allowlisted.
         nsCOMPtr<nsIXULChromeRegistry> reg(
             do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
         if (reg) {
