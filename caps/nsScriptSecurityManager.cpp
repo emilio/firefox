@@ -1054,10 +1054,18 @@ nsresult nsScriptSecurityManager::CheckLoadURIFlags(
           return NS_OK;
         }
       } else if (targetScheme.EqualsLiteral("chrome")) {
-        // Our own unprivileged about: pages can load chrome:// subresources.
+        // Our own unprivileged about: pages and pdf.js can load chrome://
+        // subresources.
         if (aSourceURI->SchemeIs("about") &&
             !NS_IsContentAccessibleAboutURI(aSourceURI)) {
           return NS_OK;
+        }
+        if (aSourceBaseURI->SchemeIs("resource")) {
+          nsAutoCString host;
+          if (NS_SUCCEEDED(aSourceBaseURI->GetHost(host)) &&
+              host.EqualsLiteral("pdf.js")) {
+            return NS_OK;
+          }
         }
         // Otherwise allow the load only if the chrome package is allowlisted.
         nsCOMPtr<nsIXULChromeRegistry> reg(
