@@ -45,6 +45,10 @@ CONTENT_ACCESSIBLE_FILES.media += [
     "shared/media/videocontrols.css",
 ]
 
+CONTENT_ACCESSIBLE_FILES += [
+    "shared/pictureinpicture/texttracks.css",
+]
+
 if app == "mobile/android":
     CONTENT_ACCESSIBLE_FILES.media += [
         "shared/media/picture-in-picture-open-android.svg",

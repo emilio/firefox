@@ -12,4 +12,3 @@
    skin/classic/global/aboutSupport.css
    skin/classic/global/icons/edit-copy.svg                  (../../shared/icons/edit-copy.svg)
 #  picture-in-picture, for the caption overlay in the player window:
-   skin/classic/global/pictureinpicture/texttracks.css      (../../shared/pictureinpicture/texttracks.css)

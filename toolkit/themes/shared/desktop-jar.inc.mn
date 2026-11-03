@@ -176,7 +176,6 @@
   skin/classic/global/narrate/headphone.svg                (../../shared/narrate/headphone.svg)
   skin/classic/global/narrate/headphone-active.svg         (../../shared/narrate/headphone-active.svg)
   skin/classic/global/pictureinpicture/player.css          (../../shared/pictureinpicture/player.css)
-  skin/classic/global/pictureinpicture/texttracks.css           (../../shared/pictureinpicture/texttracks.css)
   skin/classic/global/reader/RM-Type-Controls-24x24.svg    (../../shared/reader/RM-Type-Controls-24x24.svg)
   skin/classic/global/reader/align-left-20.svg             (../../shared/reader/align-left-20.svg)
   skin/classic/global/reader/align-center-20.svg           (../../shared/reader/align-center-20.svg)
