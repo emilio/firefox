@@ -14,6 +14,7 @@
 
 #include "TaskbarPreviewButton.h"
 #include "WinUtils.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/gfx/2D.h"
@@ -336,33 +337,39 @@ TaskbarPreviewCallback::Done(nsISupports* aCanvas, bool aDrawBorder) {
   if (!source) {
     return NS_ERROR_FAILURE;
   }
-  auto target = MakeRefPtr<gfxWindowsSurface>(
-      source->GetSize(), gfx::SurfaceFormat::A8R8G8B8_UINT32);
-  if (target->CairoStatus() != CAIRO_STATUS_SUCCESS) {
+  using DataSrcSurf = gfx::DataSourceSurface;
+  RefPtr<DataSrcSurf> srcSurface = source->GetDataSurface();
+  if (!srcSurface) {
     return NS_ERROR_FAILURE;
   }
 
-  using DataSrcSurf = gfx::DataSourceSurface;
-  RefPtr<DataSrcSurf> srcSurface = source->GetDataSurface();
-  RefPtr<gfxImageSurface> imageSurface = target->GetAsImageSurface();
-  if (!srcSurface || !imageSurface) {
+  const gfx::IntSize size = srcSurface->GetSize();
+  BITMAPINFO bitmapInfo = {};
+  bitmapInfo.bmiHeader.biSize = sizeof(bitmapInfo.bmiHeader);
+  bitmapInfo.bmiHeader.biWidth = size.width;
+  bitmapInfo.bmiHeader.biHeight = -size.height;
+  bitmapInfo.bmiHeader.biPlanes = 1;
+  bitmapInfo.bmiHeader.biBitCount = 32;
+  bitmapInfo.bmiHeader.biCompression = BI_RGB;
+  void* bits = nullptr;
+  HBITMAP hBitmap = ::CreateDIBSection(nullptr, &bitmapInfo, DIB_RGB_COLORS,
+                                       &bits, nullptr, 0);
+  if (!hBitmap || !bits) {
     return NS_ERROR_FAILURE;
   }
+  auto deleteBitmap = MakeScopeExit([&] { ::DeleteObject(hBitmap); });
 
   if (DataSrcSurf::ScopedMap const sourceMap(srcSurface, DataSrcSurf::READ);
       sourceMap.IsMapped()) {
     mozilla::gfx::CopySurfaceDataToPackedArray(
-        sourceMap.GetData(), imageSurface->Data(), srcSurface->GetSize(),
+        sourceMap.GetData(), static_cast<uint8_t*>(bits), size,
         sourceMap.GetStride(), BytesPerPixel(srcSurface->GetFormat()));
-  } else if (source->GetSize().IsEmpty()) {
+  } else if (size.IsEmpty()) {
     // A zero-size source-surface probably shouldn't happen, but is harmless
     // here. Fall through.
   } else {
     return NS_ERROR_FAILURE;
   }
-
-  HDC hDC = target->GetDC();
-  HBITMAP hBitmap = (HBITMAP)GetCurrentObject(hDC, OBJ_BITMAP);
 
   DWORD flags = aDrawBorder ? DWM_SIT_DISPLAYFRAME : 0;
   HRESULT hr;

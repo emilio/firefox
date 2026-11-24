@@ -8,7 +8,6 @@
 #include "WinCompositorWidget.h"
 
 class nsWindow;
-class gfxASurface;
 
 namespace mozilla::widget {
 
@@ -23,16 +22,13 @@ class InProcessWinCompositorWidget final
   InProcessWinCompositorWidget(const WinCompositorWidgetInitData& aInitData,
                                const layers::CompositorOptions& aOptions,
                                nsWindow* aWindow);
+  ~InProcessWinCompositorWidget() override;
 
   bool PreRender(WidgetRenderingContext*) override;
   void PostRender(WidgetRenderingContext*) override;
   already_AddRefed<gfx::DrawTarget> StartRemoteDrawing() override;
   void EndRemoteDrawing() override;
   LayoutDeviceIntSize GetClientSize() override;
-  already_AddRefed<gfx::DrawTarget> GetBackBufferDrawTarget(
-      gfx::DrawTarget* aScreenTarget, const gfx::IntRect& aRect,
-      bool* aOutIsCleared) override;
-  already_AddRefed<gfx::SourceSurface> EndBackBufferDrawing() override;
   bool InitCompositor(layers::Compositor* aCompositor) override;
   CompositorWidgetDelegate* AsDelegate() override { return this; }
   bool IsHidden() const override;
@@ -56,8 +52,8 @@ class InProcessWinCompositorWidget final
   void SetRootLayerTreeID(const layers::LayersId& aRootLayerTreeId) override {}
 
  private:
-  HDC GetWindowSurface();
-  void FreeWindowSurface(HDC dc);
+  bool EnsureBackBuffer(const gfx::IntSize& aSize);
+  void ReleaseBackBuffer();
 
   nsWindow* mWindow;
 
@@ -68,10 +64,14 @@ class InProcessWinCompositorWidget final
   // Visibility handling.
   mozilla::Atomic<bool, MemoryOrdering::Relaxed> mIsFullyOccluded;
 
-  HDC mCompositeDC;
-
-  // Locked back buffer of BasicCompositor
-  uint8_t* mLockedBackBufferData;
+  // Memory DC with a DIB section selected, which StartRemoteDrawing() returns
+  // a draw target for, and that EndRemoteDrawing() blits to the window.
+  HDC mBackBufferDC = nullptr;
+  HBITMAP mBackBufferBitmap = nullptr;
+  HGDIOBJ mBackBufferSavedObject = nullptr;
+  uint8_t* mBackBufferData = nullptr;
+  gfx::IntSize mBackBufferSize;
+  bool mIsDrawing = false;
 };
 
 }  // namespace mozilla::widget

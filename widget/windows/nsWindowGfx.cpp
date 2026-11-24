@@ -30,10 +30,8 @@
 #include "gfxContext.h"
 #include "gfxDWriteFonts.h"
 #include "gfxEnv.h"
-#include "gfxImageSurface.h"
 #include "gfxUtils.h"
 #include "gfxWindowsPlatform.h"
-#include "gfxWindowsSurface.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SVGImageContext.h"
 #include "mozilla/dom/ContentParent.h"
@@ -120,19 +118,75 @@ void nsWindow::ForcePresent() {
 }
 
 bool nsWindow::OnPaint() {
+  // Paints into a DIB section, which then gets blitted to the window DC.
+  struct FallbackBackBuffer {
+    HDC mDC = nullptr;
+    HBITMAP mBitmap = nullptr;
+    HGDIOBJ mSavedObject = nullptr;
+    uint8_t* mData = nullptr;
+
+    ~FallbackBackBuffer() {
+      if (mSavedObject) {
+        ::SelectObject(mDC, mSavedObject);
+      }
+      if (mBitmap) {
+        ::DeleteObject(mBitmap);
+      }
+      if (mDC) {
+        ::DeleteDC(mDC);
+      }
+    }
+
+    bool Init(HDC aTargetDC, const IntSize& aSize) {
+      mDC = ::CreateCompatibleDC(aTargetDC);
+      if (!mDC) {
+        return false;
+      }
+      BITMAPINFO bitmapInfo = {};
+      bitmapInfo.bmiHeader.biSize = sizeof(bitmapInfo.bmiHeader);
+      bitmapInfo.bmiHeader.biWidth = aSize.width;
+      bitmapInfo.bmiHeader.biHeight = -aSize.height;
+      bitmapInfo.bmiHeader.biPlanes = 1;
+      bitmapInfo.bmiHeader.biBitCount = 32;
+      bitmapInfo.bmiHeader.biCompression = BI_RGB;
+      void* data = nullptr;
+      mBitmap = ::CreateDIBSection(mDC, &bitmapInfo, DIB_RGB_COLORS, &data,
+                                   nullptr, 0);
+      if (!mBitmap || !data) {
+        return false;
+      }
+      mSavedObject = ::SelectObject(mDC, mBitmap);
+      if (!mSavedObject) {
+        return false;
+      }
+      mData = static_cast<uint8_t*>(data);
+      return true;
+    }
+  };
+
   struct FallbackPaintContext {
-    RefPtr<gfxASurface> mTargetSurface;
+    UniquePtr<FallbackBackBuffer> mBackBuffer;
     RefPtr<DrawTarget> mDt;
     gfxContext mGfxContext;
     AutoLayerManagerSetup mSetup;
 
     explicit FallbackPaintContext(nsWindow* aWindow,
-                                  RefPtr<gfxASurface> aTargetSurface,
+                                  UniquePtr<FallbackBackBuffer> aBackBuffer,
                                   RefPtr<DrawTarget> aDt)
-        : mTargetSurface(std::move(aTargetSurface)),
+        : mBackBuffer(std::move(aBackBuffer)),
           mDt(std::move(aDt)),
           mGfxContext(mDt),
           mSetup(aWindow, &mGfxContext) {}
+
+    void Present(HDC aTargetDC, const LayoutDeviceIntRegion& aRegion) {
+      mDt->Flush();
+      ::GdiFlush();
+      for (auto it = aRegion.RectIter(); !it.Done(); it.Next()) {
+        const auto& r = it.Get();
+        ::BitBlt(aTargetDC, r.x, r.y, r.width, r.height, mBackBuffer->mDC, r.x,
+                 r.y, SRCCOPY);
+      }
+    }
   };
 
   gfx::DeviceResetReason resetReason = gfx::DeviceResetReason::OK;
@@ -193,19 +247,28 @@ bool nsWindow::OnPaint() {
 
   Maybe<FallbackPaintContext> fallback;
   if (isFallback) {
-    uint32_t flags = isTransparent ? gfxWindowsSurface::FLAG_IS_TRANSPARENT : 0;
-    auto targetSurface = MakeRefPtr<gfxWindowsSurface>(hDC, flags);
     RECT paintRect;
     ::GetClientRect(mWnd, &paintRect);
-    RefPtr<DrawTarget> dt = gfxPlatform::CreateDrawTargetForSurface(
-        targetSurface, IntSize(paintRect.right - paintRect.left,
-                               paintRect.bottom - paintRect.top));
+    const IntSize size(paintRect.right - paintRect.left,
+                       paintRect.bottom - paintRect.top);
+    auto backBuffer = MakeUnique<FallbackBackBuffer>();
+    if (size.IsEmpty() || !backBuffer->Init(hDC, size)) {
+      gfxWarning() << "nsWindow::OnPaint failed to create a back buffer";
+      return false;
+    }
+    // The back buffer starts out zeroed, so copy the current window contents
+    // to preserve the areas that we don't repaint.
+    ::BitBlt(backBuffer->mDC, 0, 0, size.width, size.height, hDC, 0, 0,
+             SRCCOPY);
+    RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
+        BackendType::SKIA, backBuffer->mData, size, size.width * 4,
+        SurfaceFormat::B8G8R8A8);
     if (!dt || !dt->IsValid()) {
-      gfxWarning() << "nsWindow::OnPaint failed in CreateDrawTargetForSurface";
+      gfxWarning() << "nsWindow::OnPaint failed to create a draw target";
       return false;
     }
 
-    fallback.emplace(this, std::move(targetSurface), std::move(dt));
+    fallback.emplace(this, std::move(backBuffer), std::move(dt));
   }
 
   LayoutDeviceIntRegion region = GetRegionToPaint(ps, hDC);
@@ -261,7 +324,9 @@ bool nsWindow::OnPaint() {
     listener->PaintWindow(this);
   }
 
-  if (!fallback) {
+  if (fallback) {
+    fallback->Present(hDC, region);
+  } else {
     ComputeAndClearTranslucentRegion();
   }
 
