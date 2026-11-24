@@ -41,9 +41,6 @@ class gfxPlatformMac : public gfxPlatform {
     return (gfxPlatformMac*)gfxPlatform::GetPlatform();
   }
 
-  already_AddRefed<gfxASurface> CreateOffscreenSurface(
-      const IntSize& aSize, gfxImageFormat aFormat) override;
-
   bool CreatePlatformFontList() override;
 
   void ReadSystemFontList(mozilla::dom::SystemFontList* aFontList) override;

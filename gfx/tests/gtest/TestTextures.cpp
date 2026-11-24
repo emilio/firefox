@@ -4,7 +4,6 @@
 
 #include "ImageContainer.h"
 #include "gfx2DGlue.h"
-#include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "gfxTypes.h"
 #include "gmock/gmock.h"
@@ -54,13 +53,13 @@ class TestSurfaceAllocator final : public ISurfaceAllocator {
 };
 
 // fills the surface with values betwee 0 and 100.
-static void SetupSurface(gfxImageSurface* surface) {
-  int bpp = gfxASurface::BytePerPixelFromFormat(surface->Format());
+static void SetupSurface(DataSourceSurface* surface) {
+  int bpp = BytesPerPixel(surface->GetFormat());
   int stride = surface->Stride();
   uint8_t val = 0;
-  uint8_t* data = surface->Data();
-  for (int y = 0; y < surface->Height(); ++y) {
-    for (int x = 0; x < surface->Height(); ++x) {
+  uint8_t* data = surface->GetData();
+  for (int y = 0; y < surface->GetSize().height; ++y) {
+    for (int x = 0; x < surface->GetSize().height; ++x) {
       for (int b = 0; b < bpp; ++b) {
         data[y * stride + x * bpp + b] = val;
         if (val == 100) {
@@ -71,10 +70,10 @@ static void SetupSurface(gfxImageSurface* surface) {
       }
     }
   }
-  if (surface->Format() == SurfaceFormat::X8R8G8B8_UINT32) {
+  if (surface->GetFormat() == SurfaceFormat::B8G8R8X8) {
     // Skia expects the padding byte of RGBX surfaces to be opaque.
-    for (int y = 0; y < surface->Height(); ++y) {
-      for (int x = 0; x < surface->Width(); ++x) {
+    for (int y = 0; y < surface->GetSize().height; ++y) {
+      for (int x = 0; x < surface->GetSize().width; ++x) {
         data[y * stride + x * bpp + 3] = 0xff;
       }
     }
@@ -82,19 +81,19 @@ static void SetupSurface(gfxImageSurface* surface) {
 }
 
 // return true if two surfaces contain the same data
-static void AssertSurfacesEqual(gfxImageSurface* surface1,
-                                gfxImageSurface* surface2) {
+static void AssertSurfacesEqual(DataSourceSurface* surface1,
+                                DataSourceSurface* surface2) {
   ASSERT_EQ(surface1->GetSize(), surface2->GetSize());
-  ASSERT_EQ(surface1->Format(), surface2->Format());
+  ASSERT_EQ(surface1->GetFormat(), surface2->GetFormat());
 
-  uint8_t* data1 = surface1->Data();
-  uint8_t* data2 = surface2->Data();
+  uint8_t* data1 = surface1->GetData();
+  uint8_t* data2 = surface2->GetData();
   int stride1 = surface1->Stride();
   int stride2 = surface2->Stride();
-  int bpp = gfxASurface::BytePerPixelFromFormat(surface1->Format());
+  int bpp = BytesPerPixel(surface1->GetFormat());
 
-  for (int y = 0; y < surface1->Height(); ++y) {
-    for (int x = 0; x < surface1->Width(); ++x) {
+  for (int y = 0; y < surface1->GetSize().height; ++y) {
+    for (int x = 0; x < surface1->GetSize().width; ++x) {
       for (int b = 0; b < bpp; ++b) {
         ASSERT_EQ(data1[y * stride1 + x * bpp + b],
                   data2[y * stride2 + x * bpp + b]);
@@ -142,7 +141,7 @@ static void AssertSurfacesEqual(SourceSurface* surface1,
 
 // Run the test for a texture client and a surface
 void TestTextureClientSurface(TextureClient* texture,
-                              gfxImageSurface* surface) {
+                              DataSourceSurface* surface) {
   // client allocation
   ASSERT_TRUE(texture->CanExposeDrawTarget());
 
@@ -150,8 +149,8 @@ void TestTextureClientSurface(TextureClient* texture,
   // client painting
   RefPtr<DrawTarget> dt = texture->BorrowDrawTarget();
   RefPtr<SourceSurface> source = Factory::CreateWrappingDataSourceSurface(
-      surface->Data(), surface->Stride(), surface->GetSize(),
-      surface->Format());
+      surface->GetData(), surface->Stride(), surface->GetSize(),
+      surface->GetFormat());
   dt->CopySurface(source, IntRect(IntPoint(), source->GetSize()), IntPoint());
 
   RefPtr<SourceSurface> snapshot = dt->Snapshot();
@@ -228,20 +227,20 @@ static gfx::HDRMetadata MakeTestHDRMetadata() {
 void TestYCbCrDescriptorTransferFunction(
     TransferFunction aTF, Maybe<gfx::HDRMetadata> aHDRMetadata,
     RefPtr<ImageBridgeChild> aImageBridge) {
-  RefPtr<gfxImageSurface> ySurface =
-      new gfxImageSurface(IntSize(400, 300), SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> cbSurface =
-      new gfxImageSurface(IntSize(200, 150), SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> crSurface =
-      new gfxImageSurface(IntSize(200, 150), SurfaceFormat::A8);
+  RefPtr<DataSourceSurface> ySurface = Factory::CreateDataSourceSurface(
+      IntSize(400, 300), SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> cbSurface = Factory::CreateDataSourceSurface(
+      IntSize(200, 150), SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> crSurface = Factory::CreateDataSourceSurface(
+      IntSize(200, 150), SurfaceFormat::A8, true);
   SetupSurface(ySurface.get());
   SetupSurface(cbSurface.get());
   SetupSurface(crSurface.get());
 
   PlanarYCbCrData clientData;
-  clientData.mYChannel = ySurface->Data();
-  clientData.mCbChannel = cbSurface->Data();
-  clientData.mCrChannel = crSurface->Data();
+  clientData.mYChannel = ySurface->GetData();
+  clientData.mCbChannel = cbSurface->GetData();
+  clientData.mCrChannel = crSurface->GetData();
   clientData.mPictureRect = IntRect(IntPoint(0, 0), ySurface->GetSize());
   clientData.mYStride = ySurface->Stride();
   clientData.mCbCrStride = cbSurface->Stride();
@@ -306,16 +305,16 @@ TEST(Layers, TextureSerialization)
   };
 
   for (int f = 0; f < 3; ++f) {
-    RefPtr<gfxImageSurface> surface =
-        new gfxImageSurface(IntSize(400, 300), formats[f]);
+    RefPtr<DataSourceSurface> surface =
+        Factory::CreateDataSourceSurface(IntSize(400, 300), formats[f], true);
     SetupSurface(surface.get());
     AssertSurfacesEqual(surface, surface);
 
     auto texData = BufferTextureData::Create(
-        surface->GetSize(), gfx::ImageFormatToSurfaceFormat(surface->Format()),
-        gfx::ColorSpace2::SRGB, gfx::TransferFunction::SRGB,
-        gfx::BackendType::SKIA, LayersBackend::LAYERS_NONE,
-        TextureFlags::DEALLOCATE_CLIENT, ALLOC_DEFAULT, nullptr);
+        surface->GetSize(), surface->GetFormat(), gfx::ColorSpace2::SRGB,
+        gfx::TransferFunction::SRGB, gfx::BackendType::SKIA,
+        LayersBackend::LAYERS_NONE, TextureFlags::DEALLOCATE_CLIENT,
+        ALLOC_DEFAULT, nullptr);
     ASSERT_TRUE(!!texData);
 
     RefPtr<TextureClient> client =
@@ -329,20 +328,20 @@ TEST(Layers, TextureSerialization)
 
 TEST(Layers, TextureYCbCrSerialization)
 {
-  RefPtr<gfxImageSurface> ySurface =
-      new gfxImageSurface(IntSize(400, 300), SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> cbSurface =
-      new gfxImageSurface(IntSize(200, 150), SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> crSurface =
-      new gfxImageSurface(IntSize(200, 150), SurfaceFormat::A8);
+  RefPtr<DataSourceSurface> ySurface = Factory::CreateDataSourceSurface(
+      IntSize(400, 300), SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> cbSurface = Factory::CreateDataSourceSurface(
+      IntSize(200, 150), SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> crSurface = Factory::CreateDataSourceSurface(
+      IntSize(200, 150), SurfaceFormat::A8, true);
   SetupSurface(ySurface.get());
   SetupSurface(cbSurface.get());
   SetupSurface(crSurface.get());
 
   PlanarYCbCrData clientData;
-  clientData.mYChannel = ySurface->Data();
-  clientData.mCbChannel = cbSurface->Data();
-  clientData.mCrChannel = crSurface->Data();
+  clientData.mYChannel = ySurface->GetData();
+  clientData.mCbChannel = cbSurface->GetData();
+  clientData.mCrChannel = crSurface->GetData();
   clientData.mPictureRect = IntRect(IntPoint(0, 0), ySurface->GetSize());
   clientData.mYStride = ySurface->Stride();
   clientData.mCbCrStride = cbSurface->Stride();

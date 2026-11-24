@@ -38,7 +38,6 @@
 #include <algorithm>
 #include "gfxContext.h"
 #include "gfxQuartzNativeDrawing.h"
-#include "gfxQuartzSurface.h"
 #include "gfxUtils.h"  // for ToDeviceColor
 
 using namespace mozilla;

@@ -9,11 +9,9 @@
 #include "GeckoProfiler.h"
 #include "VsyncSource.h"
 #include "base/basictypes.h"
-#include "cairo.h"
 #include "ft2build.h"
 #include "gfx2DGlue.h"
 #include "gfxFT2FontList.h"
-#include "gfxImageSurface.h"
 #include "gfxTextRun.h"
 #include "mozilla/CountingAllocatorBase.h"
 #include "mozilla/EnumeratedArray.h"
@@ -271,18 +269,6 @@ gfxAndroidPlatform::~gfxAndroidPlatform() {
 }
 
 void gfxAndroidPlatform::InitAcceleration() { gfxPlatform::InitAcceleration(); }
-
-already_AddRefed<gfxASurface> gfxAndroidPlatform::CreateOffscreenSurface(
-    const IntSize& aSize, gfxImageFormat aFormat) {
-  if (!Factory::AllowedSurfaceSize(aSize)) {
-    return nullptr;
-  }
-
-  RefPtr<gfxASurface> newSurface;
-  newSurface = new gfxImageSurface(aSize, aFormat);
-
-  return newSurface.forget();
-}
 
 static bool IsJapaneseLocale() {
   static bool sInitialized = false;

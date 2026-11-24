@@ -25,7 +25,6 @@ typedef struct __GLXFBConfigRec* GLXFBConfig;
 #include "prenv.h"
 
 struct PRLibrary;
-class gfxASurface;
 
 namespace mozilla {
 namespace gl {
@@ -210,7 +209,6 @@ class GLXLibrary final {
   bool HasRobustness() { return mHasRobustness; }
   bool HasVideoMemoryPurge() { return mHasVideoMemoryPurge; }
   bool HasCreateContextAttribs() { return mHasCreateContextAttribs; }
-  bool SupportsTextureFromPixmap(gfxASurface* aSurface);
   bool SupportsVideoSync(Display* aDisplay);
   bool SupportsSwapControl() const { return bool(mSymbols.fSwapIntervalEXT); }
   bool SupportsBufferAge() const {

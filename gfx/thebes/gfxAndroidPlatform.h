@@ -20,9 +20,6 @@ class gfxAndroidPlatform final : public gfxPlatform {
     return (gfxAndroidPlatform*)gfxPlatform::GetPlatform();
   }
 
-  already_AddRefed<gfxASurface> CreateOffscreenSurface(
-      const IntSize& aSize, gfxImageFormat aFormat) override;
-
   gfxImageFormat GetOffscreenFormat() override { return mOffscreenFormat; }
 
   // platform implementations of font functions

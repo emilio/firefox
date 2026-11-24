@@ -12,8 +12,6 @@
 #include "nsRegion.h"
 #include "nsTArray.h"
 
-class gfxASurface;
-
 namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
@@ -117,12 +115,6 @@ class TextureImage {
   virtual gfx::SurfaceFormat GetTextureFormat() { return mTextureFormat; }
 
   /** Can be called safely at any time. */
-
-  /**
-   * If this TextureImage has a permanent gfxASurface backing,
-   * return it.  Otherwise return nullptr.
-   */
-  virtual already_AddRefed<gfxASurface> GetBackingSurface() { return nullptr; }
 
   gfx::IntSize GetSize() const;
   ContentType GetContentType() const { return mContentType; }

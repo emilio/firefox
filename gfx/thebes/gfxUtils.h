@@ -22,7 +22,6 @@
 #include "nsRegionFwd.h"
 #include "qcms.h"
 
-class gfxASurface;
 class gfxDrawable;
 class gfxTextRun;
 struct gfxQuad;
@@ -214,11 +213,6 @@ class gfxUtils {
   static Matrix SnapTransform(const Matrix& aTransform,
                               const gfxRect& aSnapRect,
                               Matrix* aResidualTransform);
-
-  /**
-   * Clears surface to aColor (which defaults to transparent black).
-   */
-  static void ClearThebesSurface(gfxASurface* aSurface);
 
   static const float* YuvToRgbMatrix4x3RowMajor(
       mozilla::gfx::YUVColorSpace aYUVColorSpace);

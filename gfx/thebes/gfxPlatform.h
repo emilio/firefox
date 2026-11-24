@@ -25,7 +25,6 @@
 
 class FontData;
 class FontVisibilityProvider;
-class gfxASurface;
 class gfxFont;
 class gfxFontGroup;
 struct gfxFontStyle;
@@ -229,13 +228,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   static bool IsBackendAccelerated(
       const mozilla::gfx::BackendType aBackendType);
-
-  /**
-   * Create an offscreen surface of the given dimensions
-   * and image format.
-   */
-  virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(
-      const IntSize& aSize, gfxImageFormat aFormat) = 0;
 
   already_AddRefed<DrawTarget> CreateOffscreenContentDrawTarget(
       const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat,
@@ -1010,7 +1002,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // since the pref has no effect until restart. Reported in about:support.
   nsCString mCMSOutputProfilePrefAtStartup;
 
-  RefPtr<gfxASurface> mScreenReferenceSurface;
   RefPtr<mozilla::layers::MemoryPressureObserver> mMemoryPressureObserver;
 
   // The preferred draw target backend to use for canvas

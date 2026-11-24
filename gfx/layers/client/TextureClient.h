@@ -38,7 +38,6 @@
 #include "nsThreadUtils.h"
 #include "pratom.h"
 
-class gfxImageSurface;
 struct ID3D11Device;
 
 namespace mozilla {
@@ -74,8 +73,8 @@ struct RemoteTextureOwnerId;
 
 enum TextureAllocationFlags {
   ALLOC_DEFAULT = 0,
-  ALLOC_CLEAR_BUFFER =
-      1 << 1,  // Clear the buffer to whatever is best for the draw target
+  ALLOC_CLEAR_BUFFER = 1
+      << 1,  // Clear the buffer to whatever is best for the draw target
   ALLOC_CLEAR_BUFFER_WHITE = 1 << 2,  // explicit all white
   ALLOC_CLEAR_BUFFER_BLACK = 1 << 3,  // explicit all black
   ALLOC_DISALLOW_BUFFERTEXTURECLIENT = 1 << 4,
@@ -789,7 +788,7 @@ class TextureClient : public AtomicRefCountedWithFinalize<TextureClient> {
   static mozilla::Atomic<uint64_t> sSerialCounter;
 
   friend class TextureChild;
-  friend void TestTextureClientSurface(TextureClient*, gfxImageSurface*);
+  friend void TestTextureClientSurface(TextureClient*, gfx::DataSourceSurface*);
   friend void TestTextureClientYCbCr(TextureClient*, PlanarYCbCrData&);
   friend void TestYCbCrDescriptorTransferFunction(gfx::TransferFunction,
                                                   Maybe<gfx::HDRMetadata>,

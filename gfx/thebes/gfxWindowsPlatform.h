@@ -16,7 +16,6 @@
 #include "gfxPlatform.h"
 #include "gfxTelemetry.h"
 #include "gfxTypes.h"
-#include "gfxWindowsSurface.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
@@ -95,9 +94,6 @@ class gfxWindowsPlatform final : public gfxPlatform {
   bool DevicesInitialized() override;
 
   bool CreatePlatformFontList() override;
-
-  virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(
-      const IntSize& aSize, gfxImageFormat aFormat) override;
 
   /**
    * Updates render mode with relation to the current preferences and

@@ -30,7 +30,6 @@ EXPORTS.mozilla.gfx += [
     "FilterNodeSoftware.h",
     "Filters.h",
     "Helpers.h",
-    "HelpersCairo.h",
     "InlineTranslator.h",
     "IterableArena.h",
     "Logging.h",

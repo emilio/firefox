@@ -14,7 +14,6 @@
 #include <winternl.h>
 
 #include "base/thread.h"
-#include "cairo.h"
 #include "d3dkmtQueryStatistics.h"
 #include "gfx2DGlue.h"
 #include "gfxBlur.h"
@@ -22,10 +21,8 @@
 #include "gfxDWriteCommon.h"
 #include "gfxDWriteFontList.h"
 #include "gfxDWriteFonts.h"
-#include "gfxImageSurface.h"
 #include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
-#include "gfxWindowsSurface.h"
 #include "imgLoader.h"
 #include "mozilla/Components.h"
 #include "mozilla/Preferences.h"
@@ -602,27 +599,6 @@ mozilla::gfx::BackendType gfxWindowsPlatform::GetPreferredCanvasBackend() {
 
 bool gfxWindowsPlatform::CreatePlatformFontList() {
   return gfxPlatformFontList::Initialize(new gfxDWriteFontList);
-}
-
-already_AddRefed<gfxASurface> gfxWindowsPlatform::CreateOffscreenSurface(
-    const IntSize& aSize, gfxImageFormat aFormat) {
-  if (!Factory::AllowedSurfaceSize(aSize)) {
-    return nullptr;
-  }
-
-  RefPtr<gfxASurface> surf = nullptr;
-
-#ifdef CAIRO_HAS_WIN32_SURFACE
-  if (!XRE_IsContentProcess()) {
-    surf = new gfxWindowsSurface(aSize, aFormat);
-  }
-#endif
-
-  if (!surf || surf->CairoStatus()) {
-    surf = new gfxImageSurface(aSize, aFormat);
-  }
-
-  return surf.forget();
 }
 
 void gfxWindowsPlatform::GetCommonFallbackFonts(

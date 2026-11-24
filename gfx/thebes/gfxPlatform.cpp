@@ -76,7 +76,6 @@
 #  include "mozilla/widget/WinWindowOcclusionTracker.h"
 #elif defined(XP_DARWIN)
 #  include "gfxPlatformMac.h"
-#  include "gfxQuartzSurface.h"
 #elif defined(MOZ_WIDGET_GTK)
 #  include "DMABufFormats.h"
 #  include "gfxPlatformGtk.h"
@@ -102,7 +101,6 @@
 #include "gfxFontMissingGlyphs.h"
 #include "gfxGradientCache.h"
 #include "gfxGraphiteShaper.h"
-#include "gfxImageSurface.h"
 #include "gfxPlatformFontList.h"
 #include "gfxUtils.h"  // for NextPowerOfTwo
 #include "harfbuzz/hb.h"
@@ -1440,7 +1438,6 @@ void gfxPlatform::WillShutdown() {
   // Destoy these first in case they depend on backend-specific resources.
   // Otherwise, the backend's destructor would be called before the
   // base gfxPlatform destructor.
-  mScreenReferenceSurface = nullptr;
   mScreenReferenceDrawTarget = nullptr;
 
   // Always clear out the Skia font cache here, in case it is referencing any

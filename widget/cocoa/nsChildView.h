@@ -14,7 +14,6 @@
 
 #include "GLContextTypes.h"
 #include "TextInputHandler.h"
-#include "gfxQuartzSurface.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Mutex.h"

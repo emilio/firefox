@@ -8,12 +8,10 @@
 
 #include "ImageContainer.h"
 #include "ImageRegion.h"
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxDrawable.h"
 #include "gfxEnv.h"
-#include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "gfxQuad.h"
 #include "imgIEncoder.h"
@@ -861,24 +859,6 @@ Matrix gfxUtils::SnapTransform(const Matrix& aTransform,
     return snappedMatrix;
   }
   return aTransform;
-}
-
-/* static */
-void gfxUtils::ClearThebesSurface(gfxASurface* aSurface) {
-  if (aSurface->CairoStatus()) {
-    return;
-  }
-  cairo_surface_t* surf = aSurface->CairoSurface();
-  if (cairo_surface_status(surf)) {
-    return;
-  }
-  cairo_t* ctx = cairo_create(surf);
-  cairo_set_source_rgba(ctx, 0.0, 0.0, 0.0, 0.0);
-  cairo_set_operator(ctx, CAIRO_OPERATOR_SOURCE);
-  IntRect bounds(nsIntPoint(0, 0), aSurface->GetSize());
-  cairo_rectangle(ctx, bounds.X(), bounds.Y(), bounds.Width(), bounds.Height());
-  cairo_fill(ctx);
-  cairo_destroy(ctx);
 }
 
 /* static */

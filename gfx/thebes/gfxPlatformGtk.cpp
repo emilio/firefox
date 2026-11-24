@@ -15,13 +15,11 @@
 #include "base/message_loop.h"
 #include "base/task.h"
 #include "base/thread.h"
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxConfig.h"
 #include "gfxContext.h"
 #include "gfxFT2FontBase.h"
 #include "gfxFcPlatformFontList.h"
-#include "gfxImageSurface.h"
 #include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
 #include "gfxUtils.h"
@@ -50,8 +48,6 @@
 #  include "GLContextGLX.h"
 #  include "GLXLibrary.h"
 #  include "SoftwareVsyncSource.h"
-#  include "cairo-xlib.h"
-#  include "gfxXlibSurface.h"
 #  include "mozilla/X11Util.h"
 #  include "mozilla/gfx/XlibDisplay.h"
 
@@ -373,43 +369,6 @@ void gfxPlatformGtk::InitMesaThreading() {
   if (!featureMesaThreading.IsEnabled()) {
     PR_SetEnv("mesa_glthread=false");
   }
-}
-
-already_AddRefed<gfxASurface> gfxPlatformGtk::CreateOffscreenSurface(
-    const IntSize& aSize, gfxImageFormat aFormat) {
-  if (!Factory::AllowedSurfaceSize(aSize)) {
-    return nullptr;
-  }
-
-  RefPtr<gfxASurface> newSurface;
-  bool needsClear = true;
-  // XXX we really need a different interface here, something that passes
-  // in more context, including the display and/or target surface type that
-  // we should try to match
-  GdkScreen* gdkScreen = gdk_screen_get_default();
-  if (gdkScreen) {
-    newSurface = new gfxImageSurface(aSize, aFormat);
-    // The gfxImageSurface ctor zeroes this for us, no need to
-    // waste time clearing again
-    needsClear = false;
-  }
-
-  if (!newSurface) {
-    // We couldn't create a native surface for whatever reason;
-    // e.g., no display, no RENDER, bad size, etc.
-    // Fall back to image surface for the data.
-    newSurface = new gfxImageSurface(aSize, aFormat);
-  }
-
-  if (newSurface->CairoStatus()) {
-    newSurface = nullptr;  // surface isn't valid for some reason
-  }
-
-  if (newSurface && needsClear) {
-    gfxUtils::ClearThebesSurface(newSurface);
-  }
-
-  return newSurface.forget();
 }
 
 nsresult gfxPlatformGtk::GetFontList(nsAtom* aLangGroup,

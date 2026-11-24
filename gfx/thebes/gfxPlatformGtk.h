@@ -28,9 +28,6 @@ class gfxPlatformGtk final : public gfxPlatform {
 
   void ReadSystemFontList(mozilla::dom::SystemFontList* retValue) override;
 
-  already_AddRefed<gfxASurface> CreateOffscreenSurface(
-      const IntSize& aSize, gfxImageFormat aFormat) override;
-
   nsresult GetFontList(nsAtom* aLangGroup, const nsACString& aGenericFamily,
                        nsTArray<nsString>& aListOfFonts) override;
 

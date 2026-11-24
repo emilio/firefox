@@ -6,9 +6,9 @@
 #define GFX_TESTS_GTEST_TEXTUREHELPER_H_
 
 #include "Types.h"
-#include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/layers/BufferTexture.h"
 #include "mozilla/layers/LayersTypes.h"
@@ -25,6 +25,8 @@ namespace mozilla {
 namespace layers {
 
 using gfx::BackendType;
+using gfx::DataSourceSurface;
+using gfx::Factory;
 using gfx::IntSize;
 using gfx::SurfaceFormat;
 
@@ -37,17 +39,17 @@ static already_AddRefed<TextureClient> CreateYCbCrTextureClientWithBackend(
   IntSize size = IntSize(200, 150);
   IntSize ySize = IntSize(400, 300);
 
-  RefPtr<gfxImageSurface> ySurface =
-      new gfxImageSurface(ySize, SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> cbSurface =
-      new gfxImageSurface(size, SurfaceFormat::A8);
-  RefPtr<gfxImageSurface> crSurface =
-      new gfxImageSurface(size, SurfaceFormat::A8);
+  RefPtr<DataSourceSurface> ySurface =
+      Factory::CreateDataSourceSurface(ySize, SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> cbSurface =
+      Factory::CreateDataSourceSurface(size, SurfaceFormat::A8, true);
+  RefPtr<DataSourceSurface> crSurface =
+      Factory::CreateDataSourceSurface(size, SurfaceFormat::A8, true);
 
   PlanarYCbCrData clientData;
-  clientData.mYChannel = ySurface->Data();
-  clientData.mCbChannel = cbSurface->Data();
-  clientData.mCrChannel = crSurface->Data();
+  clientData.mYChannel = ySurface->GetData();
+  clientData.mCbChannel = cbSurface->GetData();
+  clientData.mCrChannel = crSurface->GetData();
   clientData.mPictureRect = IntRect(IntPoint(0, 0), ySurface->GetSize());
   clientData.mYStride = ySurface->Stride();
   clientData.mCbCrStride = cbSurface->Stride();

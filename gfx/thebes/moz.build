@@ -18,7 +18,6 @@ EXPORTS += [
     "COLRFonts.h",
     "DrawMode.h",
     "gfx2DGlue.h",
-    "gfxASurface.h",
     "gfxBlur.h",
     "gfxColor.h",
     "gfxContext.h",
@@ -36,7 +35,6 @@ EXPORTS += [
     "gfxFontUtils.h",
     "gfxFontVariations.h",
     "gfxGradientCache.h",
-    "gfxImageSurface.h",
     "gfxLineSegment.h",
     "gfxMathTable.h",
     "gfxMatrix.h",
@@ -105,7 +103,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
         "gfxMacUtils.h",
         "gfxPlatformMac.h",
         "gfxQuartzNativeDrawing.h",
-        "gfxQuartzSurface.h",
     ]
     SOURCES += [
         "CoreTextFontList.cpp",
@@ -113,7 +110,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
         "gfxMacUtils.cpp",
         "gfxPlatformMac.cpp",
         "gfxQuartzNativeDrawing.cpp",
-        "gfxQuartzSurface.cpp",
     ]
 
     SOURCE_HEADERS += [
@@ -139,14 +135,10 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     ]
 
     if CONFIG["MOZ_X11"]:
-        EXPORTS += [
-            "gfxXlibSurface.h",
-        ]
         EXPORTS.mozilla.gfx += [
             "XlibDisplay.h",
         ]
         SOURCES += [
-            "gfxXlibSurface.cpp",
             "XlibDisplay.cpp",
         ]
 
@@ -155,7 +147,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "gfxDWriteCommon.h",
         "gfxDWriteFonts.h",
         "gfxWindowsPlatform.h",
-        "gfxWindowsSurface.h",
     ]
     EXPORTS.mozilla.gfx += [
         "DeviceManagerDx.h",
@@ -169,7 +160,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "gfxDWriteCommon.cpp",
         "gfxDWriteFonts.cpp",
         "gfxWindowsPlatform.cpp",
-        "gfxWindowsSurface.cpp",
         "PrintTargetWindows.cpp",
     ]
     UNIFIED_SOURCES += [
@@ -183,7 +173,6 @@ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
 SOURCES += [
     # Includes mac system header conflicting with point/size,
     # and includes glxXlibSurface.h which drags in Xrender.h
-    "gfxASurface.cpp",
     # on X11, gfxDrawable.cpp includes X headers for an old workaround which
     # we could consider removing soon (affects Ubuntus older than 10.04 LTS)
     # which currently prevent it from joining UNIFIED_SOURCES.
@@ -211,7 +200,6 @@ UNIFIED_SOURCES += [
     "gfxGradientCache.cpp",
     "gfxGraphiteShaper.cpp",
     "gfxHarfBuzzShaper.cpp",
-    "gfxImageSurface.cpp",
     "gfxMathTable.cpp",
     "gfxPattern.cpp",
     "gfxPlatformFontList.cpp",
@@ -312,7 +300,6 @@ LICENSED_UNDER["gfx-font-list"].paths = [
 ]
 
 SOURCE_HEADERS += [
-    "cairo-xlib-utils.h",
     "gfxFontMissingGlyphs.h",
     "gfxGlyphExtents.h",
     "gfxGraphiteShaper.h",

@@ -4,7 +4,6 @@
 
 #include "nsDeviceContextSpecProxy.h"
 
-#include "gfxASurface.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/PrintTargetRecording.h"
 #include "mozilla/layout/RemotePrintJobChild.h"

@@ -8,7 +8,6 @@
 #include "CFTypeRefPtr.h"
 #include "gfxConfig.h"
 #include "gfxMacFont.h"
-#include "gfxQuartzSurface.h"
 #include "gfxTextRun.h"
 #include "gfxUserFontSet.h"
 #include "mozilla/DataMutex.h"
@@ -129,16 +128,6 @@ bool gfxPlatformMac::CreatePlatformFontList() {
 
 void gfxPlatformMac::ReadSystemFontList(SystemFontList* aFontList) {
   PlatformFontListClass::PlatformFontList()->ReadSystemFontList(aFontList);
-}
-
-already_AddRefed<gfxASurface> gfxPlatformMac::CreateOffscreenSurface(
-    const IntSize& aSize, gfxImageFormat aFormat) {
-  if (!Factory::AllowedSurfaceSize(aSize)) {
-    return nullptr;
-  }
-
-  RefPtr<gfxASurface> newSurface = new gfxQuartzSurface(aSize, aFormat);
-  return newSurface.forget();
 }
 
 void gfxPlatformMac::GetCommonFallbackFonts(uint32_t aCh, Script aRunScript,

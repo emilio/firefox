@@ -7,7 +7,6 @@
 #include "DXVA2Manager.h"
 #include "WMF.h"
 #include "d3d11.h"
-#include "gfxImageSurface.h"
 #include "gfxWindowsPlatform.h"
 #include "libyuv.h"
 #include "mozilla/StaticPrefs_media.h"
