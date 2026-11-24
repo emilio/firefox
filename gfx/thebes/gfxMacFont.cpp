@@ -8,7 +8,6 @@
 
 #include "AppleUtils.h"
 #include "CoreTextFontList.h"
-#include "cairo-quartz.h"
 #include "gfxContext.h"
 #include "gfxFontConstants.h"
 #include "gfxFontUtils.h"
@@ -364,11 +363,7 @@ already_AddRefed<ScaledFont> gfxMacFont::GetScaledFont(
   return do_AddRef(scaledFont);
 }
 
-bool gfxMacFont::ShouldRoundXOffset(cairo_t* aCairo) const {
-  // Quartz surfaces implement show_glyphs for Quartz fonts
-  return aCairo && cairo_surface_get_type(cairo_get_target(aCairo)) !=
-                       CAIRO_SURFACE_TYPE_QUARTZ;
-}
+bool gfxMacFont::ShouldRoundXOffset() const { return false; }
 
 bool gfxMacFont::UseNativeColrFontSupport() const {
   /*

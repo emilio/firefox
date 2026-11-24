@@ -71,16 +71,6 @@ bool ScaledFontFontconfig::MayUseBitmaps() {
          !FT_IS_SCALABLE(mFace->GetFace());
 }
 
-cairo_font_face_t* ScaledFontFontconfig::CreateCairoFontFace(
-    cairo_font_options_t* aFontOptions) {
-  int loadFlags;
-  unsigned int synthFlags;
-  mInstanceData.SetupFontOptions(aFontOptions, &loadFlags, &synthFlags);
-
-  return cairo_ft_font_face_create_for_ft_face(mFace->GetFace(), loadFlags,
-                                               synthFlags, mFace.get());
-}
-
 AntialiasMode ScaledFontFontconfig::GetDefaultAAMode() {
   return mInstanceData.mAntialias;
 }
@@ -286,88 +276,6 @@ ScaledFontFontconfig::InstanceData::InstanceData(
         break;
     }
   }
-}
-
-void ScaledFontFontconfig::InstanceData::SetupFontOptions(
-    cairo_font_options_t* aFontOptions, int* aOutLoadFlags,
-    unsigned int* aOutSynthFlags) const {
-  // For regular (non-printer) fonts, enable hint metrics as well as hinting
-  // and (possibly subpixel) antialiasing.
-  cairo_font_options_set_hint_metrics(
-      aFontOptions,
-      mFlags & HINT_METRICS ? CAIRO_HINT_METRICS_ON : CAIRO_HINT_METRICS_OFF);
-
-  cairo_hint_style_t hinting;
-  switch (mHinting) {
-    case FontHinting::NONE:
-      hinting = CAIRO_HINT_STYLE_NONE;
-      break;
-    case FontHinting::LIGHT:
-      hinting = CAIRO_HINT_STYLE_SLIGHT;
-      break;
-    case FontHinting::NORMAL:
-      hinting = CAIRO_HINT_STYLE_MEDIUM;
-      break;
-    case FontHinting::FULL:
-      hinting = CAIRO_HINT_STYLE_FULL;
-      break;
-  }
-  cairo_font_options_set_hint_style(aFontOptions, hinting);
-
-  switch (mAntialias) {
-    case AntialiasMode::NONE:
-      cairo_font_options_set_antialias(aFontOptions, CAIRO_ANTIALIAS_NONE);
-      break;
-    case AntialiasMode::GRAY:
-    default:
-      cairo_font_options_set_antialias(aFontOptions, CAIRO_ANTIALIAS_GRAY);
-      break;
-    case AntialiasMode::SUBPIXEL: {
-      cairo_font_options_set_antialias(aFontOptions, CAIRO_ANTIALIAS_SUBPIXEL);
-      cairo_font_options_set_subpixel_order(
-          aFontOptions,
-          mFlags & SUBPIXEL_BGR
-              ? (mFlags & LCD_VERTICAL ? CAIRO_SUBPIXEL_ORDER_VBGR
-                                       : CAIRO_SUBPIXEL_ORDER_BGR)
-              : (mFlags & LCD_VERTICAL ? CAIRO_SUBPIXEL_ORDER_VRGB
-                                       : CAIRO_SUBPIXEL_ORDER_RGB));
-      cairo_lcd_filter_t lcdFilter = CAIRO_LCD_FILTER_DEFAULT;
-      switch (mLcdFilter) {
-        case FT_LCD_FILTER_NONE:
-          lcdFilter = CAIRO_LCD_FILTER_NONE;
-          break;
-        case FT_LCD_FILTER_DEFAULT:
-          lcdFilter = CAIRO_LCD_FILTER_FIR5;
-          break;
-        case FT_LCD_FILTER_LIGHT:
-          lcdFilter = CAIRO_LCD_FILTER_FIR3;
-          break;
-        case FT_LCD_FILTER_LEGACY:
-          lcdFilter = CAIRO_LCD_FILTER_INTRA_PIXEL;
-          break;
-      }
-      cairo_font_options_set_lcd_filter(aFontOptions, lcdFilter);
-      break;
-    }
-  }
-
-  // Try to build a sane initial set of Cairo font options based on the
-  // Fontconfig pattern.
-  int loadFlags = FT_LOAD_DEFAULT;
-  unsigned int synthFlags = 0;
-
-  if (!(mFlags & EMBEDDED_BITMAP)) {
-    loadFlags |= FT_LOAD_NO_BITMAP;
-  }
-  if (mFlags & AUTOHINT) {
-    loadFlags |= FT_LOAD_FORCE_AUTOHINT;
-  }
-  if (mFlags & EMBOLDEN) {
-    synthFlags |= CAIRO_FT_SYNTHESIZE_BOLD;
-  }
-
-  *aOutLoadFlags = loadFlags;
-  *aOutSynthFlags = synthFlags;
 }
 
 bool ScaledFontFontconfig::GetFontInstanceData(FontInstanceDataOutput aCb,

@@ -41,12 +41,6 @@
 #  endif
 #endif
 
-struct _cairo_surface;
-typedef _cairo_surface cairo_surface_t;
-
-struct _cairo_scaled_font;
-typedef _cairo_scaled_font cairo_scaled_font_t;
-
 struct FT_LibraryRec_;
 typedef FT_LibraryRec_* FT_Library;
 
@@ -1423,8 +1417,6 @@ class ScaledFont : public SupportsThreadSafeWeakPtr<ScaledFont> {
 
   const RefPtr<UnscaledFont>& GetUnscaledFont() const { return mUnscaledFont; }
 
-  virtual cairo_scaled_font_t* GetCairoScaledFont() { return nullptr; }
-
   Float GetSyntheticObliqueAngle() const { return mSyntheticObliqueAngle; }
   void SetSyntheticObliqueAngle(Float aAngle) {
     mSyntheticObliqueAngle = aAngle;
@@ -2265,13 +2257,6 @@ class GFX2D_API Factory {
   static bool ReasonableSurfaceSize(const IntSize& aSize);
 
   static bool AllowedSurfaceSize(const IntSize& aSize);
-
-  static already_AddRefed<DrawTarget> CreateDrawTargetForCairoSurface(
-      cairo_surface_t* aSurface, const IntSize& aSize,
-      SurfaceFormat* aFormat = nullptr);
-
-  static already_AddRefed<SourceSurface> CreateSourceSurfaceForCairoSurface(
-      cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat aFormat);
 
   static already_AddRefed<DrawTarget> CreateDrawTarget(BackendType aBackend,
                                                        const IntSize& aSize,

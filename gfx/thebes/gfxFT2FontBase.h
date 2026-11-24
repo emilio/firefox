@@ -78,7 +78,7 @@ class gfxFT2FontBase : public gfxFont {
 
   FontType GetType() const override { return FONT_TYPE_FT2; }
 
-  bool ShouldRoundXOffset(cairo_t* aCairo) const override;
+  bool ShouldRoundXOffset() const override;
 
   static void SetupVarCoords(FT_MM_Var* aMMVar,
                              const nsTArray<gfxFontVariation>& aVariations,

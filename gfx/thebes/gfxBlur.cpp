@@ -537,15 +537,6 @@ static Rect RectWithEdgesTRBL(Float aTop, Float aRight, Float aBottom,
   return Rect(aLeft, aTop, aRight - aLeft, aBottom - aTop);
 }
 
-static bool ShouldStretchSurface(DrawTarget* aDT, SourceSurface* aSurface) {
-  // Use stretching if possible, since it leads to less seams when the
-  // destination is transformed. However, don't do this if we're using cairo,
-  // because if cairo is using pixman it won't render anything for large
-  // stretch factors because pixman's internal fixed point precision is not
-  // high enough to handle those scale factors.
-  return aDT->GetBackendType() != BackendType::CAIRO;
-}
-
 static void RepeatOrStretchSurface(DrawTarget* aDT, SourceSurface* aSurface,
                                    const Rect& aDest, const Rect& aSrc,
                                    const Rect& aSkipRect) {
@@ -553,15 +544,7 @@ static void RepeatOrStretchSurface(DrawTarget* aDT, SourceSurface* aSurface,
     return;
   }
 
-  if (ShouldStretchSurface(aDT, aSurface)) {
-    aDT->DrawSurface(aSurface, aDest, aSrc);
-    return;
-  }
-
-  SurfacePattern pattern(aSurface, ExtendMode::REPEAT,
-                         Matrix::Translation(aDest.TopLeft() - aSrc.TopLeft()),
-                         SamplingFilter::GOOD, RoundedToInt(aSrc));
-  aDT->FillRect(aDest, pattern);
+  aDT->DrawSurface(aSurface, aDest, aSrc);
 }
 
 static void DrawCorner(DrawTarget* aDT, SourceSurface* aSurface,
@@ -696,21 +679,9 @@ static void RepeatOrStretchMirroredSurface(DrawTarget* aDT,
     return;
   }
 
-  if (ShouldStretchSurface(aDT, aSurface)) {
-    aScaleX *= aDest.Width() / aSrc.Width();
-    aScaleY *= aDest.Height() / aSrc.Height();
-    DrawMirroredRect(aDT, aSurface, aDest, aSrc.TopLeft(), aScaleX, aScaleY);
-    return;
-  }
-
-  SurfacePattern pattern(
-      aSurface, ExtendMode::REPEAT,
-      Matrix::Scaling(aScaleX, aScaleY)
-          .PreTranslate(-aSrc.TopLeft())
-          .PostTranslate(aScaleX < 0 ? aDest.XMost() : aDest.X(),
-                         aScaleY < 0 ? aDest.YMost() : aDest.Y()),
-      SamplingFilter::GOOD, RoundedToInt(aSrc));
-  aDT->FillRect(aDest, pattern);
+  aScaleX *= aDest.Width() / aSrc.Width();
+  aScaleY *= aDest.Height() / aSrc.Height();
+  DrawMirroredRect(aDT, aSurface, aDest, aSrc.TopLeft(), aScaleX, aScaleY);
 }
 
 static void DrawMirroredMinBoxShadow(

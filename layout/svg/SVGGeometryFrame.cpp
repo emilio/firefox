@@ -222,8 +222,7 @@ nsIFrame* SVGGeometryFrame::GetFrameForPoint(const gfxPoint& aPoint) {
   SVGGeometryElement* content = static_cast<SVGGeometryElement*>(GetContent());
 
   // Using ScreenReferenceDrawTarget() opens us to Moz2D backend specific hit-
-  // testing bugs. Maybe we should use a BackendType::CAIRO DT for hit-testing
-  // so that we get more consistent/backwards compatible results?
+  // testing bugs.
   RefPtr<DrawTarget> drawTarget =
       gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
   RefPtr<Path> path = content->GetOrBuildPath(drawTarget, fillRule);

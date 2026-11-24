@@ -71,7 +71,7 @@ class gfxDWriteFont final : public gfxFont {
   already_AddRefed<mozilla::gfx::ScaledFont> GetScaledFont(
       const TextRunDrawParams& aRunParams) override;
 
-  bool ShouldRoundXOffset(cairo_t* aCairo) const override;
+  bool ShouldRoundXOffset() const override;
 
  protected:
   ~gfxDWriteFont() override;

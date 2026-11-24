@@ -78,9 +78,7 @@ already_AddRefed<PersistentBufferProviderBasic>
 PersistentBufferProviderBasic::Create(gfx::IntSize aSize,
                                       gfx::SurfaceFormat aFormat,
                                       gfx::BackendType aBackend) {
-  RefPtr<DrawTarget> dt =
-      gfxPlatform::GetPlatform()->CreateDrawTargetForBackend(aBackend, aSize,
-                                                             aFormat);
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTarget(aBackend, aSize, aFormat);
 
   if (dt) {
     // This is simply to ensure the DrawTarget gets initialized, and will detect

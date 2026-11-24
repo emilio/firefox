@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef MOZILLA_GFX_SCALEDFONTCAIRO_H_
-#define MOZILLA_GFX_SCALEDFONTCAIRO_H_
+#ifndef MOZILLA_GFX_SCALEDFONTFREETYPE_H_
+#define MOZILLA_GFX_SCALEDFONTFREETYPE_H_
 
-#include <cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "ScaledFontBase.h"
 
@@ -45,9 +46,6 @@ class ScaledFontFreeType : public ScaledFontBase {
   bool HasVariationSettings() override;
 
  protected:
-  cairo_font_face_t* CreateCairoFontFace(
-      cairo_font_options_t* aFontOptions) override;
-
  private:
   friend UnscaledFontFreeType;
 
@@ -69,4 +67,4 @@ class ScaledFontFreeType : public ScaledFontBase {
 }  // namespace gfx
 }  // namespace mozilla
 
-#endif /* MOZILLA_GFX_SCALEDFONTCAIRO_H_ */
+#endif /* MOZILLA_GFX_SCALEDFONTFREETYPE_H_ */

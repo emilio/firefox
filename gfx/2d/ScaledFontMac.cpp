@@ -33,8 +33,6 @@ CGPathRef CGFontGetGlyphPath(CGFontRef fontRef,
 };
 #endif
 
-#include "cairo-quartz.h"
-
 namespace mozilla {
 namespace gfx {
 
@@ -771,12 +769,6 @@ already_AddRefed<ScaledFont> UnscaledFontMac::CreateScaledFontFromWRFont(
   ScaledFontMac::InstanceData instanceData(aOptions, aPlatformOptions);
   return CreateScaledFont(aGlyphSize, reinterpret_cast<uint8_t*>(&instanceData),
                           sizeof(instanceData), aVariations, aNumVariations);
-}
-
-cairo_font_face_t* ScaledFontMac::CreateCairoFontFace(
-    cairo_font_options_t* aFontOptions) {
-  MOZ_ASSERT(mFont);
-  return cairo_quartz_font_face_create_for_cgfont(mFont);
 }
 
 already_AddRefed<UnscaledFont> UnscaledFontMac::CreateFromFontDescriptor(

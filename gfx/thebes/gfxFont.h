@@ -72,9 +72,6 @@ class TextDrawTarget;
 }
 }  // namespace mozilla
 
-typedef struct _cairo cairo_t;
-typedef struct _cairo_scaled_font cairo_scaled_font_t;
-
 #define FONT_MAX_SIZE 2000.0
 
 #define SMALL_CAPS_SCALE_FACTOR 0.8
@@ -1667,12 +1664,12 @@ class gfxFont {
 
   gfxFloat SynthesizeSpaceWidth(uint32_t aCh);
 
-  // Work out whether cairo will snap inter-glyph spacing to pixels
+  // Work out whether we should snap inter-glyph spacing to pixels
   // when rendering to the given drawTarget.
   RoundingFlags GetRoundOffsetsToPixels(DrawTarget* aDrawTarget);
 
   virtual bool ShouldHintMetrics() const { return true; }
-  virtual bool ShouldRoundXOffset(cairo_t* aCairo) const { return true; }
+  virtual bool ShouldRoundXOffset() const { return true; }
 
   // Return the font's owned harfbuzz shaper, creating and initializing it if
   // necessary; returns null if shaper initialization has failed.
@@ -1991,7 +1988,6 @@ class gfxFont {
     FONT_TYPE_FT2,
     FONT_TYPE_MAC,
     FONT_TYPE_OS2,
-    FONT_TYPE_CAIRO,
     FONT_TYPE_FONTCONFIG
   } FontType;
 

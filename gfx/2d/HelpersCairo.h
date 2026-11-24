@@ -262,7 +262,6 @@ static inline FontHinting CairoHintingToGfxHinting(
   }
 }
 
-SurfaceFormat GfxFormatForCairoSurface(cairo_surface_t* surface);
 
 static inline void GfxMatrixToCairoMatrix(const Matrix& mat,
                                           cairo_matrix_t& retval) {

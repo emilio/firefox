@@ -9,8 +9,6 @@
 #include "skia/include/core/SkFont.h"
 #include "skia/include/core/SkPath.h"
 #include "skia/include/core/SkTypeface.h"
-// Skia uses cairo_scaled_font_t as the internal font type in ScaledFont
-#include "cairo.h"
 
 namespace mozilla {
 namespace gfx {
@@ -34,23 +32,11 @@ class ScaledFontBase : public ScaledFont {
   SkTypeface* GetSkTypeface();
   virtual void SetupSkFontDrawOptions(SkFont& aFont) {}
 
-  virtual cairo_scaled_font_t* GetCairoScaledFont() override;
-
  protected:
   friend class DrawTargetSkia;
   Atomic<SkTypeface*> mTypeface;
   virtual SkTypeface* CreateSkTypeface() { return nullptr; }
   SkPath GetSkiaPathForGlyphs(const GlyphBuffer& aBuffer);
-#ifdef USE_CAIRO
-  cairo_path_t* GetCairoPathForGlyphs(const GlyphBuffer& aBuffer, cairo_t* aCtx,
-                                      const Maybe<Matrix>& aTransform);
-#endif
-  virtual cairo_font_face_t* CreateCairoFontFace(
-      cairo_font_options_t* aFontOptions) {
-    return nullptr;
-  }
-  virtual void PrepareCairoScaledFont(cairo_scaled_font_t* aFont) {}
-  cairo_scaled_font_t* mScaledFont;
   Float mSize;
 };
 

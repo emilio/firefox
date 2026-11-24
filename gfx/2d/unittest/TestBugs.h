@@ -10,6 +10,6 @@ class TestBugs : public TestBase {
  public:
   TestBugs();
 
-  void CairoClip918671();
+  void Clip918671();
   void PushPopClip950550();
 };

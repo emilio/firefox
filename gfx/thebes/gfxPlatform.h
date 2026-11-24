@@ -138,8 +138,6 @@ const uint32_t kMaxLenPrefLangList = 32;
 
 inline const char* GetBackendName(mozilla::gfx::BackendType aBackend) {
   switch (aBackend) {
-    case mozilla::gfx::BackendType::CAIRO:
-      return "cairo";
     case mozilla::gfx::BackendType::SKIA:
       return "skia";
     case mozilla::gfx::BackendType::RECORDING:
@@ -238,17 +236,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
    */
   virtual already_AddRefed<gfxASurface> CreateOffscreenSurface(
       const IntSize& aSize, gfxImageFormat aFormat) = 0;
-
-  /**
-   * Beware that this method may return DrawTargets which are not fully
-   * supported on the current platform and might fail silently in subtle ways.
-   * This is a massive potential footgun. You should only use these methods for
-   * canvas drawing really. Use extreme caution if you use them for content
-   * where you are not 100% sure we support the DrawTarget we get back. See
-   * SupportsAzureContentForDrawTarget.
-   */
-  static already_AddRefed<DrawTarget> CreateDrawTargetForSurface(
-      gfxASurface* aSurface, const mozilla::gfx::IntSize& aSize);
 
   already_AddRefed<DrawTarget> CreateOffscreenContentDrawTarget(
       const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat,
@@ -722,14 +709,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // If a device reset has occurred, schedule any necessary paints in the
   // widget. This should only be used within nsRefreshDriver.
   virtual void SchedulePaintIfDeviceReset() {}
-
-  /**
-   * Helper method, creates a draw target for a specific Azure backend.
-   * Used by CreateOffscreenDrawTarget.
-   */
-  already_AddRefed<DrawTarget> CreateDrawTargetForBackend(
-      mozilla::gfx::BackendType aBackend, const mozilla::gfx::IntSize& aSize,
-      mozilla::gfx::SurfaceFormat aFormat);
 
   /**
    * Wrapper around StaticPrefs::gfx_perf_warnings_enabled().

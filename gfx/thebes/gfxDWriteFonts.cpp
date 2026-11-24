@@ -278,15 +278,6 @@ void gfxDWriteFont::UpdateClearTypeVars() {
   if (gfxVars::SystemTextRenderingMode() != renderingMode) {
     gfxVars::SetSystemTextRenderingMode(renderingMode);
   }
-
-#if 0
-  // Set cairo dwrite params in the parent process where it might still be
-  // needed for printing. We use the validated pref int directly for rendering
-  // mode, because a negative (i.e. not set) rendering mode is also used for
-  // deciding on forcing GDI in cairo.
-  cairo_dwrite_set_cleartype_params(gamma, enhancedContrast, clearTypeLevel,
-                                    pixelGeometry, renderingModePref);
-#endif
 }
 
 gfxFont* gfxDWriteFont::CopyWithAntialiasOption(
@@ -798,9 +789,8 @@ already_AddRefed<ScaledFont> gfxDWriteFont::GetScaledFont(
   return do_AddRef(scaledFont);
 }
 
-bool gfxDWriteFont::ShouldRoundXOffset(cairo_t* aCairo) const {
-  // show_glyphs is implemented on the font and so is used for all Cairo
-  // surface types; however, it may pixel-snap depending on the dwrite
-  // rendering mode
+bool gfxDWriteFont::ShouldRoundXOffset() const {
+  // Glyph positions may be pixel-snapped depending on the dwrite rendering
+  // mode.
   return GetMeasuringMode() != DWRITE_MEASURING_MODE_NATURAL;
 }

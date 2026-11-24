@@ -115,7 +115,7 @@ TEST(ImageAddressableSize, TextureWrapperRequiresContainedPicture)
 
   BufferTextureData* textureData = BufferTextureData::Create(
       kTextureSize, SurfaceFormat::B8G8R8A8, ColorSpace2::SRGB,
-      TransferFunction::SRGB, BackendType::CAIRO, LayersBackend::LAYERS_NONE,
+      TransferFunction::SRGB, BackendType::SKIA, LayersBackend::LAYERS_NONE,
       TextureFlags::DEALLOCATE_CLIENT, ALLOC_DEFAULT, nullptr);
   ASSERT_NE(textureData, nullptr);
   RefPtr<TextureClient> texture =

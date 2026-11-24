@@ -462,13 +462,6 @@ void gfxASurface::SetOpaqueRect(const gfxRect& aRect) {
 
 const IntSize gfxASurface::GetSize() const { return IntSize(-1, -1); }
 
-SurfaceFormat gfxASurface::GetSurfaceFormat() const {
-  if (!mSurfaceValid) {
-    return SurfaceFormat::UNKNOWN;
-  }
-  return GfxFormatForCairoSurface(mSurface);
-}
-
 already_AddRefed<gfxImageSurface> gfxASurface::GetAsImageSurface() {
   return nullptr;
 }

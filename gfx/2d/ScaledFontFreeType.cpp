@@ -48,24 +48,6 @@ bool ScaledFontFreeType::MayUseBitmaps() {
   return !FT_IS_SCALABLE(mFace->GetFace());
 }
 
-cairo_font_face_t* ScaledFontFreeType::CreateCairoFontFace(
-    cairo_font_options_t* aFontOptions) {
-  cairo_font_options_set_hint_metrics(aFontOptions, CAIRO_HINT_METRICS_OFF);
-
-  int loadFlags = FT_LOAD_NO_AUTOHINT | FT_LOAD_NO_HINTING;
-  if (mFace->GetFace()->face_flags & FT_FACE_FLAG_TRICKY) {
-    loadFlags &= ~FT_LOAD_NO_AUTOHINT;
-  }
-
-  unsigned int synthFlags = 0;
-  if (mApplySyntheticBold) {
-    synthFlags |= CAIRO_FT_SYNTHESIZE_BOLD;
-  }
-
-  return cairo_ft_font_face_create_for_ft_face(mFace->GetFace(), loadFlags,
-                                               synthFlags, mFace.get());
-}
-
 bool ScaledFontFreeType::GetFontInstanceData(FontInstanceDataOutput aCb,
                                              void* aBaton) {
   std::vector<wr::FontVariation> variations;

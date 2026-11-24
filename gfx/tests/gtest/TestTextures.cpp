@@ -71,6 +71,14 @@ static void SetupSurface(gfxImageSurface* surface) {
       }
     }
   }
+  if (surface->Format() == SurfaceFormat::X8R8G8B8_UINT32) {
+    // Skia expects the padding byte of RGBX surfaces to be opaque.
+    for (int y = 0; y < surface->Height(); ++y) {
+      for (int x = 0; x < surface->Width(); ++x) {
+        data[y * stride + x * bpp + 3] = 0xff;
+      }
+    }
+  }
 }
 
 // return true if two surfaces contain the same data
@@ -306,7 +314,7 @@ TEST(Layers, TextureSerialization)
     auto texData = BufferTextureData::Create(
         surface->GetSize(), gfx::ImageFormatToSurfaceFormat(surface->Format()),
         gfx::ColorSpace2::SRGB, gfx::TransferFunction::SRGB,
-        gfx::BackendType::CAIRO, LayersBackend::LAYERS_NONE,
+        gfx::BackendType::SKIA, LayersBackend::LAYERS_NONE,
         TextureFlags::DEALLOCATE_CLIENT, ALLOC_DEFAULT, nullptr);
     ASSERT_TRUE(!!texData);
 

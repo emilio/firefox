@@ -1462,20 +1462,6 @@ void gfxPlatform::WillShutdown() {
 
 gfxPlatform::~gfxPlatform() = default;
 
-/* static */
-already_AddRefed<DrawTarget> gfxPlatform::CreateDrawTargetForSurface(
-    gfxASurface* aSurface, const IntSize& aSize) {
-  SurfaceFormat format = aSurface->GetSurfaceFormat();
-  RefPtr<DrawTarget> drawTarget = Factory::CreateDrawTargetForCairoSurface(
-      aSurface->CairoSurface(), aSize, &format);
-  if (!drawTarget) {
-    gfxWarning() << "gfxPlatform::CreateDrawTargetForSurface failed in "
-                    "CreateDrawTargetForCairoSurface";
-    return nullptr;
-  }
-  return drawTarget.forget();
-}
-
 void gfxPlatform::PopulateScreenInfo() {
   // We're only going to set some gfxVars here, which is only possible from
   // the parent process.
@@ -1514,27 +1500,6 @@ void gfxPlatform::PurgeSkiaFontCache() {
   }
 }
 
-already_AddRefed<DrawTarget> gfxPlatform::CreateDrawTargetForBackend(
-    BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat) {
-  // There is a bunch of knowledge in the gfxPlatform heirarchy about how to
-  // create the best offscreen surface for the current system and situation. We
-  // can easily take advantage of this for the Cairo backend, so that's what we
-  // do.
-  // mozilla::gfx::Factory can get away without having all this knowledge for
-  // now, but this might need to change in the future (using
-  // CreateOffscreenSurface() and CreateDrawTargetForSurface() for all
-  // backends).
-  if (aBackend == BackendType::CAIRO) {
-    RefPtr<gfxASurface> surf =
-        CreateOffscreenSurface(aSize, SurfaceFormatToImageFormat(aFormat));
-    if (!surf || surf->CairoStatus()) {
-      return nullptr;
-    }
-    return CreateDrawTargetForSurface(surf, aSize);
-  }
-  return Factory::CreateDrawTarget(aBackend, aSize, aFormat);
-}
-
 already_AddRefed<DrawTarget> gfxPlatform::CreateOffscreenCanvasDrawTarget(
     const IntSize& aSize, SurfaceFormat aFormat, bool aRequireSoftwareRender) {
   NS_ASSERTION(mPreferredCanvasBackend != BackendType::NONE, "No backend.");
@@ -1554,32 +1519,21 @@ already_AddRefed<DrawTarget> gfxPlatform::CreateOffscreenCanvasDrawTarget(
                   : mPreferredCanvasBackend;
   }
 
-#ifdef XP_WIN
-  // On Windows, the fallback backend (Cairo) should use its image backend.
   RefPtr<DrawTarget> target =
       Factory::CreateDrawTarget(backend, aSize, aFormat);
-#else
-  RefPtr<DrawTarget> target =
-      CreateDrawTargetForBackend(backend, aSize, aFormat);
-#endif
 
   if (target || mFallbackCanvasBackend == BackendType::NONE) {
     return target.forget();
   }
 
-#ifdef XP_WIN
-  // On Windows, the fallback backend (Cairo) should use its image backend.
   return Factory::CreateDrawTarget(mFallbackCanvasBackend, aSize, aFormat);
-#else
-  return CreateDrawTargetForBackend(mFallbackCanvasBackend, aSize, aFormat);
-#endif
 }
 
 already_AddRefed<DrawTarget> gfxPlatform::CreateOffscreenContentDrawTarget(
     const IntSize& aSize, SurfaceFormat aFormat, bool aFallback) {
   BackendType backend = (aFallback) ? mSoftwareBackend : mContentBackend;
   NS_ASSERTION(backend != BackendType::NONE, "No backend.");
-  RefPtr<DrawTarget> dt = CreateDrawTargetForBackend(backend, aSize, aFormat);
+  RefPtr<DrawTarget> dt = Factory::CreateDrawTarget(backend, aSize, aFormat);
 
   if (!dt) {
     return nullptr;
@@ -1628,7 +1582,6 @@ already_AddRefed<DrawTarget> gfxPlatform::CreateDrawTargetForData(
 
 /* static */
 BackendType gfxPlatform::BackendTypeForName(const nsCString& aName) {
-  if (aName.EqualsLiteral("cairo")) return BackendType::CAIRO;
   if (aName.EqualsLiteral("skia")) return BackendType::SKIA;
   return BackendType::NONE;
 }
@@ -1766,11 +1719,6 @@ BackendPrefsData gfxPlatform::GetBackendPrefs() const {
   data.mCanvasBitmask = BackendTypeBit(BackendType::SKIA);
   data.mContentBitmask = BackendTypeBit(BackendType::SKIA);
 
-#ifdef MOZ_WIDGET_GTK
-  data.mCanvasBitmask |= BackendTypeBit(BackendType::CAIRO);
-  data.mContentBitmask |= BackendTypeBit(BackendType::CAIRO);
-#endif
-
   data.mCanvasDefault = BackendType::SKIA;
   data.mContentDefault = BackendType::SKIA;
 
@@ -1797,9 +1745,6 @@ void gfxPlatform::InitBackendPrefs(BackendPrefsData&& aPrefsData) {
   }
 
   uint32_t swBackendBits = BackendTypeBit(BackendType::SKIA);
-#ifdef MOZ_WIDGET_GTK
-  swBackendBits |= BackendTypeBit(BackendType::CAIRO);
-#endif
   mSoftwareBackend = GetContentBackendPref(swBackendBits);
   if (mSoftwareBackend == BackendType::NONE) {
     mSoftwareBackend = BackendType::SKIA;

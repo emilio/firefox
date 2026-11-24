@@ -26,8 +26,6 @@ typedef double Double;
 
 enum class SurfaceType : int8_t {
   DATA,                   /* Data surface - bitmap in memory */
-  CAIRO,                  /* Surface wrapping a cairo surface */
-  CAIRO_IMAGE,            /* Data surface wrapping a cairo image surface */
   COREGRAPHICS_IMAGE,     /* Surface wrapping a CoreGraphics Image */
   COREGRAPHICS_CGCONTEXT, /* Surface wrapping a CG context */
   SKIA,                   /* Surface wrapping a Skia bitmap */
@@ -114,11 +112,11 @@ enum class SurfaceFormat : int8_t {
   // indicates that the name reflects the layout when viewed as a uint32_t
   // value.
   A8R8G8B8_UINT32 = std::endian::native == std::endian::little
-                        ? B8G8R8A8
-                        : A8R8G8B8,  // 0xAARRGGBB
+      ? B8G8R8A8
+      : A8R8G8B8,  // 0xAARRGGBB
   X8R8G8B8_UINT32 = std::endian::native == std::endian::little
-                        ? B8G8R8X8
-                        : X8R8G8B8,  // 0x00RRGGBB
+      ? B8G8R8X8
+      : X8R8G8B8,  // 0x00RRGGBB
 
   // The following values are OS and endian-independent synonyms.
   //
@@ -1003,7 +1001,6 @@ enum class DrawTargetType : int8_t {
 
 enum class BackendType : int8_t {
   NONE = 0,
-  CAIRO,
   SKIA,
   RECORDING,
   WEBRENDER_TEXT,
@@ -1026,7 +1023,6 @@ enum class FontType : int8_t { DWRITE, MAC, FONTCONFIG, FREETYPE, UNKNOWN };
 
 enum class NativeSurfaceType : int8_t {
   D3D10_TEXTURE,
-  CAIRO_CONTEXT,
   CGCONTEXT,
   CGCONTEXT_ACCELERATED,
   OPENGL_TEXTURE,

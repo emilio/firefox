@@ -348,8 +348,7 @@ nsresult imgFrame::InitWithDrawable(gfxDrawable* aDrawable,
 #endif
 
     if (gfxPlatform::GetPlatform()->SupportsAzureContentForType(aBackend)) {
-      target = gfxPlatform::GetPlatform()->CreateDrawTargetForBackend(
-          aBackend, mImageSize, mFormat);
+      target = gfx::Factory::CreateDrawTarget(aBackend, mImageSize, mFormat);
     } else {
       target = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
           mImageSize, mFormat);

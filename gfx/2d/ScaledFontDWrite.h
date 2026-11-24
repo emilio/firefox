@@ -64,10 +64,6 @@ class ScaledFontDWrite final : public ScaledFontBase {
   bool mUseMultistrikeBold = false;
   bool mGDIForced = false;
 
-  cairo_font_face_t* CreateCairoFontFace(
-      cairo_font_options_t* aFontOptions) override;
-  void PrepareCairoScaledFont(cairo_scaled_font_t* aFont) override;
-
  private:
   friend class NativeFontResourceDWrite;
   friend class UnscaledFontDWrite;

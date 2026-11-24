@@ -5,17 +5,10 @@
 #include <cstring>
 
 #include "2D.h"
-#include "Swizzle.h"
-
-#ifdef USE_CAIRO
-#  include "DrawTargetCairo.h"
-#  include "PathCairo.h"
-#  include "SourceSurfaceCairo.h"
-#endif
-
 #include "DrawTargetSkia.h"
 #include "PathSkia.h"
 #include "ScaledFontBase.h"
+#include "Swizzle.h"
 
 #ifdef XP_DARWIN
 #  include "NativeFontResourceMac.h"
@@ -233,16 +226,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTarget(BackendType aBackend,
       }
       break;
     }
-#ifdef USE_CAIRO
-    case BackendType::CAIRO: {
-      RefPtr<DrawTargetCairo> newTarget;
-      newTarget = new DrawTargetCairo();
-      if (newTarget->Init(aSize, aFormat)) {
-        retVal = newTarget;
-      }
-      break;
-    }
-#endif
     default:
       return nullptr;
   }
@@ -263,10 +246,6 @@ already_AddRefed<PathBuilder> Factory::CreatePathBuilder(BackendType aBackend,
     case BackendType::SKIA:
     case BackendType::WEBGL:
       return PathBuilderSkia::Create(aFillRule);
-#ifdef USE_CAIRO
-    case BackendType::CAIRO:
-      return PathBuilderCairo::Create(aFillRule);
-#endif
     case BackendType::RECORDING:
       return do_AddRef(new PathBuilderRecording(BackendType::SKIA, aFillRule));
     default:
@@ -308,16 +287,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetForData(
       }
       break;
     }
-#ifdef USE_CAIRO
-    case BackendType::CAIRO: {
-      RefPtr<DrawTargetCairo> newTarget;
-      newTarget = new DrawTargetCairo();
-      if (newTarget->Init(aData, aSize, aStride, aFormat)) {
-        retVal = std::move(newTarget);
-      }
-      break;
-    }
-#endif
     default:
       gfxCriticalNote << "Invalid draw target type specified: "
                       << (int)aBackend;
@@ -352,7 +321,6 @@ bool Factory::DoesBackendSupportDataDrawtarget(BackendType aType) {
     case BackendType::WEBRENDER_TEXT:
     case BackendType::WEBGL:
       return false;
-    case BackendType::CAIRO:
     case BackendType::SKIA:
       return true;
   }
@@ -362,8 +330,6 @@ bool Factory::DoesBackendSupportDataDrawtarget(BackendType aType) {
 
 size_t Factory::GetMaxSurfaceSize(BackendType aType) {
   switch (aType) {
-    case BackendType::CAIRO:
-      return DrawTargetCairo::GetMaxSurfaceSize();
     case BackendType::SKIA:
       return DrawTargetSkia::GetMaxSurfaceSize();
     default:
@@ -373,8 +339,6 @@ size_t Factory::GetMaxSurfaceSize(BackendType aType) {
 
 size_t Factory::GetMaxSurfaceArea(BackendType aType) {
   switch (aType) {
-    case BackendType::CAIRO:
-      return DrawTargetCairo::GetMaxSurfaceArea();
     case BackendType::SKIA:
       return DrawTargetSkia::GetMaxSurfaceArea();
     default:
@@ -721,38 +685,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetWithSkCanvas(
 }
 
 void Factory::PurgeAllCaches() {}
-
-already_AddRefed<DrawTarget> Factory::CreateDrawTargetForCairoSurface(
-    cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat) {
-  if (!AllowedSurfaceSize(aSize)) {
-    gfxWarning() << "Allowing surface with invalid size (Cairo) " << aSize;
-  }
-
-  RefPtr<DrawTarget> retVal;
-
-#ifdef USE_CAIRO
-  RefPtr newTarget = MakeRefPtr<DrawTargetCairo>();
-
-  if (newTarget->Init(aSurface, aSize, aFormat)) {
-    retVal = newTarget;
-  }
-#endif
-  return retVal.forget();
-}
-
-already_AddRefed<SourceSurface> Factory::CreateSourceSurfaceForCairoSurface(
-    cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat aFormat) {
-  if (aSize.width <= 0 || aSize.height <= 0) {
-    gfxWarning() << "Can't create a SourceSurface without a valid size";
-    return nullptr;
-  }
-
-#ifdef USE_CAIRO
-  return MakeAndAddRef<SourceSurfaceCairo>(aSurface, aSize, aFormat);
-#else
-  return nullptr;
-#endif
-}
 
 already_AddRefed<DataSourceSurface> Factory::CreateWrappingDataSourceSurface(
     uint8_t* aData, int32_t aStride, const IntSize& aSize,

@@ -114,8 +114,6 @@ class gfxASurface {
 
   virtual const mozilla::gfx::IntSize GetSize() const;
 
-  virtual mozilla::gfx::SurfaceFormat GetSurfaceFormat() const;
-
   void SetOpaqueRect(const gfxRect& aRect);
 
   const gfxRect& GetOpaqueRect() {

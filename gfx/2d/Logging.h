@@ -628,12 +628,6 @@ class Log final {
         case SurfaceType::DATA:
           mMessage << "SurfaceType::DATA";
           break;
-        case SurfaceType::CAIRO:
-          mMessage << "SurfaceType::CAIRO";
-          break;
-        case SurfaceType::CAIRO_IMAGE:
-          mMessage << "SurfaceType::CAIRO_IMAGE";
-          break;
         case SurfaceType::COREGRAPHICS_IMAGE:
           mMessage << "SurfaceType::COREGRAPHICS_IMAGE";
           break;

@@ -51,7 +51,6 @@ EXPORTS.mozilla.gfx += [
     "Scale.h",
     "ScaleFactor.h",
     "ScaleFactors2D.h",
-    "SourceSurfaceCairo.h",
     "SourceSurfaceRawData.h",
     "StackArray.h",
     "Swizzle.h",
@@ -169,7 +168,6 @@ UNIFIED_SOURCES += [
     "DataSurfaceHelpers.cpp",
     "DrawEventRecorder.cpp",
     "DrawTarget.cpp",
-    "DrawTargetCairo.cpp",
     "DrawTargetOffset.cpp",
     "DrawTargetRecording.cpp",
     "DrawTargetSkia.cpp",
@@ -181,7 +179,6 @@ UNIFIED_SOURCES += [
     "Matrix.cpp",
     "NativeFontResource.cpp",
     "Path.cpp",
-    "PathCairo.cpp",
     "PathHelpers.cpp",
     "PathRecording.cpp",
     "PathSkia.cpp",
@@ -190,7 +187,6 @@ UNIFIED_SOURCES += [
     "ScaledFontBase.cpp",
     "SFNTData.cpp",
     "SkConvolver.cpp",
-    "SourceSurfaceCairo.cpp",
     "SourceSurfaceRawData.cpp",
     "SourceSurfaceSkia.cpp",
     "Swizzle.cpp",
@@ -221,9 +217,6 @@ include("/ipc/chromium/chromium-config.mozbuild")
 
 FINAL_LIBRARY = "xul"
 
-for var in ("USE_CAIRO", "MOZ2D_HAS_MOZ_CAIRO"):
-    DEFINES[var] = True
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
     DEFINES["MOZ_ENABLE_FREETYPE"] = True
 
@@ -242,13 +235,11 @@ SOURCE_HEADERS += [
     "BigEndianInts.h",
     "BufferEdgePad.h",
     "BufferUnrotate.h",
-    "DrawTargetCairo.h",
     "FilterProcessing.h",
     "FilterProcessingSIMD-inl.h",
     "ImageScaling.h",
     "MMIHelpers.h",
     "PathAnalysis.h",
-    "PathCairo.h",
     "PathRecording.h",
     "RecordedEventImpl.h",
     "SFNTData.h",

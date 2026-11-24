@@ -5,7 +5,9 @@
 #ifndef MOZILLA_GFX_SCALEDFONTFONTCONFIG_H_
 #define MOZILLA_GFX_SCALEDFONTFONTCONFIG_H_
 
-#include <cairo-ft.h>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "ScaledFontBase.h"
 
@@ -44,9 +46,6 @@ class ScaledFontFontconfig : public ScaledFontBase {
   bool HasVariationSettings() override;
 
  protected:
-  cairo_font_face_t* CreateCairoFontFace(
-      cairo_font_options_t* aFontOptions) override;
-
  private:
   friend class NativeFontResourceFontconfig;
   friend class UnscaledFontFontconfig;
@@ -64,10 +63,6 @@ class ScaledFontFontconfig : public ScaledFontBase {
     explicit InstanceData(FcPattern* aPattern);
     InstanceData(const wr::FontInstanceOptions* aOptions,
                  const wr::FontInstancePlatformOptions* aPlatformOptions);
-
-    void SetupFontOptions(cairo_font_options_t* aFontOptions,
-                          int* aOutLoadFlags,
-                          unsigned int* aOutSynthFlags) const;
 
     uint8_t mFlags;
     AntialiasMode mAntialias;

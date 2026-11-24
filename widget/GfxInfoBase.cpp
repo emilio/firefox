@@ -1995,10 +1995,6 @@ GfxInfoBase::GetContentBackend(nsAString& aContentBackend) {
       outStr.AppendPrintf("Skia");
       break;
     }
-    case BackendType::CAIRO: {
-      outStr.AppendPrintf("Cairo");
-      break;
-    }
     default:
       return NS_ERROR_FAILURE;
   }

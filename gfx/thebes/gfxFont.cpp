@@ -9,7 +9,6 @@
 #include "GreekCasing.h"
 #include "TextDrawTarget.h"
 #include "ThebesRLBox.h"
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxFontMissingGlyphs.h"
@@ -49,7 +48,6 @@
 #include "nsUGenCategory.h"
 #include "nsUnicodeProperties.h"
 #ifdef XP_WIN
-#  include "cairo-win32.h"
 #  include "gfxWindowsPlatform.h"
 #endif
 
@@ -1178,7 +1176,7 @@ void gfxFont::InitMetrics() {
   FinishInitFontMetrics();
 }
 
-// Work out whether cairo will snap inter-glyph spacing to pixels.
+// Work out whether we should snap inter-glyph spacing to pixels.
 //
 // Layout does not align text to pixel boundaries, so, with font drawing
 // backends that snap glyph positions to pixels, it is important that
@@ -1196,29 +1194,7 @@ gfxFont::RoundingFlags gfxFont::GetRoundOffsetsToPixels(
     return RoundingFlags(0);
   }
 
-  cairo_t* cr = static_cast<cairo_t*>(
-      aDrawTarget->GetNativeSurface(NativeSurfaceType::CAIRO_CONTEXT));
-  if (cr) {
-    cairo_surface_t* target = cairo_get_target(cr);
-
-    // Check whether the cairo surface's font options hint metrics.
-    cairo_font_options_t* fontOptions = cairo_font_options_create();
-    cairo_surface_get_font_options(target, fontOptions);
-    cairo_hint_metrics_t hintMetrics =
-        cairo_font_options_get_hint_metrics(fontOptions);
-    cairo_font_options_destroy(fontOptions);
-
-    switch (hintMetrics) {
-      case CAIRO_HINT_METRICS_OFF:
-        return RoundingFlags(0);
-      case CAIRO_HINT_METRICS_ON:
-        return RoundingFlags::kRoundX | RoundingFlags::kRoundY;
-      default:
-        break;
-    }
-  }
-
-  if (ShouldRoundXOffset(cr)) {
+  if (ShouldRoundXOffset()) {
     return RoundingFlags::kRoundX | RoundingFlags::kRoundY;
   } else {
     return RoundingFlags::kRoundY;

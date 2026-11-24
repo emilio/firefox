@@ -11,7 +11,6 @@
 #include "PathSkia.h"
 #include "StackArray.h"
 #include "UnscaledFontDWrite.h"
-#include "cairo-dwrite.h"
 #include "dwrite_3.h"
 #include "gfxDWriteCommon.h"
 #include "gfxFont.h"
@@ -624,23 +623,6 @@ AntialiasMode ScaledFontDWrite::GetDefaultAAMode() {
   }
 
   return defaultMode;
-}
-
-cairo_font_face_t* ScaledFontDWrite::CreateCairoFontFace(
-    cairo_font_options_t* aFontOptions) {
-  if (!mFontFace) {
-    return nullptr;
-  }
-
-  return cairo_dwrite_font_face_create_for_dwrite_fontface(mFontFace);
-}
-
-void ScaledFontDWrite::PrepareCairoScaledFont(cairo_scaled_font_t* aFont) {
-#if 0
-  if (mGDIForced) {
-    cairo_dwrite_scaled_font_set_force_GDI_classic(aFont, true);
-  }
-#endif
 }
 
 already_AddRefed<UnscaledFont> UnscaledFontDWrite::CreateFromFontDescriptor(
