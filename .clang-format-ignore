@@ -94,7 +94,6 @@ editor/libeditor/tests/browserscope/lib/richtext/.*
 editor/libeditor/tests/browserscope/lib/richtext2/.*
 extensions/spellcheck/hunspell/src/.*
 gfx/angle/.*
-gfx/cairo/.*
 gfx/graphite2/.*
 gfx/harfbuzz/.*
 gfx/ots/src/.*

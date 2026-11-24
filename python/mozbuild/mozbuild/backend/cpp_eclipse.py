@@ -535,7 +535,7 @@ CPROJECT_TEMPLATE_FILEINFO = """                                        <fileInf
 """
 CPROJECT_TEMPLATE_FOOTER = """
                     <sourceEntries>
-                        <entry excluding="**/lib*|**/third_party/|tree/*.xcodeproj/|tree/.cargo/|tree/.vscode/|tree/build/|tree/extensions/|tree/gfx/angle/|tree/gfx/cairo/|tree/gfx/skia/skia/|tree/intl/icu/|tree/js/|tree/media/|tree/modules/freetype2|tree/modules/pdfium/|tree/netwerk/|tree/netwerk/sctp|tree/netwerk/srtp|tree/nsprpub/lib|tree/nsprpub/pr/src|tree/other-licenses/|tree/parser/|tree/python/|tree/security/nss/|tree/tools/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+                        <entry excluding="**/lib*|**/third_party/|tree/*.xcodeproj/|tree/.cargo/|tree/.vscode/|tree/build/|tree/extensions/|tree/gfx/angle/|tree/gfx/skia/skia/|tree/intl/icu/|tree/js/|tree/media/|tree/modules/freetype2|tree/modules/pdfium/|tree/netwerk/|tree/netwerk/sctp|tree/netwerk/srtp|tree/nsprpub/lib|tree/nsprpub/pr/src|tree/other-licenses/|tree/parser/|tree/python/|tree/security/nss/|tree/tools/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
                     </sourceEntries>
                                 </configuration>
                         </storageModule>

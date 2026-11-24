@@ -15,7 +15,6 @@ UNIFIED_SOURCES += [
 
 LOCAL_INCLUDES += [
     "/caps",
-    "/gfx/cairo/cairo/src",
     "/image",
     "/netwerk/base",
     "/widget",

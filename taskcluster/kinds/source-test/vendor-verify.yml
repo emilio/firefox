@@ -103,8 +103,6 @@ gfx:
         - dom/canvas/test/webgl-conf/moz.yaml
         - dom/webgpu/tests/cts/moz.yaml
         - gfx/angle/moz.yaml
-        - gfx/cairo/moz.yaml
-        - gfx/pixman/moz.yaml
         - gfx/vr/service/openvr/moz.yaml
         - media/libjpeg/moz.yaml
         - media/libpng/moz.yaml

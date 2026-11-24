@@ -86,7 +86,6 @@ include("/ipc/chromium/chromium-config.mozbuild")
 
 LOCAL_INCLUDES += [
     "/dom/ipc",  # for ContentChild.h
-    "/gfx/cairo/cairo/src",
 ]
 
 FINAL_LIBRARY = "xul"

@@ -638,7 +638,6 @@ class CompileFlags(TargetCompileFlags):
                                 "MOZ_JPEG_CFLAGS",
                                 "MOZ_PNG_CFLAGS",
                                 "MOZ_ZLIB_CFLAGS",
-                                "MOZ_PIXMAN_CFLAGS",
                                 "MOZ_ICU_CFLAGS",
                             )
                         )

@@ -177,7 +177,6 @@ FINAL_LIBRARY = "xul"
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
 
 LOCAL_INCLUDES += [
-    "/gfx/cairo/cairo/src",
     "/layout/forms",
     "/layout/generic",
     "/layout/style",

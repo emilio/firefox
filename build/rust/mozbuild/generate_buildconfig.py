@@ -149,7 +149,6 @@ def generate(output):
     output.write(generate_string_array("MOZ_GTK3_LIBS"))
     output.write(generate_objdir_flags("NSPR_CFLAGS"))
     output.write(generate_objdir_flags("NSS_CFLAGS"))
-    output.write(generate_string_array("MOZ_PIXMAN_CFLAGS"))
     output.write(generate_string_array("MOZ_ICU_CFLAGS"))
 
     # Used by toolkit/crashreporter/crash_helper_common

@@ -37,9 +37,6 @@ header_skiplist:
   - dom/onnx/onnxruntime_ep_c_api.h
   - dom/quota/DirectoryLockInlines.h
   - gfx/gl/GLContextProviderImpl.h
-  - gfx/pixman/pixman/pixman/loongson-mmintrin.h
-  - gfx/pixman/pixman/pixman/pixman-edge-imp.h
-  - gfx/pixman/pixman/pixman/pixman-version.h
   - hal/HalInternal.h
   - intl/components/src/FormatBuffer.h
   - js/src/jit/MacroAssembler.h

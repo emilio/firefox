@@ -158,9 +158,6 @@ if CONFIG["MOZ_WAYLAND"]:
     CFLAGS += CONFIG["MOZ_WAYLAND_CFLAGS"]
 
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
-LOCAL_INCLUDES += [
-    "/gfx/cairo/cairo/src",
-]
 
 SOURCE_HEADERS += [
     "GLDebugUtils.h",

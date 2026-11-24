@@ -78,7 +78,6 @@ SOURCES += [
 
 LOCAL_INCLUDES += [
     "../../ipc/",
-    "/gfx/cairo/cairo/src",
     "/media/libyuv/libyuv/include",
 ]
 

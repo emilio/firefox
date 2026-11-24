@@ -608,7 +608,6 @@ class TestEmitterBasic(unittest.TestCase):
                 "MOZ_JPEG_CFLAGS": ["-I/jpeg/path"],
                 "MOZ_PNG_CFLAGS": ["-I/png/path"],
                 "MOZ_ZLIB_CFLAGS": ["-I/zlib/path"],
-                "MOZ_PIXMAN_CFLAGS": ["-I/pixman/path"],
             },
         )
         sources, ldflags, lib, flags = self.read_topsrcdir(reader)
@@ -623,7 +622,6 @@ class TestEmitterBasic(unittest.TestCase):
                 "-I/jpeg/path",
                 "-I/png/path",
                 "-I/zlib/path",
-                "-I/pixman/path",
             ],
         )
 

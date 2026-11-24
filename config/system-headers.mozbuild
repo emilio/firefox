@@ -598,7 +598,6 @@ system_headers = [
     "Pgenerr.h",
     "PGenErr.h",
     "Ph.h",
-    "pixman.h",
     "pk11func.h",
     "pk11pqg.h",
     "pk11priv.h",

@@ -68,7 +68,6 @@ UNIFIED_SOURCES += [
     for p in [
         "TestBase.cpp",
         "TestBugs.cpp",
-        "TestCairo.cpp",
         "TestScaling.cpp",
     ]
 ]
@@ -91,7 +90,6 @@ include("/ipc/chromium/chromium-config.mozbuild")
 LOCAL_INCLUDES += [
     "/gfx/2d",
     "/gfx/2d/unittest",
-    "/gfx/cairo/cairo/src",
     "/gfx/config",
     "/gfx/layers",
     "/gfx/ots/src",

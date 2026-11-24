@@ -522,7 +522,6 @@ if CONFIG["COMPILE_ENVIRONMENT"] and CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
 LOCAL_INCLUDES += [
     "/docshell/base",  # for nsDocShell.h
     "/dom/canvas",  # for intertwined WebGL headers
-    "/gfx/cairo/cairo/src",
     "/layout/base",  # for TouchManager.h
     "/layout/generic",  # for nsTextFrame.h
     "/media/libyuv/libyuv/include",  # for libyuv.h

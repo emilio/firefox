@@ -1373,17 +1373,7 @@ def ft2_info(freetype2_combined_info, tree_freetype, build_env):
 
 
 set_config("FT2_LIBS", ft2_info.libs)
-
-
-@depends(target, tree_freetype, freetype2_info)
-def enable_cairo_ft(target, tree_freetype, freetype2_info):
-    # Avoid defining MOZ_ENABLE_CAIRO_FT on Windows platforms because
-    # "cairo-ft-font.c" includes <dlfcn.h>, which only exists on posix platforms
-    return freetype2_info or (tree_freetype and target.os != "WINNT")
-
-
-set_config("MOZ_ENABLE_CAIRO_FT", True, when=enable_cairo_ft)
-set_config("CAIRO_FT_CFLAGS", ft2_info.cflags, when=enable_cairo_ft)
+set_config("FT2_CFLAGS", ft2_info.cflags)
 
 
 # WebDriver (HTTP / BiDi)
@@ -4204,32 +4194,6 @@ option(
 )
 
 set_define("ENABLE_SYSTEM_EXTENSION_DIRS", True, when="--enable-system-extension-dirs")
-
-
-# Pixman
-# ==============================================================
-with only_when(compile_environment):
-    system_lib_option(
-        "--with-system-pixman",
-        help="Use system pixman (located with pkgconfig)",
-        when=use_pkg_config,
-    )
-
-    @depends("--with-system-pixman", when=use_pkg_config)
-    def enable_system_pixman_option(enable_system_pixman):
-        return enable_system_pixman
-
-    @depends(enable_system_pixman_option)
-    def in_tree_pixman(pixman):
-        return not pixman
-
-    set_config("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
-    set_define("MOZ_TREE_PIXMAN", True, when=in_tree_pixman)
-
-    pkg_check_modules("MOZ_PIXMAN", "pixman-1 >= 0.40.0", when="--with-system-pixman")
-    # Set MOZ_PIXMAN_CFLAGS to an explicit empty value when --with-system-pixman is *not* used,
-    # for layout/style/extra-bindgen-flags
-    set_config("MOZ_PIXMAN_CFLAGS", [], when=in_tree_pixman)
 
 
 # Universalchardet

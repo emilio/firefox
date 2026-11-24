@@ -222,11 +222,10 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
 COMPILE_FLAGS["WARNINGS_CXXFLAGS"] += ["-Werror=switch"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
-    CXXFLAGS += CONFIG["CAIRO_FT_CFLAGS"]
+    CXXFLAGS += CONFIG["FT2_CFLAGS"]
 
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
 LOCAL_INCLUDES += [
-    "/gfx/cairo/cairo/src",
     "/third_party/xsimd/include",
 ]
 

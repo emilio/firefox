@@ -254,7 +254,6 @@ LOCAL_INCLUDES += [
     "/dom/base",
     "/dom/media/platforms/apple",
     "/dom/xml",
-    "/gfx/cairo/cairo/src",
     "/image/encoders/jpeg",
     "/widget/gtk",
 ]
@@ -263,7 +262,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
     DEFINES["MOZ_ENABLE_FREETYPE"] = True
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android"):
-    CXXFLAGS += CONFIG["CAIRO_FT_CFLAGS"]
+    CXXFLAGS += CONFIG["FT2_CFLAGS"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     CXXFLAGS += CONFIG["MOZ_GTK3_CFLAGS"]

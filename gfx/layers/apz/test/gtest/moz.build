@@ -37,7 +37,6 @@ include("/ipc/chromium/chromium-config.mozbuild")
 
 LOCAL_INCLUDES += [
     "/gfx/2d",
-    "/gfx/cairo/cairo/src",
     "/gfx/layers",
     "/gfx/layers/apz/src",
     "/gfx/tests/gtest",

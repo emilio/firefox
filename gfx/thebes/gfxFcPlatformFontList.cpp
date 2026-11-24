@@ -3127,57 +3127,6 @@ void gfxFcPlatformFontList::ActivateBundledFonts() {
 #endif
 
 #ifdef MOZ_WIDGET_GTK
-/***************************************************************************
- *
- * These functions must be last in the file because it uses the system cairo
- * library.  Above this point the cairo library used is the tree cairo.
- */
-
-// Tree cairo symbols have different names.  Disable their activation through
-// preprocessor macros.
-#  undef cairo_ft_font_options_substitute
-
-#  undef cairo_font_options_create
-#  undef cairo_font_options_destroy
-#  undef cairo_font_options_copy
-#  undef cairo_font_options_equal
-
-#  undef cairo_font_options_get_antialias
-#  undef cairo_font_options_set_antialias
-#  undef cairo_font_options_get_hint_style
-#  undef cairo_font_options_set_hint_style
-#  undef cairo_font_options_get_lcd_filter
-#  undef cairo_font_options_set_lcd_filter
-#  undef cairo_font_options_get_subpixel_order
-#  undef cairo_font_options_set_subpixel_order
-
-// The system cairo functions are not declared because the include paths cause
-// the gdk headers to pick up the tree cairo.h.
-extern "C" {
-NS_VISIBILITY_DEFAULT void cairo_ft_font_options_substitute(
-    const cairo_font_options_t* options, FcPattern* pattern);
-
-NS_VISIBILITY_DEFAULT cairo_font_options_t* cairo_font_options_copy(
-    const cairo_font_options_t*);
-NS_VISIBILITY_DEFAULT cairo_font_options_t* cairo_font_options_create();
-NS_VISIBILITY_DEFAULT void cairo_font_options_destroy(cairo_font_options_t*);
-NS_VISIBILITY_DEFAULT cairo_bool_t cairo_font_options_equal(
-    const cairo_font_options_t*, const cairo_font_options_t*);
-
-NS_VISIBILITY_DEFAULT cairo_antialias_t
-cairo_font_options_get_antialias(const cairo_font_options_t*);
-NS_VISIBILITY_DEFAULT void cairo_font_options_set_antialias(
-    cairo_font_options_t*, cairo_antialias_t);
-NS_VISIBILITY_DEFAULT cairo_hint_style_t
-cairo_font_options_get_hint_style(const cairo_font_options_t*);
-NS_VISIBILITY_DEFAULT void cairo_font_options_set_hint_style(
-    cairo_font_options_t*, cairo_hint_style_t);
-NS_VISIBILITY_DEFAULT cairo_subpixel_order_t
-cairo_font_options_get_subpixel_order(const cairo_font_options_t*);
-NS_VISIBILITY_DEFAULT void cairo_font_options_set_subpixel_order(
-    cairo_font_options_t*, cairo_subpixel_order_t);
-}
-
 void gfxFcPlatformFontList::ClearSystemFontOptions() {
   if (mSystemFontOptions) {
     cairo_font_options_destroy(mSystemFontOptions);

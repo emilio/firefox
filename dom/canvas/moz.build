@@ -190,7 +190,6 @@ LOCAL_INCLUDES += [
     "/dom/svg",
     "/dom/workers",
     "/dom/xul",
-    "/gfx/cairo/cairo/src",
     "/gfx/gl",
     "/image",
     "/js/xpconnect/src",

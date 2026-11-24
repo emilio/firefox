@@ -47,7 +47,6 @@ static BINDGEN_FLAGS: LazyLock<Vec<String>> = LazyLock::new(|| {
     mozbuild::config::BINDGEN_SYSTEM_FLAGS
         .iter()
         .chain(&mozbuild::config::NSPR_CFLAGS)
-        .chain(&mozbuild::config::MOZ_PIXMAN_CFLAGS)
         .chain(&mozbuild::config::MOZ_ICU_CFLAGS)
         .map(|s| s.to_string())
         .collect()

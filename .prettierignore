@@ -1406,7 +1406,6 @@ extensions/spellcheck/hunspell/src/
 function2/
 fmt/
 gfx/angle/checkout/
-gfx/cairo/
 gfx/graphite2/
 gfx/harfbuzz/
 gfx/ots/

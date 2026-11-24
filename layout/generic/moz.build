@@ -285,7 +285,6 @@ LOCAL_INCLUDES += [
     "/dom/base",
     "/dom/html",
     "/dom/xul",
-    "/gfx/cairo/cairo/src",
 ]
 
 JAR_MANIFESTS += ["jar.mn"]
