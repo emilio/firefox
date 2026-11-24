@@ -26,8 +26,7 @@ class InlineTranslator;
 /**
  * Windows printing target.
  *
- * Draws either through Skia's GDI document backend (SkGDIDocument) or, if
- * disabled, through cairo's win32 printing surface.
+ * Draws through Skia's GDI document backend (SkGDIDocument).
  */
 class PrintTargetWindows final : public PrintTarget {
  public:
@@ -41,26 +40,20 @@ class PrintTargetWindows final : public PrintTarget {
   nsresult AbortPrinting() override;
   nsresult BeginPage(const IntSize& aSizeInPoints) override;
   nsresult EndPage() override;
-  void Finish() override;
 
   already_AddRefed<DrawTarget> MakeDrawTarget(
       const IntSize& aSize, DrawEventRecorder* aRecorder = nullptr) final;
   already_AddRefed<DrawTarget> GetReferenceDrawTarget() final;
 
  private:
-  PrintTargetWindows(cairo_surface_t* aCairoSurface, HDC aDC);
   PrintTargetWindows(std::unique_ptr<SkGDI::Document> aDocument, HDC aDC);
   ~PrintTargetWindows() override;
 
   HDC mDC;
 
-  // Only used for cairo printing.
-  cairo_surface_t* mCairoSurface = nullptr;
-  bool mIsFinished = false;
-
-  // Only used for Skia printing. The document draws into mDC, but needs to
-  // draw each page multiple times, so pages are recorded with mRecorder, and
-  // replayed into the document by mTranslator.
+  // The document draws into mDC, but needs to draw each page multiple times,
+  // so pages are recorded with mRecorder, and replayed into the document by
+  // mTranslator.
   std::unique_ptr<SkGDI::Document> mDocument;
   RefPtr<DrawEventRecorderMemory> mRecorder;
   UniquePtr<InlineTranslator> mTranslator;

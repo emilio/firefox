@@ -4,13 +4,11 @@
 
 #include "PrintTargetWindows.h"
 
-#include "cairo-win32.h"
 #include "gdi/SkGDIDocument.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_print.h"
 #include "mozilla/WidgetUtils.h"
 #include "mozilla/gfx/DrawEventRecorder.h"
-#include "mozilla/gfx/HelpersCairo.h"
 #include "mozilla/gfx/HelpersSkia.h"
 #include "mozilla/gfx/InlineTranslator.h"
 #include "nsCoord.h"
@@ -24,20 +22,6 @@
 
 namespace mozilla {
 namespace gfx {
-
-PrintTargetWindows::PrintTargetWindows(cairo_surface_t* aCairoSurface, HDC aDC)
-    : mDC(aDC), mCairoSurface(aCairoSurface) {
-  MOZ_ASSERT(aCairoSurface);
-  // CreateOrNull hands over ownership of aCairoSurface, so we don't call
-  // cairo_surface_reference(aSurface) here.
-  // This code was copied from gfxASurface::Init:
-  if (cairo_surface_get_content(mCairoSurface) != CAIRO_CONTENT_COLOR) {
-    cairo_surface_set_subpixel_antialiasing(
-        mCairoSurface, CAIRO_SUBPIXEL_ANTIALIASING_DISABLED);
-  }
-  // TODO: At least add basic memory reporting.
-  // 4 * mSize.width * mSize.height + sizeof(PrintTargetWindows) ?
-}
 
 PrintTargetWindows::PrintTargetWindows(
     std::unique_ptr<SkGDI::Document> aDocument, HDC aDC)
@@ -55,21 +39,7 @@ PrintTargetWindows::PrintTargetWindows(
   mTranslator = std::make_unique<InlineTranslator>(refDT);
 }
 
-PrintTargetWindows::~PrintTargetWindows() {
-  if (mCairoSurface) {
-    cairo_surface_destroy(mCairoSurface);
-  }
-}
-
-void PrintTargetWindows::Finish() {
-  if (mIsFinished) {
-    return;
-  }
-  mIsFinished = true;
-  if (mCairoSurface) {
-    cairo_surface_finish(mCairoSurface);
-  }
-}
+PrintTargetWindows::~PrintTargetWindows() = default;
 
 /* static */
 already_AddRefed<PrintTargetWindows> PrintTargetWindows::CreateOrNull(HDC aDC) {
@@ -89,28 +59,15 @@ already_AddRefed<PrintTargetWindows> PrintTargetWindows::CreateOrNull(HDC aDC) {
     return nullptr;
   }
 
-  if (StaticPrefs::print_windows_skia_gdi_enabled()) {
-    SkGDI::Options options;
-    options.fRasterScale =
-        float(StaticPrefs::print_windows_skia_gdi_raster_dpi()) /
-        ::GetDeviceCaps(aDC, LOGPIXELSX);
-    std::unique_ptr<SkGDI::Document> doc = SkGDI::MakeDocument(aDC, options);
-    if (!doc) {
-      return nullptr;
-    }
-    return do_AddRef(new PrintTargetWindows(std::move(doc), aDC));
-  }
-
-  cairo_surface_t* surface = cairo_win32_printing_surface_create(aDC);
-
-  if (cairo_surface_status(surface)) {
+  SkGDI::Options options;
+  options.fRasterScale =
+      float(StaticPrefs::print_windows_skia_gdi_raster_dpi()) /
+      ::GetDeviceCaps(aDC, LOGPIXELSX);
+  std::unique_ptr<SkGDI::Document> doc = SkGDI::MakeDocument(aDC, options);
+  if (!doc) {
     return nullptr;
   }
-
-  // The new object takes ownership of our surface reference.
-  RefPtr<PrintTargetWindows> target = new PrintTargetWindows(surface, aDC);
-
-  return target.forget();
+  return do_AddRef(new PrintTargetWindows(std::move(doc), aDC));
 }
 
 LazyLogModule gPrintingLog("printing");
@@ -188,18 +145,14 @@ nsresult PrintTargetWindows::BeginPrinting(const nsAString& aTitle,
 }
 
 nsresult PrintTargetWindows::EndPrinting() {
-  if (mRecorder) {
-    mRecorder->DetachResources();
-  }
+  mRecorder->DetachResources();
   int result = ::EndDoc(mDC);
   return (result <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
 nsresult PrintTargetWindows::AbortPrinting() {
   PrintTarget::AbortPrinting();
-  if (mRecorder) {
-    mRecorder->DetachResources();
-  }
+  mRecorder->DetachResources();
   int result = ::AbortDoc(mDC);
   return (result <= 0) ? NS_ERROR_FAILURE : NS_OK;
 }
@@ -212,51 +165,45 @@ nsresult PrintTargetWindows::BeginPage(const IntSize& aSizeInPoints) {
 
 nsresult PrintTargetWindows::EndPage() {
   bool failure = false;
-  if (mDocument) {
-    // The page is in device units of the printable area, which is what the
-    // content is drawn in (see nsIDeviceContextSpec::GetPrintingScale).
-    SkISize size = SkISize::Make(::GetDeviceCaps(mDC, HORZRES),
-                                 ::GetDeviceCaps(mDC, VERTRES));
-    // The recording may refer to objects created by previous pages, and every
-    // pass needs to start from the same state.
-    InlineTranslator::State pageStart;
-    mTranslator->SaveState(pageStart);
-    MemStream& recording = mRecorder->mOutputStream;
-    bool firstPass = true;
-    mDocument->drawPage(size, [&](SkCanvas* aCanvas) {
-      RefPtr<DrawTarget> dt = Factory::CreateDrawTargetWithSkCanvas(aCanvas);
-      if (!dt || !recording.mValid) {
-        failure = true;
-        return;
-      }
-      if (!firstPass) {
-        mTranslator->RestoreState(pageStart);
-      }
-      firstPass = false;
-      // The canvas may be transformed (e.g. to rasterize part of the page),
-      // and the recording sets absolute transforms.
-      const Matrix baseTransform =
-          SkiaMatrixToGfxMatrix(aCanvas->getTotalMatrix()).As2D();
-      dt->SetTransform(baseTransform);
-      mTranslator->SetReferenceDrawTargetTransform(baseTransform);
-      mTranslator->SetBaseDrawTarget(dt);
-      if (!mTranslator->TranslateRecording(recording.mData,
-                                           recording.mLength)) {
-        failure = true;
-      }
-    });
-    // CreateDrawTargetWithSkCanvas wraps a stack pointer, make sure it doesn't
-    // persist. Each page has its own recording anyway so it's not supposed to
-    // reference DTs across pages.
-    mTranslator->ForgetDrawTargets();
-    RefPtr<DrawTarget> refDT = GetReferenceDrawTarget();
-    mTranslator->SetReferenceDrawTargetTransform(Matrix());
-    mTranslator->SetBaseDrawTarget(refDT);
-    mRecorder->WipeRecording();
-  } else {
-    cairo_surface_show_page(mCairoSurface);
-    failure = cairo_surface_status(mCairoSurface);
-  }
+  // The page is in device units of the printable area, which is what the
+  // content is drawn in (see nsIDeviceContextSpec::GetPrintingScale).
+  SkISize size = SkISize::Make(::GetDeviceCaps(mDC, HORZRES),
+                               ::GetDeviceCaps(mDC, VERTRES));
+  // The recording may refer to objects created by previous pages, and every
+  // pass needs to start from the same state.
+  InlineTranslator::State pageStart;
+  mTranslator->SaveState(pageStart);
+  MemStream& recording = mRecorder->mOutputStream;
+  bool firstPass = true;
+  mDocument->drawPage(size, [&](SkCanvas* aCanvas) {
+    RefPtr<DrawTarget> dt = Factory::CreateDrawTargetWithSkCanvas(aCanvas);
+    if (!dt || !recording.mValid) {
+      failure = true;
+      return;
+    }
+    if (!firstPass) {
+      mTranslator->RestoreState(pageStart);
+    }
+    firstPass = false;
+    // The canvas may be transformed (e.g. to rasterize part of the page),
+    // and the recording sets absolute transforms.
+    const Matrix baseTransform =
+        SkiaMatrixToGfxMatrix(aCanvas->getTotalMatrix()).As2D();
+    dt->SetTransform(baseTransform);
+    mTranslator->SetReferenceDrawTargetTransform(baseTransform);
+    mTranslator->SetBaseDrawTarget(dt);
+    if (!mTranslator->TranslateRecording(recording.mData, recording.mLength)) {
+      failure = true;
+    }
+  });
+  // CreateDrawTargetWithSkCanvas wraps a stack pointer, make sure it doesn't
+  // persist. Each page has its own recording anyway so it's not supposed to
+  // reference DTs across pages.
+  mTranslator->ForgetDrawTargets();
+  RefPtr<DrawTarget> refDT = GetReferenceDrawTarget();
+  mTranslator->SetReferenceDrawTargetTransform(Matrix());
+  mTranslator->SetBaseDrawTarget(refDT);
+  mRecorder->WipeRecording();
   MOZ_ALWAYS_SUCCEEDS(PrintTarget::EndPage());
   int result = ::EndPage(mDC);
   return (result <= 0 || failure) ? NS_ERROR_FAILURE : NS_OK;
@@ -268,19 +215,9 @@ already_AddRefed<DrawTarget> PrintTargetWindows::MakeDrawTarget(
   // some backends can only provide a valid DrawTarget at that time.
   MOZ_ASSERT(mHasActivePage, "We can't guarantee a valid DrawTarget");
 
-  RefPtr<DrawTarget> dt;
-  if (mDocument) {
-    RefPtr<DrawTarget> refDT = GetReferenceDrawTarget();
-    dt = Factory::CreateRecordingDrawTarget(mRecorder, refDT,
-                                            IntRect(IntPoint(), aSize));
-  } else {
-    if (cairo_surface_status(mCairoSurface)) {
-      return nullptr;
-    }
-    // Note than aSize may not be the same as the size of mCairoSurface. If the
-    // sizes are different a clip will be applied to mCairoSurface.
-    dt = Factory::CreateDrawTargetForCairoSurface(mCairoSurface, aSize);
-  }
+  RefPtr<DrawTarget> refDT = GetReferenceDrawTarget();
+  RefPtr<DrawTarget> dt = Factory::CreateRecordingDrawTarget(
+      mRecorder, refDT, IntRect(IntPoint(), aSize));
   if (!dt || !dt->IsValid()) {
     return nullptr;
   }
@@ -294,27 +231,8 @@ already_AddRefed<DrawTarget> PrintTargetWindows::GetReferenceDrawTarget() {
   if (mRefDT) {
     return do_AddRef(mRefDT);
   }
-  const IntSize size(1, 1);
-  if (mDocument) {
-    mRefDT = Factory::CreateDrawTarget(BackendType::SKIA, size,
-                                       SurfaceFormat::B8G8R8A8);
-    return do_AddRef(mRefDT);
-  }
-
-  cairo_surface_t* similar = cairo_surface_create_similar(
-      mCairoSurface, cairo_surface_get_content(mCairoSurface), size.width,
-      size.height);
-  if (cairo_surface_status(similar)) {
-    return nullptr;
-  }
-  RefPtr<DrawTarget> dt =
-      Factory::CreateDrawTargetForCairoSurface(similar, size);
-  // The DT addrefs the surface, so we need drop our own reference to it:
-  cairo_surface_destroy(similar);
-  if (!dt || !dt->IsValid()) {
-    return nullptr;
-  }
-  mRefDT = std::move(dt);
+  mRefDT = Factory::CreateDrawTarget(BackendType::SKIA, IntSize(1, 1),
+                                     SurfaceFormat::B8G8R8A8);
   return do_AddRef(mRefDT);
 }
 
