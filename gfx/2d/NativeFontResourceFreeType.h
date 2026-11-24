@@ -5,7 +5,8 @@
 #ifndef mozilla_gfx_NativeFontResourceFreeType_h
 #define mozilla_gfx_NativeFontResourceFreeType_h
 
-#include <cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "2D.h"
 

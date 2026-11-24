@@ -5,7 +5,8 @@
 #ifndef MOZILLA_GFX_UNSCALEDFONTFREETYPE_H_
 #define MOZILLA_GFX_UNSCALEDFONTFREETYPE_H_
 
-#include <cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #include "2D.h"
 

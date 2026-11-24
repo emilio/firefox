@@ -7,7 +7,6 @@
 
 #include <algorithm>
 
-#include "cairo-win32.h"
 #include "dwrite_3.h"
 #include "gfxDWriteCommon.h"
 #include "gfxFont.h"

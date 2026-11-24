@@ -4,7 +4,6 @@
 
 #include "gfxPattern.h"
 
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxGradientCache.h"
 #include "gfxPlatform.h"

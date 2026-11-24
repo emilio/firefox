@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include "TextDrawTarget.h"
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxMatrix.h"
 #include "gfxPattern.h"

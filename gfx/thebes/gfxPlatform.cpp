@@ -95,7 +95,6 @@
 #include "GLContext.h"
 #include "GLContextProvider.h"
 #include "MainThreadUtils.h"
-#include "cairo.h"
 #include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxFontMissingGlyphs.h"
@@ -1444,17 +1443,6 @@ void gfxPlatform::WillShutdown() {
   // SharedFTFaces that would otherwise outlive destruction of the FT_Library
   // that owns them.
   SkGraphics::PurgeFontCache();
-
-  // The cairo folks think we should only clean up in debug builds,
-  // but we're generally in the habit of trying to shut down as
-  // cleanly as possible even in production code, so call this
-  // cairo_debug_* function unconditionally.
-  //
-  // because cairo can assert and thus crash on shutdown, don't do this in
-  // release builds
-#ifdef NS_FREE_PERMANENT_DATA
-  cairo_debug_reset_static_data();
-#endif
 }
 
 gfxPlatform::~gfxPlatform() = default;

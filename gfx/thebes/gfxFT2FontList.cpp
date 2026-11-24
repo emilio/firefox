@@ -24,7 +24,6 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_MULTIPLE_MASTERS_H
 #include "SharedFontList-impl.h"
-#include "cairo-ft.h"
 #include "gfxFT2FontList.h"
 #include "gfxFT2Fonts.h"
 #include "gfxFT2Utils.h"

@@ -117,7 +117,6 @@
 #  include <userenv.h>
 #  include <intrin.h>
 #  include <math.h>
-#  include "cairo/cairo-features.h"
 #  include "mozilla/PreXULSkeletonUI.h"
 #  include "mozilla/DllPrefetchExperimentRegistryInfo.h"
 #  include "mozilla/WindowsDllBlocklist.h"
@@ -4396,53 +4395,24 @@ const XREAppData* gAppData = nullptr;
  */
 NS_VISIBILITY_DEFAULT PRBool nspr_use_zone_allocator = PR_FALSE;
 
-#ifdef CAIRO_HAS_DWRITE_FONT
-
+#ifdef XP_WIN
 #  include <dwrite.h>
 #  include "nsWindowsHelpers.h"
 
-#  ifdef DEBUG_DWRITE_STARTUP
-
-#    define LOGREGISTRY(msg) LogRegistryEvent(msg)
-
-// for use when monitoring process
-static void LogRegistryEvent(const wchar_t* msg) {
-  HKEY dummyKey;
-  HRESULT hr;
-  wchar_t buf[512];
-
-  wsprintf(buf, L" log %s", msg);
-  hr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, buf, 0, KEY_READ, &dummyKey);
-  if (SUCCEEDED(hr)) {
-    RegCloseKey(dummyKey);
-  }
-}
-#  else
-
-#    define LOGREGISTRY(msg)
-
-#  endif
-
 static DWORD WINAPI InitDwriteBG(LPVOID lpdwThreadParam) {
   SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
-  LOGREGISTRY(L"loading dwrite.dll");
   HMODULE dwdll = LoadLibrarySystem32(L"dwrite.dll");
   if (dwdll) {
     decltype(DWriteCreateFactory)* createDWriteFactory =
         (decltype(DWriteCreateFactory)*)GetProcAddress(dwdll,
                                                        "DWriteCreateFactory");
     if (createDWriteFactory) {
-      LOGREGISTRY(L"creating dwrite factory");
       IDWriteFactory* factory;
       HRESULT hr = createDWriteFactory(DWRITE_FACTORY_TYPE_SHARED,
                                        __uuidof(IDWriteFactory),
                                        reinterpret_cast<IUnknown**>(&factory));
       if (SUCCEEDED(hr)) {
-        LOGREGISTRY(L"dwrite factory done");
         factory->Release();
-        LOGREGISTRY(L"freed factory");
-      } else {
-        LOGREGISTRY(L"failed to create factory");
       }
     }
   }
@@ -4806,7 +4776,7 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
 
   SetupErrorHandling(gArgv[0]);
 
-#ifdef CAIRO_HAS_DWRITE_FONT
+#ifdef XP_WIN
   {
     // Bug 602792 - when DWriteCreateFactory is called the dwrite client dll
     // starts the FntCache service if it isn't already running (it's set

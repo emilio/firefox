@@ -26,6 +26,10 @@
 #  include "mozilla/SandboxBroker.h"
 #endif
 
+#ifdef MOZ_WIDGET_GTK
+typedef struct _cairo_font_options cairo_font_options_t;
+#endif
+
 namespace mozilla {
 namespace dom {
 class SystemFontListEntry;

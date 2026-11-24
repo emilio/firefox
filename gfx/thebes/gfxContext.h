@@ -12,7 +12,6 @@
 #include "mozilla/gfx/2D.h"
 #include "nsTArray.h"
 
-typedef struct _cairo cairo_t;
 class GlyphBufferAzure;
 
 namespace mozilla {

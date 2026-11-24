@@ -12,8 +12,6 @@
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 
-typedef struct _cairo_pattern cairo_pattern_t;
-
 class gfxPattern final {
   NS_INLINE_DECL_REFCOUNTING(gfxPattern)
 

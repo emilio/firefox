@@ -5,7 +5,8 @@
 #ifndef GFX_FT2UTILS_H
 #define GFX_FT2UTILS_H
 
-#include "cairo-ft.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include "gfxFT2FontBase.h"
 
 // Rounding and truncation functions for a FreeType fixed point number

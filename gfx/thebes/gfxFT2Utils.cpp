@@ -8,6 +8,8 @@
 #include "mozilla/Likely.h"
 
 #ifdef USE_FC_FREETYPE
+#  include <fontconfig/fontconfig.h>
+
 #  include <fontconfig/fcfreetype.h>
 #endif
 

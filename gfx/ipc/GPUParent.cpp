@@ -19,7 +19,6 @@
 #include "VRManager.h"
 #include "VRManagerParent.h"
 #include "VsyncBridgeParent.h"
-#include "cairo.h"
 #include "gfxConfig.h"
 #include "gfxCrashReporterUtils.h"
 #include "gfxGradientCache.h"
@@ -822,7 +821,6 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
     // that would normally be handled by it.
 #ifdef NS_FREE_PERMANENT_DATA
         SkGraphics::PurgeFontCache();
-        cairo_debug_reset_static_data();
 #endif
 
 #if defined(XP_WIN)
